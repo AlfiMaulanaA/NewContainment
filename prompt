@@ -1,0 +1,3 @@
+│ > lalu buatkan folder management yang berisi folder user, dan buatkan fitur management user. CRUD user, sunakan struktur seperti yang lain. Buat menggunakan  │
+│   api, gunakan component component yang sudah tersedia disini. Table, search, dialog, use-sort-table, pagnation, munculkan total user, active user dll.       │
+│   gunakan backend sebagai referensi datanya                                                                                                                   

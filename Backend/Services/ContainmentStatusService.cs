@@ -9,30 +9,23 @@ namespace Backend.Services
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ContainmentStatusService> _logger;
+        private readonly IEmergencyReportService _emergencyReportService;
 
-        public ContainmentStatusService(AppDbContext context, ILogger<ContainmentStatusService> logger)
+        public ContainmentStatusService(
+            AppDbContext context, 
+            ILogger<ContainmentStatusService> logger,
+            IEmergencyReportService emergencyReportService)
         {
             _context = context;
             _logger = logger;
+            _emergencyReportService = emergencyReportService;
         }
 
-        public async Task<ContainmentStatus?> GetLatestStatusByContainmentIdAsync(int containmentId)
+        public async Task<ContainmentStatus?> GetStatusByContainmentIdAsync(int containmentId)
         {
             return await _context.ContainmentStatuses
                 .Include(cs => cs.Containment)
-                .Where(cs => cs.ContainmentId == containmentId)
-                .OrderByDescending(cs => cs.MqttTimestamp)
-                .FirstOrDefaultAsync();
-        }
-
-        public async Task<IEnumerable<ContainmentStatus>> GetStatusHistoryByContainmentIdAsync(int containmentId, int limit = 100)
-        {
-            return await _context.ContainmentStatuses
-                .Include(cs => cs.Containment)
-                .Where(cs => cs.ContainmentId == containmentId)
-                .OrderByDescending(cs => cs.MqttTimestamp)
-                .Take(limit)
-                .ToListAsync();
+                .FirstOrDefaultAsync(cs => cs.ContainmentId == containmentId);
         }
 
         public async Task<ContainmentStatus> CreateOrUpdateStatusAsync(ContainmentStatus status)
@@ -46,16 +39,46 @@ namespace Backend.Services
                 throw new ArgumentException($"Containment with ID {status.ContainmentId} not found or inactive");
             }
 
-            // Always create a new record for status history
-            status.CreatedAt = DateTime.UtcNow;
-            status.UpdatedAt = DateTime.UtcNow;
+            // Try to find existing status record for this containment
+            var existingStatus = await _context.ContainmentStatuses
+                .FirstOrDefaultAsync(cs => cs.ContainmentId == status.ContainmentId);
 
-            _context.ContainmentStatuses.Add(status);
-            await _context.SaveChangesAsync();
+            if (existingStatus != null)
+            {
+                // UPDATE existing record
+                existingStatus.LightingStatus = status.LightingStatus;
+                existingStatus.EmergencyStatus = status.EmergencyStatus;
+                existingStatus.SmokeDetectorStatus = status.SmokeDetectorStatus;
+                existingStatus.FssStatus = status.FssStatus;
+                existingStatus.EmergencyButtonState = status.EmergencyButtonState;
+                existingStatus.SelenoidStatus = status.SelenoidStatus;
+                existingStatus.LimitSwitchFrontDoorStatus = status.LimitSwitchFrontDoorStatus;
+                existingStatus.LimitSwitchBackDoorStatus = status.LimitSwitchBackDoorStatus;
+                existingStatus.OpenFrontDoorStatus = status.OpenFrontDoorStatus;
+                existingStatus.OpenBackDoorStatus = status.OpenBackDoorStatus;
+                existingStatus.EmergencyTemp = status.EmergencyTemp;
+                existingStatus.MqttTimestamp = status.MqttTimestamp;
+                existingStatus.UpdatedAt = DateTime.UtcNow;
+                existingStatus.RawPayload = status.RawPayload;
 
-            _logger.LogInformation($"ContainmentStatus created for ContainmentId: {status.ContainmentId} at {status.MqttTimestamp}");
+                _context.ContainmentStatuses.Update(existingStatus);
+                await _context.SaveChangesAsync();
 
-            return status;
+                _logger.LogInformation($"ContainmentStatus UPDATED for ContainmentId: {status.ContainmentId} at {status.MqttTimestamp}");
+                return existingStatus;
+            }
+            else
+            {
+                // CREATE new record if doesn't exist (first time)
+                status.CreatedAt = DateTime.UtcNow;
+                status.UpdatedAt = DateTime.UtcNow;
+
+                _context.ContainmentStatuses.Add(status);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"ContainmentStatus CREATED for ContainmentId: {status.ContainmentId} at {status.MqttTimestamp}");
+                return status;
+            }
         }
 
         public async Task<ContainmentStatus> ProcessMqttPayloadAsync(int containmentId, string jsonPayload)
@@ -106,6 +129,9 @@ namespace Backend.Services
                 if (payloadData.TryGetProperty("Emergency temp", out var emergencyTemp))
                     status.EmergencyTemp = emergencyTemp.GetBoolean();
 
+                // Process emergency status untuk reporting
+                await ProcessEmergencyStatuses(payloadData, jsonPayload);
+
                 // Parse timestamp
                 if (payloadData.TryGetProperty("Timestamp", out var timestamp))
                 {
@@ -139,41 +165,91 @@ namespace Backend.Services
             }
         }
 
-        public async Task<IEnumerable<ContainmentStatus>> GetAllLatestStatusesAsync()
+        public async Task<IEnumerable<ContainmentStatus>> GetAllStatusesAsync()
         {
-            // Get the latest status for each containment
-            var latestStatuses = await _context.ContainmentStatuses
+            return await _context.ContainmentStatuses
                 .Include(cs => cs.Containment)
-                .GroupBy(cs => cs.ContainmentId)
-                .Select(g => g.OrderByDescending(cs => cs.MqttTimestamp).First())
                 .ToListAsync();
-
-            return latestStatuses;
         }
 
-        public async Task<bool> DeleteOldStatusesAsync(DateTime cutoffDate)
+        public async Task<ContainmentStatus> InitializeDefaultStatusAsync(int containmentId)
+        {
+            // Check if status already exists
+            var existingStatus = await GetStatusByContainmentIdAsync(containmentId);
+            if (existingStatus != null)
+            {
+                return existingStatus;
+            }
+
+            // Check if containment exists
+            var containmentExists = await _context.Containments
+                .AnyAsync(c => c.Id == containmentId && c.IsActive);
+
+            if (!containmentExists)
+            {
+                throw new ArgumentException($"Containment with ID {containmentId} not found or inactive");
+            }
+
+            // Create default status record
+            var defaultStatus = new ContainmentStatus
+            {
+                ContainmentId = containmentId,
+                LightingStatus = false,
+                EmergencyStatus = false,
+                SmokeDetectorStatus = false,
+                FssStatus = false,
+                EmergencyButtonState = false,
+                SelenoidStatus = false,
+                LimitSwitchFrontDoorStatus = false,
+                LimitSwitchBackDoorStatus = false,
+                OpenFrontDoorStatus = false,
+                OpenBackDoorStatus = false,
+                EmergencyTemp = false,
+                MqttTimestamp = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                RawPayload = "{\"status\":\"initialized\"}"
+            };
+
+            _context.ContainmentStatuses.Add(defaultStatus);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Default ContainmentStatus initialized for ContainmentId: {containmentId}");
+            return defaultStatus;
+        }
+
+        private async Task ProcessEmergencyStatuses(JsonElement payloadData, string rawPayload)
         {
             try
             {
-                var oldStatuses = await _context.ContainmentStatuses
-                    .Where(cs => cs.CreatedAt < cutoffDate)
-                    .ToListAsync();
-
-                if (oldStatuses.Any())
+                // Process Smoke Detector
+                if (payloadData.TryGetProperty("Smoke Detector status", out var smokeStatus))
                 {
-                    _context.ContainmentStatuses.RemoveRange(oldStatuses);
-                    await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation($"Deleted {oldStatuses.Count} old containment status records before {cutoffDate}");
-                    return true;
+                    await _emergencyReportService.ProcessEmergencyStatusAsync("SmokeDetector", smokeStatus.GetBoolean(), rawPayload);
                 }
 
-                return false;
+                // Process FSS (Fire Suppression System)
+                if (payloadData.TryGetProperty("FSS status", out var fssStatus))
+                {
+                    await _emergencyReportService.ProcessEmergencyStatusAsync("FSS", fssStatus.GetBoolean(), rawPayload);
+                }
+
+                // Process Emergency Button
+                if (payloadData.TryGetProperty("Emergency Button State", out var emergencyButtonStatus))
+                {
+                    await _emergencyReportService.ProcessEmergencyStatusAsync("EmergencyButton", emergencyButtonStatus.GetBoolean(), rawPayload);
+                }
+
+                // Process Emergency Temperature
+                if (payloadData.TryGetProperty("Emergency temp", out var emergencyTempStatus))
+                {
+                    await _emergencyReportService.ProcessEmergencyStatusAsync("EmergencyTemp", emergencyTempStatus.GetBoolean(), rawPayload);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error deleting old containment statuses before {cutoffDate}");
-                throw;
+                _logger.LogError(ex, "Error processing emergency statuses from MQTT payload");
+                // Don't throw - we don't want to break the main status processing
             }
         }
     }

@@ -6,11 +6,33 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddContainmentStatusTable : Migration
+    public partial class cihuyss : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "EmergencyReports",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    EmergencyType = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    Status = table.Column<bool>(type: "INTEGER", nullable: false),
+                    StartTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    Duration = table.Column<TimeSpan>(type: "TEXT", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    Notes = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    RawMqttPayload = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EmergencyReports", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
@@ -83,6 +105,37 @@ namespace Backend.Migrations
                     table.ForeignKey(
                         name: "FK_Containments_Users_UpdatedBy",
                         column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ContainmentControls",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ContainmentId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Command = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    ExecutedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    ExecutedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "Pending"),
+                    ErrorMessage = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ContainmentControls", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ContainmentControls_Containments_ContainmentId",
+                        column: x => x.ContainmentId,
+                        principalTable: "Containments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ContainmentControls_Users_ExecutedBy",
+                        column: x => x.ExecutedBy,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -284,6 +337,26 @@ namespace Backend.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ContainmentControls_ContainmentId",
+                table: "ContainmentControls",
+                column: "ContainmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContainmentControls_ExecutedAt",
+                table: "ContainmentControls",
+                column: "ExecutedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContainmentControls_ExecutedBy",
+                table: "ContainmentControls",
+                column: "ExecutedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContainmentControls_Status",
+                table: "ContainmentControls",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Containments_CreatedBy",
                 table: "Containments",
                 column: "CreatedBy");
@@ -296,7 +369,8 @@ namespace Backend.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_ContainmentStatuses_ContainmentId",
                 table: "ContainmentStatuses",
-                column: "ContainmentId");
+                column: "ContainmentId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ContainmentStatuses_CreatedAt",
@@ -322,6 +396,26 @@ namespace Backend.Migrations
                 name: "IX_Devices_UpdatedBy",
                 table: "Devices",
                 column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmergencyReports_EmergencyType",
+                table: "EmergencyReports",
+                column: "EmergencyType");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmergencyReports_EmergencyType_IsActive",
+                table: "EmergencyReports",
+                columns: new[] { "EmergencyType", "IsActive" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmergencyReports_IsActive",
+                table: "EmergencyReports",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmergencyReports_StartTime",
+                table: "EmergencyReports",
+                column: "StartTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Maintenances_AssignTo",
@@ -372,7 +466,13 @@ namespace Backend.Migrations
                 name: "ActivityReports");
 
             migrationBuilder.DropTable(
+                name: "ContainmentControls");
+
+            migrationBuilder.DropTable(
                 name: "ContainmentStatuses");
+
+            migrationBuilder.DropTable(
+                name: "EmergencyReports");
 
             migrationBuilder.DropTable(
                 name: "Maintenances");

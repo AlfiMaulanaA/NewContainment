@@ -25,6 +25,9 @@ namespace Backend.Data
                 // Seed Devices
                 await SeedDevicesAsync(context, racks, users);
 
+                // Seed Default ContainmentStatus
+                await SeedContainmentStatusAsync(context, containments);
+
                 logger.LogInformation("Database seeding completed successfully");
             }
             catch (Exception ex)
@@ -359,6 +362,44 @@ namespace Backend.Data
             };
 
             context.Devices.AddRange(devices);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedContainmentStatusAsync(AppDbContext context, List<Containment> containments)
+        {
+            if (context.ContainmentStatuses.Any())
+            {
+                return;
+            }
+
+            var containmentStatuses = new List<ContainmentStatus>();
+
+            foreach (var containment in containments)
+            {
+                var status = new ContainmentStatus
+                {
+                    ContainmentId = containment.Id,
+                    LightingStatus = false,
+                    EmergencyStatus = false,
+                    SmokeDetectorStatus = false,
+                    FssStatus = false,
+                    EmergencyButtonState = false,
+                    SelenoidStatus = false,
+                    LimitSwitchFrontDoorStatus = false,
+                    LimitSwitchBackDoorStatus = false,
+                    OpenFrontDoorStatus = false,
+                    OpenBackDoorStatus = false,
+                    EmergencyTemp = false,
+                    MqttTimestamp = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    RawPayload = "{\"status\":\"initialized\",\"message\":\"Default status created during seeding\"}"
+                };
+
+                containmentStatuses.Add(status);
+            }
+
+            context.ContainmentStatuses.AddRange(containmentStatuses);
             await context.SaveChangesAsync();
         }
     }

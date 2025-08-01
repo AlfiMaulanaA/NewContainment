@@ -17,6 +17,8 @@ namespace Backend.Data
         public DbSet<Maintenance> Maintenances { get; set; }
         public DbSet<ActivityReport> ActivityReports { get; set; }
         public DbSet<ContainmentStatus> ContainmentStatuses { get; set; }
+        public DbSet<ContainmentControl> ContainmentControls { get; set; }
+        public DbSet<EmergencyReport> EmergencyReports { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -206,16 +208,65 @@ namespace Backend.Data
                 entity.Property(e => e.UpdatedAt).IsRequired();
                 entity.Property(e => e.RawPayload).HasColumnType("TEXT");
 
-                // Foreign key relationship
+                // Foreign key relationship - One Containment to One Status
+                entity.HasOne(e => e.Containment)
+                      .WithOne()  // One-to-One relationship instead of One-to-Many
+                      .HasForeignKey<ContainmentStatus>(e => e.ContainmentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Unique index to ensure one status per containment
+                entity.HasIndex(e => e.ContainmentId).IsUnique();
+                entity.HasIndex(e => e.MqttTimestamp);
+                entity.HasIndex(e => e.CreatedAt);
+            });
+
+            modelBuilder.Entity<ContainmentControl>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ContainmentId).IsRequired();
+                entity.Property(e => e.Command).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.ExecutedAt).IsRequired();
+                entity.Property(e => e.ExecutedBy).IsRequired();
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+                entity.Property(e => e.ErrorMessage).HasMaxLength(255);
+
+                // Foreign key relationships
                 entity.HasOne(e => e.Containment)
                       .WithMany()
                       .HasForeignKey(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                      .OnDelete(DeleteBehavior.Restrict);
 
-                // Index for better query performance
+                entity.HasOne(e => e.ExecutedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.ExecutedBy)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Indexes for performance
                 entity.HasIndex(e => e.ContainmentId);
-                entity.HasIndex(e => e.MqttTimestamp);
-                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.ExecutedAt);
+                entity.HasIndex(e => e.Status);
+            });
+
+            modelBuilder.Entity<EmergencyReport>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EmergencyType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Status).IsRequired();
+                entity.Property(e => e.StartTime).IsRequired();
+                entity.Property(e => e.EndTime);
+                entity.Property(e => e.Duration);
+                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.Notes).HasMaxLength(1000);
+                entity.Property(e => e.RawMqttPayload).HasMaxLength(2000);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+
+                // Indexes for performance
+                entity.HasIndex(e => e.EmergencyType);
+                entity.HasIndex(e => e.StartTime);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => new { e.EmergencyType, e.IsActive });
             });
 
             // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing

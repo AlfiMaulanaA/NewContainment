@@ -22,68 +22,72 @@ namespace Backend.Controllers
         }
 
         /// <summary>
-        /// Get the latest status for a specific containment
+        /// Get current status for a specific containment
         /// </summary>
-        [HttpGet("{containmentId}/latest")]
-        public async Task<ActionResult<ContainmentStatus>> GetLatestStatus(int containmentId)
+        [HttpGet("{containmentId}")]
+        public async Task<ActionResult<ContainmentStatus>> GetStatus(int containmentId)
         {
             try
             {
-                var status = await _containmentStatusService.GetLatestStatusByContainmentIdAsync(containmentId);
+                var status = await _containmentStatusService.GetStatusByContainmentIdAsync(containmentId);
                 
                 if (status == null)
                 {
-                    return NotFound($"No status found for containment ID {containmentId}");
+                    // Try to initialize default status if not found
+                    status = await _containmentStatusService.InitializeDefaultStatusAsync(containmentId);
                 }
 
                 return Ok(status);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid containment ID: {ContainmentId}", containmentId);
+                return NotFound(ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting latest status for containment {ContainmentId}", containmentId);
+                _logger.LogError(ex, "Error getting status for containment {ContainmentId}", containmentId);
                 return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
-        /// Get status history for a specific containment
+        /// Get all containment statuses
         /// </summary>
-        [HttpGet("{containmentId}/history")]
-        public async Task<ActionResult<IEnumerable<ContainmentStatus>>> GetStatusHistory(
-            int containmentId, 
-            [FromQuery] int limit = 100)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ContainmentStatus>>> GetAllStatuses()
         {
             try
             {
-                if (limit <= 0 || limit > 1000)
-                {
-                    return BadRequest("Limit must be between 1 and 1000");
-                }
-
-                var statuses = await _containmentStatusService.GetStatusHistoryByContainmentIdAsync(containmentId, limit);
+                var statuses = await _containmentStatusService.GetAllStatusesAsync();
                 return Ok(statuses);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting status history for containment {ContainmentId}", containmentId);
+                _logger.LogError(ex, "Error getting all statuses");
                 return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
-        /// Get latest status for all containments
+        /// Initialize default status for a containment
         /// </summary>
-        [HttpGet("all/latest")]
-        public async Task<ActionResult<IEnumerable<ContainmentStatus>>> GetAllLatestStatuses()
+        [HttpPost("{containmentId}/initialize")]
+        public async Task<ActionResult<ContainmentStatus>> InitializeStatus(int containmentId)
         {
             try
             {
-                var statuses = await _containmentStatusService.GetAllLatestStatusesAsync();
-                return Ok(statuses);
+                var status = await _containmentStatusService.InitializeDefaultStatusAsync(containmentId);
+                return CreatedAtAction(nameof(GetStatus), new { containmentId = containmentId }, status);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid containment ID: {ContainmentId}", containmentId);
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting all latest statuses");
+                _logger.LogError(ex, "Error initializing status for containment {ContainmentId}", containmentId);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -102,7 +106,7 @@ namespace Backend.Controllers
                 var status = await _containmentStatusService.ProcessMqttPayloadAsync(containmentId, jsonPayload);
                 
                 return CreatedAtAction(
-                    nameof(GetLatestStatus), 
+                    nameof(GetStatus), 
                     new { containmentId = containmentId }, 
                     status);
             }

@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250729174537_AddContainmentStatusTable")]
-    partial class AddContainmentStatusTable
+    [Migration("20250801100152_cihuyss")]
+    partial class cihuyss
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -113,6 +113,54 @@ namespace Backend.Migrations
                     b.ToTable("Containments");
                 });
 
+            modelBuilder.Entity("Backend.Models.ContainmentControl", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Command")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ContainmentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExecutedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ExecutedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Pending");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainmentId");
+
+                    b.HasIndex("ExecutedAt");
+
+                    b.HasIndex("ExecutedBy");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("ContainmentControls");
+                });
+
             modelBuilder.Entity("Backend.Models.ContainmentStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -169,7 +217,8 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ContainmentId");
+                    b.HasIndex("ContainmentId")
+                        .IsUnique();
 
                     b.HasIndex("CreatedAt");
 
@@ -241,6 +290,61 @@ namespace Backend.Migrations
                     b.HasIndex("UpdatedBy");
 
                     b.ToTable("Devices");
+                });
+
+            modelBuilder.Entity("Backend.Models.EmergencyReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeSpan?>("Duration")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EmergencyType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawMqttPayload")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmergencyType");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("StartTime");
+
+                    b.HasIndex("EmergencyType", "IsActive");
+
+                    b.ToTable("EmergencyReports");
                 });
 
             modelBuilder.Entity("Backend.Models.Maintenance", b =>
@@ -433,11 +537,30 @@ namespace Backend.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
-            modelBuilder.Entity("Backend.Models.ContainmentStatus", b =>
+            modelBuilder.Entity("Backend.Models.ContainmentControl", b =>
                 {
                     b.HasOne("Backend.Models.Containment", "Containment")
                         .WithMany()
                         .HasForeignKey("ContainmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.User", "ExecutedByUser")
+                        .WithMany()
+                        .HasForeignKey("ExecutedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Containment");
+
+                    b.Navigation("ExecutedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.ContainmentStatus", b =>
+                {
+                    b.HasOne("Backend.Models.Containment", "Containment")
+                        .WithOne()
+                        .HasForeignKey("Backend.Models.ContainmentStatus", "ContainmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

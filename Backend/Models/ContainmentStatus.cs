@@ -15,26 +15,26 @@ namespace Backend.Models
         public Containment? Containment { get; set; }
         
         // Status fields from MQTT payload
-        public bool LightingStatus { get; set; }
-        public bool EmergencyStatus { get; set; }
-        public bool SmokeDetectorStatus { get; set; }
-        public bool FssStatus { get; set; }
-        public bool EmergencyButtonState { get; set; }
-        public bool SelenoidStatus { get; set; }
-        public bool LimitSwitchFrontDoorStatus { get; set; }
-        public bool LimitSwitchBackDoorStatus { get; set; }
-        public bool OpenFrontDoorStatus { get; set; }
-        public bool OpenBackDoorStatus { get; set; }
-        public bool EmergencyTemp { get; set; }
+        public bool LightingStatus { get; set; } = false;
+        public bool EmergencyStatus { get; set; } = false;
+        public bool SmokeDetectorStatus { get; set; } = false;
+        public bool FssStatus { get; set; } = false;
+        public bool EmergencyButtonState { get; set; } = false;
+        public bool SelenoidStatus { get; set; } = false;
+        public bool LimitSwitchFrontDoorStatus { get; set; } = false;
+        public bool LimitSwitchBackDoorStatus { get; set; } = false;
+        public bool OpenFrontDoorStatus { get; set; } = false;
+        public bool OpenBackDoorStatus { get; set; } = false;
+        public bool EmergencyTemp { get; set; } = false;
         
-        // MQTT timestamp
-        public DateTime MqttTimestamp { get; set; }
+        // MQTT timestamp - last received message time
+        public DateTime MqttTimestamp { get; set; } = DateTime.UtcNow;
         
         // System timestamps
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
-        // Raw JSON payload for debugging/audit
+        // Raw JSON payload for debugging (last message only)
         [Column(TypeName = "TEXT")]
         public string? RawPayload { get; set; }
     }

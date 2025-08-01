@@ -9,6 +9,7 @@ namespace Backend.Services
         private readonly IConfiguration _configuration;
         private IMqttClient? _mqttClient;
         private readonly Dictionary<string, Func<string, string, Task>> _messageHandlers;
+        private readonly bool _mqttEnabled;
 
         public bool IsConnected => _mqttClient?.IsConnected ?? false;
         public event EventHandler<string>? ConnectionStatusChanged;
@@ -18,10 +19,22 @@ namespace Backend.Services
             _logger = logger;
             _configuration = configuration;
             _messageHandlers = new Dictionary<string, Func<string, string, Task>>();
+            _mqttEnabled = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? configuration["Mqtt:EnableMqtt"] ?? "true");
+            
+            if (!_mqttEnabled)
+            {
+                _logger.LogInformation("MQTT service is disabled in configuration");
+            }
         }
 
         public async Task ConnectAsync()
         {
+            if (!_mqttEnabled)
+            {
+                _logger.LogInformation("MQTT is disabled, skipping connection");
+                return;
+            }
+
             try
             {
                 if (_mqttClient?.IsConnected == true)
@@ -89,6 +102,12 @@ namespace Backend.Services
 
         public async Task PublishAsync(string topic, string payload)
         {
+            if (!_mqttEnabled)
+            {
+                _logger.LogInformation("MQTT is disabled, cannot publish message to topic {Topic}", topic);
+                return;
+            }
+
             try
             {
                 if (_mqttClient?.IsConnected != true)
@@ -115,6 +134,12 @@ namespace Backend.Services
 
         public async Task SubscribeAsync(string topic, Func<string, string, Task> messageHandler)
         {
+            if (!_mqttEnabled)
+            {
+                _logger.LogInformation("MQTT is disabled, cannot subscribe to topic {Topic}", topic);
+                return;
+            }
+
             try
             {
                 if (_mqttClient?.IsConnected != true)

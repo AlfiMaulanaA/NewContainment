@@ -13,7 +13,6 @@ namespace Backend.Models
         public string Name { get; set; } = string.Empty;
 
         [Required]
-        [JsonIgnore]
         public int ContainmentId { get; set; }
 
         [StringLength(500)]

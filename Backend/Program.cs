@@ -44,11 +44,19 @@ builder.Services.AddScoped<Backend.Services.IMaintenanceService, Backend.Service
 builder.Services.AddScoped<Backend.Services.IActivityReportService, Backend.Services.ActivityReportService>();
 builder.Services.AddScoped<Backend.Services.IBackupService, Backend.Services.BackupService>();
 builder.Services.AddScoped<Backend.Services.IContainmentStatusService, Backend.Services.ContainmentStatusService>();
+builder.Services.AddScoped<Backend.Services.IContainmentControlService, Backend.Services.ContainmentControlService>();
+builder.Services.AddScoped<Backend.Services.IEmergencyReportService, Backend.Services.EmergencyReportService>();
 builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.MqttService>();
 
 // Add background services
 builder.Services.AddHostedService<Backend.Services.BackupHostedService>();
-builder.Services.AddHostedService<Backend.Services.ContainmentMqttHostedService>();
+
+// Add MQTT hosted service only if MQTT is enabled
+var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? builder.Configuration["Mqtt:EnableMqtt"] ?? "true");
+if (enableMqtt)
+{
+    builder.Services.AddHostedService<Backend.Services.ContainmentMqttHostedService>();
+}
 
 // Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");

@@ -18,9 +18,9 @@ namespace Backend.Models
 
         [StringLength(20)]
         public string? PhoneNumber { get; set; }
-        public string? Photo { get; set; }
-        public int? UID { get; set; }
-        public bool? CID { get; set; }
+
+        [StringLength(500)]
+        public string? PhotoPath { get; set; }
 
         [Required]
         [StringLength(255)]

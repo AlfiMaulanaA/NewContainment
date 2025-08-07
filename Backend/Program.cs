@@ -46,7 +46,14 @@ builder.Services.AddScoped<Backend.Services.IBackupService, Backend.Services.Bac
 builder.Services.AddScoped<Backend.Services.IContainmentStatusService, Backend.Services.ContainmentStatusService>();
 builder.Services.AddScoped<Backend.Services.IContainmentControlService, Backend.Services.ContainmentControlService>();
 builder.Services.AddScoped<Backend.Services.IEmergencyReportService, Backend.Services.EmergencyReportService>();
+builder.Services.AddScoped<Backend.Services.IMqttConfigurationService, Backend.Services.MqttConfigurationService>();
+builder.Services.AddScoped<Backend.Services.INetworkConfigurationService, Backend.Services.NetworkConfigurationService>();
+builder.Services.AddScoped<Backend.Services.ICctvService, Backend.Services.CctvService>();
+builder.Services.AddScoped<Backend.Services.IFileService, Backend.Services.FileService>();
 builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.MqttService>();
+
+// Add HttpClient for CCTV service
+builder.Services.AddHttpClient();
 
 // Add background services
 builder.Services.AddHostedService<Backend.Services.BackupHostedService>();
@@ -156,6 +163,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable static files for photo uploads
+app.UseStaticFiles();
 
 app.UseCors("AllowAll");
 

@@ -52,7 +52,15 @@ namespace Backend.Services
                 }
 
                 // Wait for next check
-                await Task.Delay(_checkInterval, stoppingToken);
+                try
+                {
+                    await Task.Delay(_checkInterval, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Service is being stopped, exit gracefully
+                    break;
+                }
             }
 
             _logger.LogInformation("Backup service stopped");

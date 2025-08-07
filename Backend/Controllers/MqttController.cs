@@ -103,9 +103,10 @@ namespace Backend.Controllers
 
             try
             {
-                await _mqttService.SubscribeAsync(request.Topic, async (topic, payload) =>
+                await _mqttService.SubscribeAsync(request.Topic, (topic, payload) =>
                 {
                     _logger.LogInformation("Received message from topic {Topic}: {Payload}", topic, payload);
+                    return Task.CompletedTask;
                 });
 
                 return Ok(new { message = $"Subscribed to topic '{request.Topic}' successfully" });

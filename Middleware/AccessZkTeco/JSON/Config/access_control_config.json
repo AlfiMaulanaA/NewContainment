@@ -1,0 +1,40 @@
+{
+  "devices": [
+    {
+      "id": "device_001",
+      "name": "Main Entry Access Control",
+      "ip": "192.168.1.201",
+      "port": 4370,
+      "timeout": 30,
+      "password": "",
+      "enabled": true,
+      "location": "Main Entrance",
+      "description": "Primary access control device for main entrance"
+    },
+    {
+      "id": "device_002", 
+      "name": "Secondary Entry Access Control",
+      "ip": "192.168.1.202",
+      "port": 4370,
+      "timeout": 30,
+      "password": "",
+      "enabled": false,
+      "location": "Secondary Entrance",
+      "description": "Secondary access control device for back entrance"
+    }
+  ],
+  "connection_settings": {
+    "max_retries": 3,
+    "retry_delay": 5,
+    "connection_timeout": 30,
+    "keep_alive": true,
+    "auto_reconnect": true
+  },
+  "logging": {
+    "enabled": true,
+    "level": "INFO",
+    "file_path": "logs/access_control.log",
+    "max_file_size": "10MB",
+    "backup_count": 5
+  }
+}

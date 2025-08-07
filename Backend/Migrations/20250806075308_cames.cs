@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class cihuyss : Migration
+    public partial class cames : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -111,6 +111,84 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MqttConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    IsEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    UseEnvironmentConfig = table.Column<bool>(type: "INTEGER", nullable: false),
+                    BrokerHost = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    BrokerPort = table.Column<int>(type: "INTEGER", nullable: true),
+                    Username = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    Password = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    ClientId = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    UseSsl = table.Column<bool>(type: "INTEGER", nullable: false),
+                    KeepAliveInterval = table.Column<int>(type: "INTEGER", nullable: false),
+                    ReconnectDelay = table.Column<int>(type: "INTEGER", nullable: false),
+                    TopicPrefix = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MqttConfigurations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MqttConfigurations_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_MqttConfigurations_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NetworkConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    InterfaceType = table.Column<int>(type: "INTEGER", nullable: false),
+                    ConfigMethod = table.Column<int>(type: "INTEGER", nullable: false),
+                    IpAddress = table.Column<string>(type: "TEXT", maxLength: 15, nullable: true),
+                    SubnetMask = table.Column<string>(type: "TEXT", maxLength: 15, nullable: true),
+                    Gateway = table.Column<string>(type: "TEXT", maxLength: 15, nullable: true),
+                    PrimaryDns = table.Column<string>(type: "TEXT", maxLength: 15, nullable: true),
+                    SecondaryDns = table.Column<string>(type: "TEXT", maxLength: 15, nullable: true),
+                    Metric = table.Column<string>(type: "TEXT", maxLength: 6, nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NetworkConfigurations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NetworkConfigurations_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_NetworkConfigurations_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ContainmentControls",
                 columns: table => new
                 {
@@ -207,6 +285,64 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Racks_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CctvCameras",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    StreamUrl = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    SnapshotUrl = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    StreamType = table.Column<int>(type: "INTEGER", nullable: false),
+                    Protocol = table.Column<int>(type: "INTEGER", nullable: false),
+                    Username = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    Password = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    Port = table.Column<int>(type: "INTEGER", nullable: true),
+                    Location = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    ContainmentId = table.Column<int>(type: "INTEGER", nullable: true),
+                    RackId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Resolution = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 3),
+                    FrameRate = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 30),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    IsOnline = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
+                    ShowDashboard = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LastOnlineAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CctvCameras", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CctvCameras_Containments_ContainmentId",
+                        column: x => x.ContainmentId,
+                        principalTable: "Containments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_CctvCameras_Racks_RackId",
+                        column: x => x.RackId,
+                        principalTable: "Racks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_CctvCameras_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CctvCameras_Users_UpdatedBy",
                         column: x => x.UpdatedBy,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -337,6 +473,41 @@ namespace Backend.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_ContainmentId",
+                table: "CctvCameras",
+                column: "ContainmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_CreatedAt",
+                table: "CctvCameras",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_CreatedBy",
+                table: "CctvCameras",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_IsActive",
+                table: "CctvCameras",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_IsOnline",
+                table: "CctvCameras",
+                column: "IsOnline");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_RackId",
+                table: "CctvCameras",
+                column: "RackId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CctvCameras_UpdatedBy",
+                table: "CctvCameras",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ContainmentControls_ContainmentId",
                 table: "ContainmentControls",
                 column: "ContainmentId");
@@ -438,6 +609,57 @@ namespace Backend.Migrations
                 column: "UpdatedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MqttConfigurations_CreatedBy",
+                table: "MqttConfigurations",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MqttConfigurations_IsActive",
+                table: "MqttConfigurations",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MqttConfigurations_IsEnabled",
+                table: "MqttConfigurations",
+                column: "IsEnabled");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MqttConfigurations_UpdatedBy",
+                table: "MqttConfigurations",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MqttConfigurations_UseEnvironmentConfig",
+                table: "MqttConfigurations",
+                column: "UseEnvironmentConfig");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NetworkConfigurations_ConfigMethod",
+                table: "NetworkConfigurations",
+                column: "ConfigMethod");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NetworkConfigurations_CreatedBy",
+                table: "NetworkConfigurations",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NetworkConfigurations_InterfaceType",
+                table: "NetworkConfigurations",
+                column: "InterfaceType",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NetworkConfigurations_IsActive",
+                table: "NetworkConfigurations",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NetworkConfigurations_UpdatedBy",
+                table: "NetworkConfigurations",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Racks_ContainmentId",
                 table: "Racks",
                 column: "ContainmentId");
@@ -466,6 +688,9 @@ namespace Backend.Migrations
                 name: "ActivityReports");
 
             migrationBuilder.DropTable(
+                name: "CctvCameras");
+
+            migrationBuilder.DropTable(
                 name: "ContainmentControls");
 
             migrationBuilder.DropTable(
@@ -476,6 +701,12 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "Maintenances");
+
+            migrationBuilder.DropTable(
+                name: "MqttConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "NetworkConfigurations");
 
             migrationBuilder.DropTable(
                 name: "Devices");

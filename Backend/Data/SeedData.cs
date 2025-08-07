@@ -28,6 +28,22 @@ namespace Backend.Data
                 // Seed Default ContainmentStatus
                 await SeedContainmentStatusAsync(context, containments);
 
+                // Seed Maintenance
+                await SeedMaintenanceAsync(context, users, containments, racks);
+
+                // Seed CctvCameras 
+                await SeedCctvCamerasAsync(context, containments, racks, users);
+
+                // Seed ActivityReports
+                await SeedActivityReportsAsync(context, users);
+
+                // Seed EmergencyReports
+                await SeedEmergencyReportsAsync(context);
+
+                // Seed MqttConfiguration
+                await SeedMqttConfigurationAsync(context, users);
+
+
                 logger.LogInformation("Database seeding completed successfully");
             }
             catch (Exception ex)
@@ -103,31 +119,9 @@ namespace Backend.Data
                 {
                     Name = "Data Center A",
                     Type = ContainmentType.HotAisleContainment,
-                    Description = "Primary data center containment for high availability",
-                    Location = "Building A, Floor 1",
+                    Description = "Primary data center containment for high availability servers and network equipment",
+                    Location = "Building A, Floor 1, Room 101",
                     CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Containment
-                {
-                    Name = "Server Room B",
-                    Type = ContainmentType.HotAisleContainment,
-                    Description = "Secondary server room with cold aisle containment",
-                    Location = "Building B, Floor 2",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Containment
-                {
-                    Name = "Network Operations Center",
-                    Type = ContainmentType.ColdAisleContainment,
-                    Description = "Network equipment containment area",
-                    Location = "Building A, Floor 3",
-                    CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     IsActive = true
@@ -174,8 +168,8 @@ namespace Backend.Data
                 },
                 new Rack
                 {
-                    Name = "Rack B-01",
-                    ContainmentId = containments[1].Id, // Server Room B
+                    Name = "Rack A-03",
+                    ContainmentId = containments[0].Id, // Data Center A
                     Description = "Storage and backup servers",
                     CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
@@ -184,8 +178,8 @@ namespace Backend.Data
                 },
                 new Rack
                 {
-                    Name = "Rack C-01",
-                    ContainmentId = containments[2].Id, // Network Operations Center
+                    Name = "Rack A-04",
+                    ContainmentId = containments[0].Id, // Data Center A
                     Description = "Network switches and routers",
                     CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
@@ -286,7 +280,7 @@ namespace Backend.Data
                     IsActive = true
                 },
 
-                // Devices in Rack B-01 (Storage)
+                // Devices in Rack A-03 (Storage)
                 new Device
                 {
                     Name = "Storage Array 01",
@@ -316,7 +310,7 @@ namespace Backend.Data
                     IsActive = true
                 },
 
-                // Devices in Rack C-01 (Network)
+                // Devices in Rack A-04 (Network)
                 new Device
                 {
                     Name = "Core Switch 01",
@@ -402,5 +396,309 @@ namespace Backend.Data
             context.ContainmentStatuses.AddRange(containmentStatuses);
             await context.SaveChangesAsync();
         }
+
+        private static async Task SeedMaintenanceAsync(AppDbContext context, List<User> users, List<Containment> containments, List<Rack> racks)
+        {
+            if (context.Maintenances.Any())
+            {
+                return;
+            }
+
+            var adminUser = users.First(u => u.Role == UserRole.Admin);
+            var devUser = users.First(u => u.Role == UserRole.Developer);
+            var normalUser = users.First(u => u.Role == UserRole.User);
+
+            // Get devices for device maintenance
+            var devices = context.Devices.ToList();
+
+            var maintenances = new List<Maintenance>
+            {
+                new Maintenance
+                {
+                    Name = "Monthly Server Health Check",
+                    Description = "Comprehensive health check for all servers in the data center",
+                    StartTask = DateTime.UtcNow.AddDays(1),
+                    EndTask = DateTime.UtcNow.AddDays(2),
+                    AssignTo = devUser.Id,
+                    TargetType = MaintenanceTarget.Containment,
+                    TargetId = containments[0].Id,
+                    Status = "Scheduled",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+                new Maintenance
+                {
+                    Name = "Rack A-01 Power System Inspection",
+                    Description = "Inspect UPS units and power distribution in rack A-01",
+                    StartTask = DateTime.UtcNow.AddDays(3),
+                    EndTask = DateTime.UtcNow.AddDays(3).AddHours(4),
+                    AssignTo = normalUser.Id,
+                    TargetType = MaintenanceTarget.Rack,
+                    TargetId = racks[0].Id,
+                    Status = "Scheduled",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+                new Maintenance
+                {
+                    Name = "Device Firmware Update",
+                    Description = "Update firmware for web server device",
+                    StartTask = DateTime.UtcNow.AddDays(-2),
+                    EndTask = DateTime.UtcNow.AddDays(-1),
+                    AssignTo = devUser.Id,
+                    TargetType = MaintenanceTarget.Device,
+                    TargetId = devices.Count > 0 ? devices[0].Id : racks[0].Id,
+                    Status = "Completed",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow.AddDays(-3),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-1),
+                    IsActive = true
+                }
+            };
+
+            context.Maintenances.AddRange(maintenances);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedCctvCamerasAsync(AppDbContext context, List<Containment> containments, List<Rack> racks, List<User> users)
+        {
+            if (context.CctvCameras.Any())
+            {
+                return;
+            }
+
+            var adminUser = users.First(u => u.Role == UserRole.Admin);
+            var devUser = users.First(u => u.Role == UserRole.Developer);
+
+            var cctvCameras = new List<CctvCamera>
+    {
+        // Camera 1: Untuk pintu masuk containment
+        new CctvCamera
+        {
+            Name = "Camera Pintu Masuk Data Center A",
+            Description = "Mengawasi pintu masuk utama ke data center",
+            StreamUrl = "rtsp://admin:password123@192.168.1.10:554/stream1",
+            StreamType = CctvStreamType.Live,
+            Protocol = CctvStreamProtocol.RTSP,
+            Username = "admin",
+            Password = "password123",
+            Port = 554,
+            Location = "Pintu Masuk Ruangan Server",
+            ContainmentId = containments.First().Id, // Mengambil Containment pertama
+            Resolution = CctvResolution.HD1080p,
+            FrameRate = 25,
+            IsActive = true,
+            IsOnline = true,
+            LastOnlineAt = DateTime.UtcNow,
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            ShowDashboard = true
+        },
+        // Camera 2: Untuk memantau Rack server
+        new CctvCamera
+        {
+            Name = "Camera Rack A-01",
+            Description = "Mengawasi perangkat di dalam Rack A-01",
+            StreamUrl = "rtsp://dev_user:dev_pass@192.168.1.20:554/stream2",
+            StreamType = CctvStreamType.Live,
+            Protocol = CctvStreamProtocol.RTSP,
+            Username = "dev_user",
+            Password = "dev_pass",
+            Port = 554,
+            Location = "Interior Rack A-01",
+            RackId = racks.First().Id, // Mengambil Rack pertama
+            Resolution = CctvResolution.HD720p,
+            FrameRate = 30,
+            IsActive = true,
+            IsOnline = true,
+            LastOnlineAt = DateTime.UtcNow,
+            CreatedBy = devUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }
+    };
+
+            context.CctvCameras.AddRange(cctvCameras);
+            await context.SaveChangesAsync();
+        }
+        private static async Task SeedActivityReportsAsync(AppDbContext context, List<User> users)
+        {
+            if (context.ActivityReports.Any())
+            {
+                return;
+            }
+
+            var adminUser = users.First(u => u.Role == UserRole.Admin);
+            var devUser = users.First(u => u.Role == UserRole.Developer);
+
+            var activityReports = new List<ActivityReport>
+            {
+                new ActivityReport
+                {
+                    Description = "System startup completed successfully",
+                    Timestamp = DateTime.UtcNow.AddHours(-2),
+                    Status = "Success",
+                    Trigger = "System",
+                    UserId = adminUser.Id,
+                    AdditionalData = "All systems operational"
+                },
+                new ActivityReport
+                {
+                    Description = "New user created: Jane User",
+                    Timestamp = DateTime.UtcNow.AddHours(-1),
+                    Status = "Success",
+                    Trigger = "User Management",
+                    UserId = adminUser.Id,
+                    AdditionalData = "User role: User"
+                },
+                new ActivityReport
+                {
+                    Description = "Database backup completed",
+                    Timestamp = DateTime.UtcNow.AddMinutes(-30),
+                    Status = "Success",
+                    Trigger = "Scheduled Task",
+                    UserId = devUser.Id,
+                    AdditionalData = "Backup size: 2.5GB"
+                },
+                new ActivityReport
+                {
+                    Description = "Network configuration updated",
+                    Timestamp = DateTime.UtcNow.AddMinutes(-15),
+                    Status = "Success",
+                    Trigger = "Manual",
+                    UserId = devUser.Id,
+                    AdditionalData = "MQTT settings configured"
+                },
+                new ActivityReport
+                {
+                    Description = "Failed login attempt detected",
+                    Timestamp = DateTime.UtcNow.AddMinutes(-5),
+                    Status = "Warning",
+                    Trigger = "Security",
+                    UserId = null,
+                    AdditionalData = "IP: 192.168.1.100"
+                }
+            };
+
+            context.ActivityReports.AddRange(activityReports);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedEmergencyReportsAsync(AppDbContext context)
+        {
+            if (context.EmergencyReports.Any())
+            {
+                return;
+            }
+
+            var emergencyReports = new List<EmergencyReport>
+            {
+                new EmergencyReport
+                {
+                    EmergencyType = "Fire",
+                    Status = false,
+                    StartTime = DateTime.UtcNow.AddDays(-7),
+                    EndTime = DateTime.UtcNow.AddDays(-7).AddHours(2),
+                    Duration = TimeSpan.FromHours(2),
+                    IsActive = false,
+                    Notes = "False alarm triggered by dust sensor malfunction",
+                    RawMqttPayload = "{\"type\":\"fire\",\"sensor\":\"smoke_detector_1\",\"status\":\"triggered\"}",
+                    CreatedAt = DateTime.UtcNow.AddDays(-7),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-7).AddHours(2)
+                },
+                new EmergencyReport
+                {
+                    EmergencyType = "Temperature",
+                    Status = false,
+                    StartTime = DateTime.UtcNow.AddDays(-3),
+                    EndTime = DateTime.UtcNow.AddDays(-3).AddHours(1),
+                    Duration = TimeSpan.FromHours(1),
+                    IsActive = false,
+                    Notes = "Temperature spike resolved after AC unit restart",
+                    RawMqttPayload = "{\"type\":\"temperature\",\"sensor\":\"temp_01\",\"value\":45.2}",
+                    CreatedAt = DateTime.UtcNow.AddDays(-3),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-3).AddHours(1)
+                },
+                new EmergencyReport
+                {
+                    EmergencyType = "Power",
+                    Status = true,
+                    StartTime = DateTime.UtcNow.AddHours(-1),
+                    EndTime = null,
+                    Duration = null,
+                    IsActive = true,
+                    Notes = "UPS battery backup activated, investigating main power issue",
+                    RawMqttPayload = "{\"type\":\"power\",\"status\":\"main_failure\",\"backup\":\"active\"}",
+                    CreatedAt = DateTime.UtcNow.AddHours(-1),
+                    UpdatedAt = DateTime.UtcNow.AddMinutes(-10)
+                }
+            };
+
+            context.EmergencyReports.AddRange(emergencyReports);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedMqttConfigurationAsync(AppDbContext context, List<User> users)
+        {
+            if (context.MqttConfigurations.Any())
+            {
+                return;
+            }
+
+            var adminUser = users.First(u => u.Role == UserRole.Admin);
+
+            var mqttConfigurations = new List<MqttConfiguration>
+            {
+                new MqttConfiguration
+                {
+                    IsEnabled = true,
+                    UseEnvironmentConfig = false,
+                    BrokerHost = "localhost",
+                    BrokerPort = 1883,
+                    Username = "admin",
+                    Password = "password123",
+                    ClientId = "ContainmentSystem_Primary",
+                    UseSsl = false,
+                    KeepAliveInterval = 60,
+                    ReconnectDelay = 5,
+                    TopicPrefix = "containment",
+                    Description = "Primary MQTT configuration for local broker",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+                new MqttConfiguration
+                {
+                    IsEnabled = false,
+                    UseEnvironmentConfig = false,
+                    BrokerHost = "mqtt.example.com",
+                    BrokerPort = 8883,
+                    Username = "containment_user",
+                    Password = "secure_password",
+                    ClientId = "ContainmentSystem_Cloud",
+                    UseSsl = true,
+                    KeepAliveInterval = 120,
+                    ReconnectDelay = 10,
+                    TopicPrefix = "datacenter/containment",
+                    Description = "Cloud MQTT broker configuration for remote monitoring",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow.AddDays(-1),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-1),
+                    IsActive = false
+                }
+            };
+
+
+
+            context.MqttConfigurations.AddRange(mqttConfigurations);
+            await context.SaveChangesAsync();
+        }
+
     }
 }

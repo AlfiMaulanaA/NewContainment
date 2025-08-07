@@ -1,0 +1,70 @@
+{
+  "broker": {
+    "host": "localhost",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "keepalive": 60,
+    "client_id": "zkteco_access_control_middleware",
+    "clean_session": true,
+    "tls_enabled": false,
+    "tls_ca_certs": "",
+    "tls_certfile": "",
+    "tls_keyfile": ""
+  },
+  "topics": {
+    "base_topic": "access_control/zkteco",
+    "users": {
+      "get_all": "access_control/zkteco/users/get_all",
+      "get_by_id": "access_control/zkteco/users/get/{user_id}",
+      "create": "access_control/zkteco/users/create",
+      "update": "access_control/zkteco/users/update/{user_id}",
+      "delete": "access_control/zkteco/users/delete/{user_id}",
+      "response": "access_control/zkteco/users/response"
+    },
+    "fingerprints": {
+      "register": "access_control/zkteco/fingerprints/register",
+      "get_templates": "access_control/zkteco/fingerprints/get_templates/{user_id}",
+      "delete": "access_control/zkteco/fingerprints/delete/{user_id}",
+      "response": "access_control/zkteco/fingerprints/response"
+    },
+    "cards": {
+      "register": "access_control/zkteco/cards/register",
+      "get": "access_control/zkteco/cards/get/{user_id}",
+      "delete": "access_control/zkteco/cards/delete/{user_id}",
+      "response": "access_control/zkteco/cards/response"
+    },
+    "attendance": {
+      "get_records": "access_control/zkteco/attendance/get_records",
+      "live_capture": "access_control/zkteco/attendance/live_capture",
+      "response": "access_control/zkteco/attendance/response"
+    },
+    "device": {
+      "status": "access_control/zkteco/device/status",
+      "connect": "access_control/zkteco/device/connect/{device_id}",
+      "disconnect": "access_control/zkteco/device/disconnect/{device_id}",
+      "info": "access_control/zkteco/device/info/{device_id}",
+      "response": "access_control/zkteco/device/response"
+    },
+    "system": {
+      "health": "access_control/zkteco/system/health",
+      "logs": "access_control/zkteco/system/logs",
+      "response": "access_control/zkteco/system/response"
+    }
+  },
+  "qos": {
+    "default": 1,
+    "response": 1,
+    "live_capture": 0
+  },
+  "retain": {
+    "default": false,
+    "status": true,
+    "health": true
+  },
+  "publish_settings": {
+    "timeout": 10,
+    "max_retries": 3,
+    "retry_delay": 2
+  }
+}

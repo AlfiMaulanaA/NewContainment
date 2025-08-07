@@ -64,8 +64,8 @@ namespace Backend.Data
             {
                 new User
                 {
-                    Name = "Admin User",
-                    Email = "admin@example.com",
+                    Name = "Admin",
+                    Email = "admin@gmail.com",
                     PhoneNumber = "123456789",
                     PasswordHash = authService.HashPassword("password123"),
                     Role = UserRole.Admin,
@@ -76,7 +76,7 @@ namespace Backend.Data
                 new User
                 {
                     Name = "John Developer",
-                    Email = "dev@example.com",
+                    Email = "dev@gmail.com",
                     PhoneNumber = "987654321",
                     PasswordHash = authService.HashPassword("password123"),
                     Role = UserRole.Developer,
@@ -87,7 +87,7 @@ namespace Backend.Data
                 new User
                 {
                     Name = "Jane User",
-                    Email = "user@example.com",
+                    Email = "user@admin.com",
                     PhoneNumber = "555123456",
                     PasswordHash = authService.HashPassword("password123"),
                     Role = UserRole.User,

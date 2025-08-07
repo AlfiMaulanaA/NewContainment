@@ -10,6 +10,18 @@ Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Logging
+builder.Logging.ClearProviders();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddConsole();
+    builder.Logging.AddDebug();
+}
+else
+{
+    builder.Logging.AddConsole();
+}
+
 // Add services to the container.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -145,14 +157,26 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Get logger for startup information
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+var environment = app.Environment.EnvironmentName;
+var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+
+logger.LogInformation("=== IoT Containment Management System ===");
+logger.LogInformation("Version: {Version}", version);
+logger.LogInformation("Environment: {Environment}", environment);
+logger.LogInformation("Startup Time: {StartupTime}", DateTime.UtcNow);
+
 // Auto migrate database and seed data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
     var authService = scope.ServiceProvider.GetRequiredService<Backend.Services.IAuthService>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    await Backend.Data.SeedData.InitializeAsync(context, authService, logger);
+    logger.LogInformation("Initializing database and seed data...");
+    await Backend.Data.SeedData.InitializeAsync(context, authService, scopedLogger);
+    logger.LogInformation("Database initialization completed");
 }
 
 // Configure the HTTP request pipeline.
@@ -173,5 +197,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Log server startup information
+var urls = builder.WebHost.GetSetting("urls") ?? app.Urls.FirstOrDefault() ?? "http://localhost:5000";
+logger.LogInformation("Server starting on: {Urls}", urls);
+logger.LogInformation("=== Server Ready ===");
 
 app.Run();

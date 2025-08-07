@@ -33,7 +33,7 @@ namespace Backend.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.PhoneNumber).HasMaxLength(20);
-                entity.Property(e => e.Role).IsRequired().HasDefaultValue(UserRole.User);
+                entity.Property(e => e.Role).IsRequired().HasDefaultValue(UserRole.User).HasSentinel(UserRole.None);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
                 entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
@@ -354,7 +354,7 @@ namespace Backend.Data
                 entity.Property(e => e.Username).HasMaxLength(100);
                 entity.Property(e => e.Password).HasMaxLength(255);
                 entity.Property(e => e.Location).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.Resolution).IsRequired().HasDefaultValue(Backend.Enums.CctvResolution.HD720p);
+                entity.Property(e => e.Resolution).IsRequired().HasDefaultValue(Backend.Enums.CctvResolution.HD720p).HasSentinel(Backend.Enums.CctvResolution.Unknown);
                 entity.Property(e => e.FrameRate).IsRequired().HasDefaultValue(30);
                 entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
                 entity.Property(e => e.IsOnline).IsRequired().HasDefaultValue(false);

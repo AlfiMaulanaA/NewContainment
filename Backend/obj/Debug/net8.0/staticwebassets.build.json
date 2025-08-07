@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "SwHh5leexucB+lFE8SPvHULpTb+5PSM/HRFORX7k0ys=",
+  "Hash": "XPvI9OVdd7SaRL5LRXBqxM6zfL8M9aQBeK17JdbQ90o=",
   "Source": "Backend",
   "BasePath": "_content/Backend",
   "Mode": "Default",
@@ -15,5 +15,25 @@
       "Pattern": "**"
     }
   ],
-  "Assets": []
+  "Assets": [
+    {
+      "Identity": "D:\\Alfi\\RnD\\IOT\\DEVELOPMENT\\NewContainment\\Backend\\wwwroot\\uploads\\users\\user_1_cdcf2461-b0e0-44db-9776-60e74de22778.jpg",
+      "SourceId": "Backend",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Alfi\\RnD\\IOT\\DEVELOPMENT\\NewContainment\\Backend\\wwwroot\\",
+      "BasePath": "_content/Backend",
+      "RelativePath": "uploads/users/user_1_cdcf2461-b0e0-44db-9776-60e74de22778.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\users\\user_1_cdcf2461-b0e0-44db-9776-60e74de22778.jpg"
+    }
+  ]
 }

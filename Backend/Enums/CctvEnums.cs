@@ -19,6 +19,7 @@ namespace Backend.Enums
     
     public enum CctvResolution
     {
+        Unknown = 0,   // Sentinel value
         QVGA = 1,      // 320x240
         VGA = 2,       // 640x480
         HD720p = 3,    // 1280x720

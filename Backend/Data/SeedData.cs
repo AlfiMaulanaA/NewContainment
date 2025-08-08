@@ -31,14 +31,14 @@ namespace Backend.Data
                 // Seed Maintenance
                 await SeedMaintenanceAsync(context, users, containments, racks);
 
-                // Seed CctvCameras 
-                await SeedCctvCamerasAsync(context, containments, racks, users);
+                // Seed CCTV Cameras
+                await SeedCctvCamerasAsync(context, containments);
 
                 // Seed ActivityReports
                 await SeedActivityReportsAsync(context, users);
 
                 // Seed EmergencyReports
-                await SeedEmergencyReportsAsync(context);
+                // await SeedEmergencyReportsAsync(context);
 
                 // Seed MqttConfiguration
                 await SeedMqttConfigurationAsync(context, users);
@@ -464,68 +464,6 @@ namespace Backend.Data
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedCctvCamerasAsync(AppDbContext context, List<Containment> containments, List<Rack> racks, List<User> users)
-        {
-            if (context.CctvCameras.Any())
-            {
-                return;
-            }
-
-            var adminUser = users.First(u => u.Role == UserRole.Admin);
-            var devUser = users.First(u => u.Role == UserRole.Developer);
-
-            var cctvCameras = new List<CctvCamera>
-    {
-        // Camera 1: Untuk pintu masuk containment
-        new CctvCamera
-        {
-            Name = "Camera Pintu Masuk Data Center A",
-            Description = "Mengawasi pintu masuk utama ke data center",
-            StreamUrl = "rtsp://admin:password123@192.168.1.10:554/stream1",
-            StreamType = CctvStreamType.Live,
-            Protocol = CctvStreamProtocol.RTSP,
-            Username = "admin",
-            Password = "password123",
-            Port = 554,
-            Location = "Pintu Masuk Ruangan Server",
-            ContainmentId = containments.First().Id, // Mengambil Containment pertama
-            Resolution = CctvResolution.HD1080p,
-            FrameRate = 25,
-            IsActive = true,
-            IsOnline = true,
-            LastOnlineAt = DateTime.UtcNow,
-            CreatedBy = adminUser.Id,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            ShowDashboard = true
-        },
-        // Camera 2: Untuk memantau Rack server
-        new CctvCamera
-        {
-            Name = "Camera Rack A-01",
-            Description = "Mengawasi perangkat di dalam Rack A-01",
-            StreamUrl = "rtsp://dev_user:dev_pass@192.168.1.20:554/stream2",
-            StreamType = CctvStreamType.Live,
-            Protocol = CctvStreamProtocol.RTSP,
-            Username = "dev_user",
-            Password = "dev_pass",
-            Port = 554,
-            Location = "Interior Rack A-01",
-            RackId = racks.First().Id, // Mengambil Rack pertama
-            Resolution = CctvResolution.HD720p,
-            FrameRate = 30,
-            IsActive = true,
-            IsOnline = true,
-            LastOnlineAt = DateTime.UtcNow,
-            CreatedBy = devUser.Id,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        }
-    };
-
-            context.CctvCameras.AddRange(cctvCameras);
-            await context.SaveChangesAsync();
-        }
         private static async Task SeedActivityReportsAsync(AppDbContext context, List<User> users)
         {
             if (context.ActivityReports.Any())
@@ -589,59 +527,59 @@ namespace Backend.Data
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedEmergencyReportsAsync(AppDbContext context)
-        {
-            if (context.EmergencyReports.Any())
-            {
-                return;
-            }
+        // private static async Task SeedEmergencyReportsAsync(AppDbContext context)
+        // {
+        //     if (context.EmergencyReports.Any())
+        //     {
+        //         return;
+        //     }
 
-            var emergencyReports = new List<EmergencyReport>
-            {
-                new EmergencyReport
-                {
-                    EmergencyType = "Fire",
-                    Status = false,
-                    StartTime = DateTime.UtcNow.AddDays(-7),
-                    EndTime = DateTime.UtcNow.AddDays(-7).AddHours(2),
-                    Duration = TimeSpan.FromHours(2),
-                    IsActive = false,
-                    Notes = "False alarm triggered by dust sensor malfunction",
-                    RawMqttPayload = "{\"type\":\"fire\",\"sensor\":\"smoke_detector_1\",\"status\":\"triggered\"}",
-                    CreatedAt = DateTime.UtcNow.AddDays(-7),
-                    UpdatedAt = DateTime.UtcNow.AddDays(-7).AddHours(2)
-                },
-                new EmergencyReport
-                {
-                    EmergencyType = "Temperature",
-                    Status = false,
-                    StartTime = DateTime.UtcNow.AddDays(-3),
-                    EndTime = DateTime.UtcNow.AddDays(-3).AddHours(1),
-                    Duration = TimeSpan.FromHours(1),
-                    IsActive = false,
-                    Notes = "Temperature spike resolved after AC unit restart",
-                    RawMqttPayload = "{\"type\":\"temperature\",\"sensor\":\"temp_01\",\"value\":45.2}",
-                    CreatedAt = DateTime.UtcNow.AddDays(-3),
-                    UpdatedAt = DateTime.UtcNow.AddDays(-3).AddHours(1)
-                },
-                new EmergencyReport
-                {
-                    EmergencyType = "Power",
-                    Status = true,
-                    StartTime = DateTime.UtcNow.AddHours(-1),
-                    EndTime = null,
-                    Duration = null,
-                    IsActive = true,
-                    Notes = "UPS battery backup activated, investigating main power issue",
-                    RawMqttPayload = "{\"type\":\"power\",\"status\":\"main_failure\",\"backup\":\"active\"}",
-                    CreatedAt = DateTime.UtcNow.AddHours(-1),
-                    UpdatedAt = DateTime.UtcNow.AddMinutes(-10)
-                }
-            };
+        //     var emergencyReports = new List<EmergencyReport>
+        //     {
+        //         new EmergencyReport
+        //         {
+        //             EmergencyType = "Fire",
+        //             Status = false,
+        //             StartTime = DateTime.UtcNow.AddDays(-7),
+        //             EndTime = DateTime.UtcNow.AddDays(-7).AddHours(2),
+        //             Duration = TimeSpan.FromHours(2),
+        //             IsActive = false,
+        //             Notes = "False alarm triggered by dust sensor malfunction",
+        //             RawMqttPayload = "{\"type\":\"fire\",\"sensor\":\"smoke_detector_1\",\"status\":\"triggered\"}",
+        //             CreatedAt = DateTime.UtcNow.AddDays(-7),
+        //             UpdatedAt = DateTime.UtcNow.AddDays(-7).AddHours(2)
+        //         },
+        //         new EmergencyReport
+        //         {
+        //             EmergencyType = "Temperature",
+        //             Status = false,
+        //             StartTime = DateTime.UtcNow.AddDays(-3),
+        //             EndTime = DateTime.UtcNow.AddDays(-3).AddHours(1),
+        //             Duration = TimeSpan.FromHours(1),
+        //             IsActive = false,
+        //             Notes = "Temperature spike resolved after AC unit restart",
+        //             RawMqttPayload = "{\"type\":\"temperature\",\"sensor\":\"temp_01\",\"value\":45.2}",
+        //             CreatedAt = DateTime.UtcNow.AddDays(-3),
+        //             UpdatedAt = DateTime.UtcNow.AddDays(-3).AddHours(1)
+        //         },
+        //         new EmergencyReport
+        //         {
+        //             EmergencyType = "Power",
+        //             Status = true,
+        //             StartTime = DateTime.UtcNow.AddHours(-1),
+        //             EndTime = null,
+        //             Duration = null,
+        //             IsActive = true,
+        //             Notes = "UPS battery backup activated, investigating main power issue",
+        //             RawMqttPayload = "{\"type\":\"power\",\"status\":\"main_failure\",\"backup\":\"active\"}",
+        //             CreatedAt = DateTime.UtcNow.AddHours(-1),
+        //             UpdatedAt = DateTime.UtcNow.AddMinutes(-10)
+        //         }
+        //     };
 
-            context.EmergencyReports.AddRange(emergencyReports);
-            await context.SaveChangesAsync();
-        }
+        //     context.EmergencyReports.AddRange(emergencyReports);
+        //     await context.SaveChangesAsync();
+        // }
 
         private static async Task SeedMqttConfigurationAsync(AppDbContext context, List<User> users)
         {
@@ -697,6 +635,57 @@ namespace Backend.Data
 
 
             context.MqttConfigurations.AddRange(mqttConfigurations);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedCctvCamerasAsync(AppDbContext context, List<Containment> containments)
+        {
+            if (context.CctvCameras.Any())
+            {
+                return;
+            }
+
+            var cctvCameras = new List<CctvCamera>
+            {
+                new CctvCamera
+                {
+                    Name = "Camera Pintu Masuk Data Center A",
+                    Ip = "192.168.1.10",
+                    Port = 554,
+                    Username = "admin",
+                    Password = "password123",
+                    StreamUrl = "rtsp://admin:password123@192.168.1.10:554/stream1",
+                    ContainmentId = containments.First().Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new CctvCamera
+                {
+                    Name = "Camera Rack A-01",
+                    Ip = "192.168.1.20",
+                    Port = 554,
+                    Username = "admin",
+                    Password = "admin123",
+                    StreamUrl = "rtsp://admin:admin123@192.168.1.20:554/stream1",
+                    ContainmentId = containments.Count > 1 ? containments[1].Id : containments.First().Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new CctvCamera
+                {
+                    Name = "Camera Monitoring Umum",
+                    Ip = "192.168.1.30",
+                    Port = 8080,
+                    Username = "user",
+                    Password = "user123",
+                    StreamUrl = "http://user:user123@192.168.1.30:8080/video",
+                    ContainmentId = null, // General monitoring, not tied to specific containment
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+
+            context.CctvCameras.AddRange(cctvCameras);
             await context.SaveChangesAsync();
         }
 

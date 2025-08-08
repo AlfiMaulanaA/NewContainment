@@ -1,405 +1,395 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Backend.Services;
 using Backend.Models;
-using Backend.Enums;
-using System.ComponentModel.DataAnnotations;
+using Backend.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Backend.Controllers
+namespace Backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class CctvController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class CctvController : ControllerBase
+    private readonly ICctvService _cctvService;
+    private readonly ICctvStreamingService _streamingService;
+    private readonly ILogger<CctvController> _logger;
+
+    public CctvController(ICctvService cctvService, ICctvStreamingService streamingService, ILogger<CctvController> logger)
     {
-        private readonly ICctvService _cctvService;
-        private readonly ILogger<CctvController> _logger;
+        _cctvService = cctvService;
+        _streamingService = streamingService;
+        _logger = logger;
+    }
 
-        public CctvController(ICctvService cctvService, ILogger<CctvController> logger)
+    /// <summary>
+    /// Mendapatkan semua data CCTV camera
+    /// </summary>
+    /// <returns>List semua CCTV camera</returns>
+    [HttpGet]
+    [ProducesResponseType(typeof(List<CctvCameraDto>), 200)]
+    public async Task<ActionResult<List<CctvCameraDto>>> GetAll()
+    {
+        try
         {
-            _cctvService = cctvService;
-            _logger = logger;
+            var cameras = await _cctvService.GetAllAsync();
+            return Ok(cameras);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all CCTV cameras");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Mendapatkan data CCTV camera berdasarkan ID
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Data CCTV camera</returns>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(CctvCameraDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<CctvCameraDto>> GetById(int id)
+    {
+        try
+        {
+            var camera = await _cctvService.GetByIdAsync(id);
+            if (camera == null)
+            {
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
+            }
+
+            return Ok(camera);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting CCTV camera with ID {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Mendapatkan semua CCTV camera dalam containment tertentu
+    /// </summary>
+    /// <param name="containmentId">ID containment</param>
+    /// <returns>List CCTV camera dalam containment</returns>
+    [HttpGet("containment/{containmentId}")]
+    [ProducesResponseType(typeof(List<CctvCameraDto>), 200)]
+    public async Task<ActionResult<List<CctvCameraDto>>> GetByContainment(int containmentId)
+    {
+        try
+        {
+            var cameras = await _cctvService.GetByContainmentIdAsync(containmentId);
+            return Ok(cameras);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting CCTV cameras for containment {ContainmentId}", containmentId);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Membuat CCTV camera baru
+    /// </summary>
+    /// <param name="dto">Data CCTV camera baru</param>
+    /// <returns>Data CCTV camera yang dibuat</returns>
+    [HttpPost]
+    [ProducesResponseType(typeof(CctvCameraDto), 201)]
+    [ProducesResponseType(400)]
+    public async Task<ActionResult<CctvCameraDto>> Create([FromBody] CreateUpdateCctvCameraDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<CctvCameraDto>>> GetAllCameras()
+        try
         {
-            try
-            {
-                var cameras = await _cctvService.GetAllCamerasAsync();
-                var cameraDtos = cameras.Select(MapToCameraDto);
-                return Ok(cameraDtos);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting all cameras");
-                return StatusCode(500, new { message = "Failed to retrieve cameras" });
-            }
+            var camera = await _cctvService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = camera.Id }, camera);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating CCTV camera");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Mengupdate data CCTV camera
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <param name="dto">Data CCTV camera yang diupdate</param>
+    /// <returns>Data CCTV camera yang diupdate</returns>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(CctvCameraDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<CctvCameraDto>> Update(int id, [FromBody] CreateUpdateCctvCameraDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<CctvCameraDto>> GetCamera(int id)
+        try
         {
-            try
+            var camera = await _cctvService.UpdateAsync(id, dto);
+            if (camera == null)
             {
-                var camera = await _cctvService.GetCameraByIdAsync(id);
-                if (camera == null)
-                {
-                    return NotFound(new { message = "Camera not found" });
-                }
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
+            }
 
-                return Ok(MapToCameraDto(camera));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting camera {CameraId}", id);
-                return StatusCode(500, new { message = "Failed to retrieve camera" });
-            }
+            return Ok(camera);
         }
-
-        [HttpGet("containment/{containmentId}")]
-        public async Task<ActionResult<IEnumerable<CctvCameraDto>>> GetCamerasByContainment(int containmentId)
+        catch (Exception ex)
         {
-            try
-            {
-                var cameras = await _cctvService.GetCamerasByContainmentAsync(containmentId);
-                var cameraDtos = cameras.Select(MapToCameraDto);
-                return Ok(cameraDtos);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cameras for containment {ContainmentId}", containmentId);
-                return StatusCode(500, new { message = "Failed to retrieve cameras" });
-            }
+            _logger.LogError(ex, "Error updating CCTV camera with ID {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
         }
+    }
 
-        [HttpGet("rack/{rackId}")]
-        public async Task<ActionResult<IEnumerable<CctvCameraDto>>> GetCamerasByRack(int rackId)
+    /// <summary>
+    /// Menghapus CCTV camera
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Status penghapusan</returns>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
         {
-            try
+            var deleted = await _cctvService.DeleteAsync(id);
+            if (!deleted)
             {
-                var cameras = await _cctvService.GetCamerasByRackAsync(rackId);
-                var cameraDtos = cameras.Select(MapToCameraDto);
-                return Ok(cameraDtos);
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cameras for rack {RackId}", rackId);
-                return StatusCode(500, new { message = "Failed to retrieve cameras" });
-            }
+
+            return Ok(new { message = $"CCTV camera with ID {id} deleted successfully" });
         }
-
-        [HttpGet("online")]
-        public async Task<ActionResult<IEnumerable<CctvCameraDto>>> GetOnlineCameras()
+        catch (Exception ex)
         {
-            try
-            {
-                var cameras = await _cctvService.GetOnlineCamerasAsync();
-                var cameraDtos = cameras.Select(MapToCameraDto);
-                return Ok(cameraDtos);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting online cameras");
-                return StatusCode(500, new { message = "Failed to retrieve online cameras" });
-            }
+            _logger.LogError(ex, "Error deleting CCTV camera with ID {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
         }
+    }
 
-        [HttpGet("offline")]
-        public async Task<ActionResult<IEnumerable<CctvCameraDto>>> GetOfflineCameras()
+    /// <summary>
+    /// Mengecek apakah CCTV camera dengan ID tertentu ada
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Status keberadaan CCTV camera</returns>
+    [HttpGet("{id}/exists")]
+    [ProducesResponseType(typeof(bool), 200)]
+    public async Task<ActionResult<bool>> Exists(int id)
+    {
+        try
         {
-            try
-            {
-                var cameras = await _cctvService.GetOfflineCamerasAsync();
-                var cameraDtos = cameras.Select(MapToCameraDto);
-                return Ok(cameraDtos);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting offline cameras");
-                return StatusCode(500, new { message = "Failed to retrieve offline cameras" });
-            }
+            var exists = await _cctvService.ExistsAsync(id);
+            return Ok(exists);
         }
-
-        [HttpPost]
-        public async Task<ActionResult<CctvCameraDto>> CreateCamera(CreateCameraRequest request)
+        catch (Exception ex)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-                
-                var camera = new CctvCamera
-                {
-                    Name = request.Name,
-                    Description = request.Description,
-                    StreamUrl = request.StreamUrl,
-                    SnapshotUrl = request.SnapshotUrl,
-                    StreamType = request.StreamType,
-                    Protocol = request.Protocol,
-                    Username = request.Username,
-                    Password = request.Password,
-                    Port = request.Port,
-                    Location = request.Location,
-                    ContainmentId = request.ContainmentId,
-                    RackId = request.RackId,
-                    Resolution = request.Resolution,
-                    FrameRate = request.FrameRate,
-                    ShowDashboard = request.ShowDashboard ?? false,
-                    CreatedBy = userId
-                };
-
-                var createdCamera = await _cctvService.CreateCameraAsync(camera);
-                return CreatedAtAction(nameof(GetCamera), new { id = createdCamera.Id }, MapToCameraDto(createdCamera));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating camera");
-                return StatusCode(500, new { message = "Failed to create camera" });
-            }
+            _logger.LogError(ex, "Error checking if CCTV camera exists with ID {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
         }
+    }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<CctvCameraDto>> UpdateCamera(int id, UpdateCameraRequest request)
+    // ===== STREAMING ENDPOINTS =====
+
+    /// <summary>
+    /// Stream video dari CCTV camera
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Video stream</returns>
+    [HttpGet("{id}/stream")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<IActionResult> StreamVideo(int id, CancellationToken cancellationToken)
+    {
+        try
         {
-            try
+            var camera = await _cctvService.GetByIdAsync(id);
+            if (camera == null)
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var existingCamera = await _cctvService.GetCameraByIdAsync(id);
-                if (existingCamera == null)
-                {
-                    return NotFound(new { message = "Camera not found" });
-                }
-
-                var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-                
-                existingCamera.Name = request.Name;
-                existingCamera.Description = request.Description;
-                existingCamera.StreamUrl = request.StreamUrl;
-                existingCamera.SnapshotUrl = request.SnapshotUrl;
-                existingCamera.Protocol = request.Protocol;
-                existingCamera.Username = request.Username;
-                existingCamera.Password = request.Password;
-                existingCamera.Port = request.Port;
-                existingCamera.Location = request.Location;
-                existingCamera.ContainmentId = request.ContainmentId;
-                existingCamera.RackId = request.RackId;
-                existingCamera.Resolution = request.Resolution;
-                existingCamera.FrameRate = request.FrameRate;
-                existingCamera.ShowDashboard = request.ShowDashboard ?? existingCamera.ShowDashboard;
-                existingCamera.UpdatedBy = userId;
-
-                var updatedCamera = await _cctvService.UpdateCameraAsync(existingCamera);
-                return Ok(MapToCameraDto(updatedCamera));
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating camera {CameraId}", id);
-                return StatusCode(500, new { message = "Failed to update camera" });
-            }
-        }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCamera(int id)
-        {
-            try
+            var stream = await _streamingService.GetStreamAsync(id, cancellationToken);
+            if (stream == null)
             {
-                var success = await _cctvService.DeleteCameraAsync(id);
-                if (!success)
-                {
-                    return NotFound(new { message = "Camera not found" });
-                }
+                return StatusCode(503, new { error = "Stream unavailable or connection failed" });
+            }
 
-                return Ok(new { message = "Camera deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting camera {CameraId}", id);
-                return StatusCode(500, new { message = "Failed to delete camera" });
-            }
-        }
+            var streamInfo = await _streamingService.GetStreamInfoAsync(id);
+            var contentType = streamInfo?.ContentType ?? "video/mp4";
 
-        [HttpPost("{id}/test-connection")]
-        public async Task<IActionResult> TestConnection(int id)
-        {
-            try
+            return new FileStreamResult(stream, contentType)
             {
-                var isOnline = await _cctvService.TestCameraConnectionAsync(id);
-                return Ok(new { isOnline, message = isOnline ? "Camera is online" : "Camera is offline" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error testing connection for camera {CameraId}", id);
-                return StatusCode(500, new { message = "Failed to test camera connection" });
-            }
-        }
-
-        [HttpGet("{id}/snapshot")]
-        public async Task<IActionResult> GetSnapshot(int id)
-        {
-            try
-            {
-                var snapshotData = await _cctvService.GetCameraSnapshotAsync(id);
-                if (snapshotData == null)
-                {
-                    return NotFound(new { message = "Snapshot not available" });
-                }
-
-                return Ok(new { snapshot = snapshotData });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting snapshot for camera {CameraId}", id);
-                return StatusCode(500, new { message = "Failed to get camera snapshot" });
-            }
-        }
-
-        private static CctvCameraDto MapToCameraDto(CctvCamera camera)
-        {
-            return new CctvCameraDto
-            {
-                Id = camera.Id,
-                Name = camera.Name,
-                Description = camera.Description,
-                StreamUrl = camera.StreamUrl,
-                SnapshotUrl = camera.SnapshotUrl,
-                StreamType = camera.StreamType,
-                Protocol = camera.Protocol,
-                Port = camera.Port,
-                Location = camera.Location,
-                ContainmentId = camera.ContainmentId,
-                RackId = camera.RackId,
-                Resolution = camera.Resolution,
-                FrameRate = camera.FrameRate,
-                IsActive = camera.IsActive,
-                IsOnline = camera.IsOnline,
-                ShowDashboard = camera.ShowDashboard,
-                LastOnlineAt = camera.LastOnlineAt,
-                CreatedAt = camera.CreatedAt,
-                UpdatedAt = camera.UpdatedAt,
-                CreatedBy = camera.CreatedBy,
-                ContainmentName = camera.Containment?.Name,
-                RackName = camera.Rack?.Name
+                EnableRangeProcessing = true
             };
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error streaming video for camera {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 
-    public class CreateCameraRequest
+    /// <summary>
+    /// Mendapatkan informasi stream dari CCTV camera
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Informasi stream</returns>
+    [HttpGet("{id}/stream-info")]
+    [ProducesResponseType(typeof(CctvStreamInfo), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<CctvStreamInfo>> GetStreamInfo(int id)
     {
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
-        
-        [StringLength(500)]
-        public string? Description { get; set; }
-        
-        [Required]
-        [StringLength(500)]
-        public string StreamUrl { get; set; } = string.Empty;
-        
-        [StringLength(500)]
-        public string? SnapshotUrl { get; set; }
-        
-        [Required]
-        public CctvStreamType StreamType { get; set; }
-        
-        [Required]
-        public CctvStreamProtocol Protocol { get; set; }
-        
-        [StringLength(100)]
-        public string? Username { get; set; }
-        
-        [StringLength(255)]
-        public string? Password { get; set; }
-        
-        public int? Port { get; set; }
-        
-        [Required]
-        [StringLength(255)]
-        public string Location { get; set; } = string.Empty;
-        
-        public int? ContainmentId { get; set; }
-        
-        public int? RackId { get; set; }
-        
-        public CctvResolution Resolution { get; set; } = CctvResolution.HD720p;
-        
-        [Range(1, 60)]
-        public int FrameRate { get; set; } = 30;
-        
-        public bool? ShowDashboard { get; set; }
+        try
+        {
+            var camera = await _cctvService.GetByIdAsync(id);
+            if (camera == null)
+            {
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
+            }
+
+            var streamInfo = await _streamingService.GetStreamInfoAsync(id);
+            if (streamInfo == null)
+            {
+                return StatusCode(503, new { error = "Stream information unavailable" });
+            }
+
+            return Ok(streamInfo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stream info for camera {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 
-    public class UpdateCameraRequest
+    /// <summary>
+    /// Test koneksi ke CCTV camera
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Status koneksi</returns>
+    [HttpGet("{id}/test-connection")]
+    [ProducesResponseType(typeof(bool), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<bool>> TestConnection(int id)
     {
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
-        
-        [StringLength(500)]
-        public string? Description { get; set; }
-        
-        [Required]
-        [StringLength(500)]
-        public string StreamUrl { get; set; } = string.Empty;
-        
-        [StringLength(500)]
-        public string? SnapshotUrl { get; set; }
-        
-        [Required]
-        public CctvStreamProtocol Protocol { get; set; }
-        
-        [StringLength(100)]
-        public string? Username { get; set; }
-        
-        [StringLength(255)]
-        public string? Password { get; set; }
-        
-        public int? Port { get; set; }
-        
-        [Required]
-        [StringLength(255)]
-        public string Location { get; set; } = string.Empty;
-        
-        public int? ContainmentId { get; set; }
-        
-        public int? RackId { get; set; }
-        
-        public CctvResolution Resolution { get; set; } = CctvResolution.HD720p;
-        
-        [Range(1, 60)]
-        public int FrameRate { get; set; } = 30;
-        
-        public bool? ShowDashboard { get; set; }
+        try
+        {
+            var camera = await _cctvService.GetByIdAsync(id);
+            if (camera == null)
+            {
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
+            }
+
+            var isConnected = await _streamingService.TestConnectionAsync(id);
+            return Ok(new { 
+                cameraId = id,
+                cameraName = camera.Name,
+                isConnected = isConnected,
+                testedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error testing connection for camera {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 
-    public class CctvCameraDto
+    /// <summary>
+    /// Mendapatkan snapshot dari CCTV camera
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>Snapshot image</returns>
+    [HttpGet("{id}/snapshot")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(503)]
+    public async Task<IActionResult> GetSnapshot(int id)
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string StreamUrl { get; set; } = string.Empty;
-        public string? SnapshotUrl { get; set; }
-        public CctvStreamType StreamType { get; set; }
-        public CctvStreamProtocol Protocol { get; set; }
-        public int? Port { get; set; }
-        public string Location { get; set; } = string.Empty;
-        public int? ContainmentId { get; set; }
-        public int? RackId { get; set; }
-        public CctvResolution Resolution { get; set; }
-        public int FrameRate { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsOnline { get; set; }
-        public DateTime? LastOnlineAt { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public int CreatedBy { get; set; }
-        public string? ContainmentName { get; set; }
-        public string? RackName { get; set; }
-        public bool ShowDashboard { get; set; }
+        try
+        {
+            var camera = await _cctvService.GetByIdAsync(id);
+            if (camera == null)
+            {
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
+            }
+
+            var snapshot = await _streamingService.GetSnapshotAsync(id);
+            if (snapshot == null)
+            {
+                return StatusCode(503, new { error = "Snapshot unavailable" });
+            }
+
+            return File(snapshot, "image/jpeg", $"camera_{id}_snapshot_{DateTime.UtcNow:yyyyMMdd_HHmmss}.jpg");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting snapshot for camera {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Test koneksi semua CCTV camera
+    /// </summary>
+    /// <returns>Status koneksi semua camera</returns>
+    [HttpGet("test-all-connections")]
+    [ProducesResponseType(typeof(List<object>), 200)]
+    public async Task<ActionResult> TestAllConnections()
+    {
+        try
+        {
+            var cameras = await _cctvService.GetAllAsync();
+            var results = new List<object>();
+
+            // Test connections in parallel for better performance
+            var tasks = cameras.Select(async camera =>
+            {
+                var isConnected = await _streamingService.TestConnectionAsync(camera.Id);
+                return new
+                {
+                    cameraId = camera.Id,
+                    cameraName = camera.Name,
+                    ip = camera.Ip,
+                    port = camera.Port,
+                    isConnected = isConnected,
+                    testedAt = DateTime.UtcNow
+                };
+            });
+
+            var connectionResults = await Task.WhenAll(tasks);
+            results.AddRange(connectionResults);
+
+            var totalCameras = results.Count;
+            var onlineCameras = results.Count(r => (bool)r.GetType().GetProperty("isConnected")!.GetValue(r)!);
+
+            return Ok(new
+            {
+                summary = new
+                {
+                    totalCameras = totalCameras,
+                    onlineCameras = onlineCameras,
+                    offlineCameras = totalCameras - onlineCameras,
+                    testedAt = DateTime.UtcNow
+                },
+                cameras = results
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error testing all camera connections");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 }

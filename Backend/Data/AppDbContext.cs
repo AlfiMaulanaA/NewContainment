@@ -346,51 +346,26 @@ namespace Backend.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.StreamUrl).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.SnapshotUrl).HasMaxLength(500);
-                entity.Property(e => e.StreamType).IsRequired();
-                entity.Property(e => e.Protocol).IsRequired();
+                entity.Property(e => e.Ip).IsRequired().HasMaxLength(45);
+                entity.Property(e => e.Port).IsRequired();
                 entity.Property(e => e.Username).HasMaxLength(100);
-                entity.Property(e => e.Password).HasMaxLength(255);
-                entity.Property(e => e.Location).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.Resolution).IsRequired().HasDefaultValue(Backend.Enums.CctvResolution.HD720p).HasSentinel(Backend.Enums.CctvResolution.Unknown);
-                entity.Property(e => e.FrameRate).IsRequired().HasDefaultValue(30);
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.IsOnline).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.Password).HasMaxLength(100);
+                entity.Property(e => e.StreamUrl).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.CreatedBy).IsRequired();
 
-                // Foreign key relationships
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-
+                // Foreign key relationship
                 entity.HasOne(e => e.Containment)
                       .WithMany()
                       .HasForeignKey(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(e => e.Rack)
-                      .WithMany()
-                      .HasForeignKey(e => e.RackId)
-                      .OnDelete(DeleteBehavior.SetNull);
+                      .OnDelete(DeleteBehavior.SetNull)
+                      .IsRequired(false);
 
                 // Indexes for performance
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.IsOnline);
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.Ip);
                 entity.HasIndex(e => e.ContainmentId);
-                entity.HasIndex(e => e.RackId);
-                entity.HasIndex(e => e.CreatedAt);
             });
-
 
             // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing
         }

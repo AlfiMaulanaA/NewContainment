@@ -1,21 +1,14 @@
 using Backend.Models;
-using Backend.Enums;
 
-namespace Backend.Services
+namespace Backend.Services;
+
+public interface ICctvService
 {
-    public interface ICctvService
-    {
-        Task<IEnumerable<CctvCamera>> GetAllCamerasAsync();
-        Task<CctvCamera?> GetCameraByIdAsync(int id);
-        Task<IEnumerable<CctvCamera>> GetCamerasByContainmentAsync(int containmentId);
-        Task<IEnumerable<CctvCamera>> GetCamerasByRackAsync(int rackId);
-        Task<CctvCamera> CreateCameraAsync(CctvCamera camera);
-        Task<CctvCamera> UpdateCameraAsync(CctvCamera camera);
-        Task<bool> DeleteCameraAsync(int id);
-        Task<bool> TestCameraConnectionAsync(int id);
-        Task<bool> UpdateCameraStatusAsync(int id, CctvStatus status);
-        Task<string?> GetCameraSnapshotAsync(int id);
-        Task<IEnumerable<CctvCamera>> GetOnlineCamerasAsync();
-        Task<IEnumerable<CctvCamera>> GetOfflineCamerasAsync();
-    }
+    Task<List<CctvCameraDto>> GetAllAsync();
+    Task<CctvCameraDto?> GetByIdAsync(int id);
+    Task<List<CctvCameraDto>> GetByContainmentIdAsync(int containmentId);
+    Task<CctvCameraDto> CreateAsync(CreateUpdateCctvCameraDto dto);
+    Task<CctvCameraDto?> UpdateAsync(int id, CreateUpdateCctvCameraDto dto);
+    Task<bool> DeleteAsync(int id);
+    Task<bool> ExistsAsync(int id);
 }

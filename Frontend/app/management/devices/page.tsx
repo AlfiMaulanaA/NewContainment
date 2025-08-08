@@ -71,6 +71,20 @@ interface DeviceManagementPageProps {
   rackId?: number;
 }
 
+const DEVICE_TYPES = [
+  "Server",
+  "Switch", 
+  "Router",
+  "Firewall",
+  "Load Balancer",
+  "Storage",
+  "UPS",
+  "PDU",
+  "KVM",
+  "Sensor",
+  "Other"
+];
+
 export default function DeviceManagementPage({ rackId: propRackId }: DeviceManagementPageProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -425,14 +439,23 @@ export default function DeviceManagementPage({ rackId: propRackId }: DeviceManag
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Device Type</Label>
-                  <Input
-                    id="type"
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    placeholder="Enter device type (e.g., Server, Switch, Router)"
-                  />
-                </div>
+                                  <Label htmlFor="type">Device Type *</Label>
+                                  <Select
+                                    value={formData.type}
+                                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select device type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {DEVICE_TYPES.map((type) => (
+                                        <SelectItem key={type} value={type}>
+                                          {type}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                 <div>
                   <Label htmlFor="rackId">Rack</Label>
                   <Select
@@ -516,7 +539,9 @@ export default function DeviceManagementPage({ rackId: propRackId }: DeviceManag
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Devices</CardTitle>
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-gray-100 rounded-lg">
+            <HardDrive className="h-4 w-4 text-gray-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalDevices}</div>
@@ -527,7 +552,9 @@ export default function DeviceManagementPage({ rackId: propRackId }: DeviceManag
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Devices</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
             <Activity className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{activeDevices}</div>
@@ -538,7 +565,9 @@ export default function DeviceManagementPage({ rackId: propRackId }: DeviceManag
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Inactive Devices</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
             <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{inactiveDevices}</div>
@@ -549,7 +578,9 @@ export default function DeviceManagementPage({ rackId: propRackId }: DeviceManag
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Racks</CardTitle>
+            <div className="p-2 bg-blue-100 rounded-lg">
             <Server className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{racks.length}</div>
@@ -768,15 +799,24 @@ export default function DeviceManagementPage({ rackId: propRackId }: DeviceManag
                 placeholder="Enter device name"
               />
             </div>
-            <div>
-              <Label htmlFor="edit-type">Device Type</Label>
-              <Input
-                id="edit-type"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                placeholder="Enter device type"
-              />
-            </div>
+           <div>
+                             <Label htmlFor="type">Device Type *</Label>
+                             <Select
+                               value={formData.type}
+                               onValueChange={(value) => setFormData({ ...formData, type: value })}
+                             >
+                               <SelectTrigger>
+                                 <SelectValue placeholder="Select device type" />
+                               </SelectTrigger>
+                               <SelectContent>
+                                 {DEVICE_TYPES.map((type) => (
+                                   <SelectItem key={type} value={type}>
+                                     {type}
+                                   </SelectItem>
+                                 ))}
+                               </SelectContent>
+                             </Select>
+                           </div>
             <div>
               <Label htmlFor="edit-rackId">Rack</Label>
               <Select

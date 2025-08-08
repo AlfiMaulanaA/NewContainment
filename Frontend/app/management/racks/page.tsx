@@ -496,7 +496,9 @@ export default function RackManagementPage({ containmentId: propContainmentId }:
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Racks</CardTitle>
-            <HardDriveUpload className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-gray-100 rounded-lg">
+            <HardDriveUpload className="h-4 w-4 text-gray-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalRacks}</div>
@@ -507,7 +509,9 @@ export default function RackManagementPage({ containmentId: propContainmentId }:
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Racks</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
             <Activity className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{activeRacks}</div>
@@ -518,7 +522,9 @@ export default function RackManagementPage({ containmentId: propContainmentId }:
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Inactive Racks</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
             <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{inactiveRacks}</div>
@@ -529,7 +535,9 @@ export default function RackManagementPage({ containmentId: propContainmentId }:
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Containments</CardTitle>
-            <Building className="h-4 w-4 text-blue-600" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+            <Server className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{containments.length}</div>

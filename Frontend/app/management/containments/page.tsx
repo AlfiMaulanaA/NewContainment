@@ -312,7 +312,9 @@ export default function ContainmentManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Containments</CardTitle>
+            <div className="p-2 bg-gray-100 rounded-lg">
             <Server className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalContainments}</div>
@@ -323,7 +325,9 @@ export default function ContainmentManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
             <Activity className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{activeContainments}</div>
@@ -334,7 +338,9 @@ export default function ContainmentManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
             <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{inactiveContainments}</div>

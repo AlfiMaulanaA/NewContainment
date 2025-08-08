@@ -1,266 +1,214 @@
 using Backend.Data;
 using Backend.Models;
-using Backend.Enums;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
 
-namespace Backend.Services
+namespace Backend.Services;
+
+public class CctvService : ICctvService
 {
-    public class CctvService : ICctvService
+    private readonly AppDbContext _context;
+    private readonly ILogger<CctvService> _logger;
+
+    public CctvService(AppDbContext context, ILogger<CctvService> logger)
     {
-        private readonly AppDbContext _context;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<CctvService> _logger;
+        _context = context;
+        _logger = logger;
+    }
 
-        public CctvService(AppDbContext context, IHttpClientFactory httpClientFactory, ILogger<CctvService> logger)
+    public async Task<List<CctvCameraDto>> GetAllAsync()
+    {
+        try
         {
-            _context = context;
-            _httpClientFactory = httpClientFactory;
-            _logger = logger;
-        }
-
-        public async Task<IEnumerable<CctvCamera>> GetAllCamerasAsync()
-        {
-            return await _context.CctvCameras
-                .Include(c => c.CreatedByUser)
-                .Include(c => c.UpdatedByUser)
+            var cameras = await _context.CctvCameras
                 .Include(c => c.Containment)
-                .Include(c => c.Rack)
                 .OrderBy(c => c.Name)
+                .Select(c => new CctvCameraDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Ip = c.Ip,
+                    Port = c.Port,
+                    Username = c.Username,
+                    Password = c.Password,
+                    StreamUrl = c.StreamUrl,
+                    ContainmentId = c.ContainmentId,
+                    ContainmentName = c.Containment != null ? c.Containment.Name : null,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
                 .ToListAsync();
-        }
 
-        public async Task<CctvCamera?> GetCameraByIdAsync(int id)
-        {
-            return await _context.CctvCameras
-                .Include(c => c.CreatedByUser)
-                .Include(c => c.UpdatedByUser)
-                .Include(c => c.Containment)
-                .Include(c => c.Rack)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            return cameras;
         }
-
-        public async Task<IEnumerable<CctvCamera>> GetCamerasByContainmentAsync(int containmentId)
+        catch (Exception ex)
         {
-            return await _context.CctvCameras
-                .Include(c => c.CreatedByUser)
+            _logger.LogError(ex, "Error retrieving CCTV cameras");
+            throw;
+        }
+    }
+
+    public async Task<CctvCameraDto?> GetByIdAsync(int id)
+    {
+        try
+        {
+            var camera = await _context.CctvCameras
                 .Include(c => c.Containment)
-                .Include(c => c.Rack)
-                .Where(c => c.ContainmentId == containmentId && c.IsActive)
+                .Where(c => c.Id == id)
+                .Select(c => new CctvCameraDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Ip = c.Ip,
+                    Port = c.Port,
+                    Username = c.Username,
+                    Password = c.Password,
+                    StreamUrl = c.StreamUrl,
+                    ContainmentId = c.ContainmentId,
+                    ContainmentName = c.Containment != null ? c.Containment.Name : null,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            return camera;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving CCTV camera with ID {CameraId}", id);
+            throw;
+        }
+    }
+
+    public async Task<List<CctvCameraDto>> GetByContainmentIdAsync(int containmentId)
+    {
+        try
+        {
+            var cameras = await _context.CctvCameras
+                .Include(c => c.Containment)
+                .Where(c => c.ContainmentId == containmentId)
                 .OrderBy(c => c.Name)
+                .Select(c => new CctvCameraDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Ip = c.Ip,
+                    Port = c.Port,
+                    Username = c.Username,
+                    Password = c.Password,
+                    StreamUrl = c.StreamUrl,
+                    ContainmentId = c.ContainmentId,
+                    ContainmentName = c.Containment != null ? c.Containment.Name : null,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
                 .ToListAsync();
-        }
 
-        public async Task<IEnumerable<CctvCamera>> GetCamerasByRackAsync(int rackId)
-        {
-            return await _context.CctvCameras
-                .Include(c => c.CreatedByUser)
-                .Include(c => c.Containment)
-                .Include(c => c.Rack)
-                .Where(c => c.RackId == rackId && c.IsActive)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            return cameras;
         }
-
-        public async Task<CctvCamera> CreateCameraAsync(CctvCamera camera)
+        catch (Exception ex)
         {
-            camera.CreatedAt = DateTime.UtcNow;
-            camera.UpdatedAt = DateTime.UtcNow;
+            _logger.LogError(ex, "Error retrieving CCTV cameras for containment {ContainmentId}", containmentId);
+            throw;
+        }
+    }
+
+    public async Task<CctvCameraDto> CreateAsync(CreateUpdateCctvCameraDto dto)
+    {
+        try
+        {
+            var camera = new CctvCamera
+            {
+                Name = dto.Name,
+                Ip = dto.Ip,
+                Port = dto.Port,
+                Username = dto.Username,
+                Password = dto.Password,
+                StreamUrl = dto.StreamUrl,
+                ContainmentId = dto.ContainmentId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
             _context.CctvCameras.Add(camera);
             await _context.SaveChangesAsync();
 
-            // Test initial connection
-            _ = Task.Run(async () => await TestCameraConnectionAsync(camera.Id));
+            _logger.LogInformation("Created new CCTV camera: {CameraName} with ID {CameraId}", camera.Name, camera.Id);
 
-            return camera;
+            return await GetByIdAsync(camera.Id) ?? throw new InvalidOperationException("Failed to retrieve created camera");
         }
-
-        public async Task<CctvCamera> UpdateCameraAsync(CctvCamera camera)
+        catch (Exception ex)
         {
-            var existingCamera = await _context.CctvCameras.FindAsync(camera.Id);
-            if (existingCamera == null)
-            {
-                throw new InvalidOperationException("Camera not found");
-            }
-
-            existingCamera.Name = camera.Name;
-            existingCamera.Description = camera.Description;
-            existingCamera.StreamUrl = camera.StreamUrl;
-            existingCamera.SnapshotUrl = camera.SnapshotUrl;
-            existingCamera.StreamType = camera.StreamType;
-            existingCamera.Protocol = camera.Protocol;
-            existingCamera.Username = camera.Username;
-            existingCamera.Password = camera.Password;
-            existingCamera.Port = camera.Port;
-            existingCamera.Location = camera.Location;
-            existingCamera.ContainmentId = camera.ContainmentId;
-            existingCamera.RackId = camera.RackId;
-            existingCamera.Resolution = camera.Resolution;
-            existingCamera.FrameRate = camera.FrameRate;
-            existingCamera.IsActive = camera.IsActive;
-            existingCamera.UpdatedAt = DateTime.UtcNow;
-            existingCamera.UpdatedBy = camera.UpdatedBy;
-
-            await _context.SaveChangesAsync();
-
-            // Test connection after update
-            _ = Task.Run(async () => await TestCameraConnectionAsync(camera.Id));
-
-            return existingCamera;
+            _logger.LogError(ex, "Error creating CCTV camera: {CameraName}", dto.Name);
+            throw;
         }
+    }
 
-        public async Task<bool> DeleteCameraAsync(int id)
+    public async Task<CctvCameraDto?> UpdateAsync(int id, CreateUpdateCctvCameraDto dto)
+    {
+        try
         {
             var camera = await _context.CctvCameras.FindAsync(id);
-            if (camera == null) return false;
-
-            camera.IsActive = false;
-            camera.UpdatedAt = DateTime.UtcNow;
-            
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> TestCameraConnectionAsync(int id)
-        {
-            var camera = await _context.CctvCameras.FindAsync(id);
-            if (camera == null) return false;
-
-            try
+            if (camera == null)
             {
-                using var httpClient = _httpClientFactory.CreateClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(10);
-
-                // Test connection based on protocol
-                bool isOnline = false;
-                
-                switch (camera.Protocol)
-                {
-                    case CctvStreamProtocol.HTTP:
-                    case CctvStreamProtocol.HTTPS:
-                    case CctvStreamProtocol.MJPEG:
-                        isOnline = await TestHttpConnection(httpClient, camera);
-                        break;
-                    case CctvStreamProtocol.RTSP:
-                        isOnline = await TestRtspConnection(camera);
-                        break;
-                    default:
-                        // For other protocols, assume online if URL is valid
-                        isOnline = !string.IsNullOrEmpty(camera.StreamUrl);
-                        break;
-                }
-
-                await UpdateCameraStatusAsync(id, isOnline ? CctvStatus.Online : CctvStatus.Offline);
-                return isOnline;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to test camera connection for ID {CameraId}", id);
-                await UpdateCameraStatusAsync(id, CctvStatus.Error);
-                return false;
-            }
-        }
-
-        private async Task<bool> TestHttpConnection(HttpClient httpClient, CctvCamera camera)
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(camera.Username) && !string.IsNullOrEmpty(camera.Password))
-                {
-                    var credentials = Convert.ToBase64String(
-                        System.Text.Encoding.ASCII.GetBytes($"{camera.Username}:{camera.Password}"));
-                    httpClient.DefaultRequestHeaders.Authorization = 
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-                }
-
-                var response = await httpClient.GetAsync(camera.StreamUrl);
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task<bool> TestRtspConnection(CctvCamera camera)
-        {
-            // For RTSP, we'll do a basic URI validation and assume it's working
-            // In a real implementation, you'd use a library like FFMpegCore to test RTSP streams
-            try
-            {
-                var uri = new Uri(camera.StreamUrl);
-                return uri.Scheme.ToLower() == "rtsp";
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> UpdateCameraStatusAsync(int id, CctvStatus status)
-        {
-            var camera = await _context.CctvCameras.FindAsync(id);
-            if (camera == null) return false;
-
-            camera.IsOnline = status == CctvStatus.Online;
-            
-            if (camera.IsOnline)
-            {
-                camera.LastOnlineAt = DateTime.UtcNow;
-            }
-            
-            camera.UpdatedAt = DateTime.UtcNow;
-            
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<string?> GetCameraSnapshotAsync(int id)
-        {
-            var camera = await _context.CctvCameras.FindAsync(id);
-            if (camera == null || string.IsNullOrEmpty(camera.SnapshotUrl)) return null;
-
-            try
-            {
-                using var httpClient = _httpClientFactory.CreateClient();
-                
-                if (!string.IsNullOrEmpty(camera.Username) && !string.IsNullOrEmpty(camera.Password))
-                {
-                    var credentials = Convert.ToBase64String(
-                        System.Text.Encoding.ASCII.GetBytes($"{camera.Username}:{camera.Password}"));
-                    httpClient.DefaultRequestHeaders.Authorization = 
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-                }
-
-                var imageBytes = await httpClient.GetByteArrayAsync(camera.SnapshotUrl);
-                return Convert.ToBase64String(imageBytes);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to get snapshot for camera ID {CameraId}", id);
                 return null;
             }
-        }
 
-        public async Task<IEnumerable<CctvCamera>> GetOnlineCamerasAsync()
-        {
-            return await _context.CctvCameras
-                .Include(c => c.Containment)
-                .Include(c => c.Rack)
-                .Where(c => c.IsActive && c.IsOnline)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
-        }
+            camera.Name = dto.Name;
+            camera.Ip = dto.Ip;
+            camera.Port = dto.Port;
+            camera.Username = dto.Username;
+            camera.Password = dto.Password;
+            camera.StreamUrl = dto.StreamUrl;
+            camera.ContainmentId = dto.ContainmentId;
+            camera.UpdatedAt = DateTime.UtcNow;
 
-        public async Task<IEnumerable<CctvCamera>> GetOfflineCamerasAsync()
+            _context.CctvCameras.Update(camera);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Updated CCTV camera with ID {CameraId}", id);
+
+            return await GetByIdAsync(id);
+        }
+        catch (Exception ex)
         {
-            return await _context.CctvCameras
-                .Include(c => c.Containment)
-                .Include(c => c.Rack)
-                .Where(c => c.IsActive && !c.IsOnline)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            _logger.LogError(ex, "Error updating CCTV camera with ID {CameraId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        try
+        {
+            var camera = await _context.CctvCameras.FindAsync(id);
+            if (camera == null)
+            {
+                return false;
+            }
+
+            _context.CctvCameras.Remove(camera);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted CCTV camera with ID {CameraId}", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting CCTV camera with ID {CameraId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> ExistsAsync(int id)
+    {
+        try
+        {
+            return await _context.CctvCameras.AnyAsync(c => c.Id == id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if CCTV camera exists with ID {CameraId}", id);
+            throw;
         }
     }
 }

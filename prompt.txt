@@ -25,16 +25,23 @@
 5. Simpan data log device berdasarkan deviceID, rackId, ContainmentId
 6. Selain itu data juga bisa dikirimkan ke UI Frontend setelah di parsing dibackend secara realtime. 
 
-1. Buat fitur untuk disable dan enable menu untuk beberapa menu agar hilang atau terganti di client
 
-1. Buat fitur untuk authorize role untuk menu menu tertentu
+3. Buat fitur untuk disable dan enable menu untuk beberapa menu agar hilang atau terganti di client
+4. Buat fitur untuk authorize role untuk menu menu tertentu
+5. Access Control
+6. Color Range Indicator, buat sebuah fungsi untuk menentukan warna dari suatu perbandingan parameter
+7. CCTV models 
+- controller
+- CRUD + Streaming
+8. remember me dan forget password di login page
+9. Reset Database
+10. Backup database
+11. Enable Disable Seed Data
 
-1. Config PIN
+hot-reloader-client.js:210 ./app/management/cctv/page.tsx
+Attempted import error: 'containmentApi' is not exported from '@/lib/api-service' (imported as 'containmentApi').
 
-1. Access Control
+Import trace for requested module:
+./app/management/cctv/page.tsx
 
-1. CCTV
-
-1. Color Range Indicator, buat sebuah fungsi untuk menentukan warna dari suatu perbandingan parameter
-
-analisa kenapa ada akun yg berhasil login memiliki role administrator dengan username admin user, akan tetapi pada list user management. username admin user memiliki role developer
+dan perbaiki UI untuk menampilkan cameranya agar lebih baik dam lebih bagus, untuk cctv sudah ada yg online dan memang sudah bisa dicek diaplikai lain. Akan tetapi untuk  di monitoring dia hanya menampilkan streamUrl dll. bukan menampilkan stream view dari kameranya.

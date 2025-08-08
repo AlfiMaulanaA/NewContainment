@@ -58,6 +58,7 @@
     "express": "^5.1.0",
     "flag-icon-css": "^4.1.7",
     "fs": "^0.0.1-security",
+    "hls.js": "^1.6.9",
     "lucide-react": "^0.518.0",
     "mqtt": "^5.3.4",
     "next": "14.0.0",

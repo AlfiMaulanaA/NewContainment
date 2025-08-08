@@ -73,34 +73,9 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FrameRate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(30);
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsOnline")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("LastOnlineAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Location")
+                    b.Property<string>("Ip")
                         .IsRequired()
-                        .HasMaxLength(255)
+                        .HasMaxLength(45)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -109,31 +84,10 @@ namespace Backend.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Password")
-                        .HasMaxLength(255)
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("Port")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Protocol")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("RackId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Resolution")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(3);
-
-                    b.Property<bool>("ShowDashboard")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SnapshotUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("StreamType")
+                    b.Property<int>("Port")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("StreamUrl")
@@ -144,9 +98,6 @@ namespace Backend.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("UpdatedBy")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Username")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -155,17 +106,9 @@ namespace Backend.Migrations
 
                     b.HasIndex("ContainmentId");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("Ip");
 
-                    b.HasIndex("CreatedBy");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("IsOnline");
-
-                    b.HasIndex("RackId");
-
-                    b.HasIndex("UpdatedBy");
+                    b.HasIndex("Name");
 
                     b.ToTable("CctvCameras");
                 });
@@ -785,29 +728,7 @@ namespace Backend.Migrations
                         .HasForeignKey("ContainmentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Backend.Models.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Backend.Models.Rack", "Rack")
-                        .WithMany()
-                        .HasForeignKey("RackId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Backend.Models.User", "UpdatedByUser")
-                        .WithMany()
-                        .HasForeignKey("UpdatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Containment");
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Rack");
-
-                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Backend.Models.Containment", b =>

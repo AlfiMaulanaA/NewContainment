@@ -76,6 +76,7 @@ const DEVICE_TYPES = [
   "UPS",
   "PDU",
   "KVM",
+  "Sensor",
   "Other"
 ];
 
@@ -469,7 +470,9 @@ function RackDevicesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Devices</CardTitle>
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-gray-100 rounded-lg">
+            <HardDrive className="h-4 w-4 text-gray-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalDevices}</div>
@@ -480,7 +483,9 @@ function RackDevicesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Devices</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
             <Activity className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{activeDevices}</div>
@@ -491,7 +496,9 @@ function RackDevicesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Inactive Devices</CardTitle>
+            <div className="p-2 bg-orange-100 rounded-lg">
             <AlertTriangle className="h-4 w-4 text-orange-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{inactiveDevices}</div>
@@ -502,7 +509,9 @@ function RackDevicesContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Error Devices</CardTitle>
+            <div className="p-2 bg-red-100 rounded-lg">
             <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{errorDevices}</div>

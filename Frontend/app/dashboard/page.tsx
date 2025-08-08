@@ -12,7 +12,6 @@ import { DashboardSettingsShortcut } from "@/components/dashboard-settings-short
 // Lazy load heavy components for better performance
 const ContainmentStatusTabs = React.lazy(() => import("@/components/containment-status-tabs"));
 const ContainmentRacks = React.lazy(() => import("@/components/containment-card-racks-tabs"));
-const CctvDashboardWidget = React.lazy(() => import("@/components/cctv-dashboard-widget"));
 // import { 
 //   SystemStatusWidget, 
 //   ConnectivityWidget, 
@@ -28,7 +27,6 @@ export default function ContainmentDashboard() {
   const dashboardComponents = [
     ContainmentStatusTabs,
     ContainmentRacks,
-    CctvDashboardWidget,
     // SystemStatusWidget,
     // ConnectivityWidget,
     // AlertSummaryWidget,
@@ -39,11 +37,10 @@ export default function ContainmentDashboard() {
   const componentNames = [
     "Containment Status Overview",
     "Rack Management",
-    "CCTV Surveillance",
-    "System Performance",
-    "Connectivity Status", 
-    "System Alerts",
-    "Power & Energy"
+    // "System Performance",
+    // "Connectivity Status", 
+    // "System Alerts",
+    // "Power & Energy"
   ];
 
   return (
@@ -63,9 +60,24 @@ export default function ContainmentDashboard() {
 
       <div className="flex flex-1 flex-col gap-4 p-4">
         <Suspense fallback={
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading dashboard components...</span>
+          <div className="w-full min-h-[400px] flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+              <div className="space-y-2">
+                <p className="text-lg font-medium">Loading Dashboard</p>
+                <p className="text-sm text-muted-foreground">Preparing your IoT monitoring components...</p>
+              </div>
+              {/* Skeleton loading preview */}
+              <div className="mt-6 space-y-4 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-64 mx-auto"></div>
+                <div className="h-32 bg-gray-100 rounded-lg w-full max-w-4xl mx-auto"></div>
+                <div className="flex justify-center space-x-2">
+                  <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+                  <div className="h-2 w-6 bg-primary rounded-full"></div>
+                  <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+                </div>
+              </div>
+            </div>
           </div>
         }>
           <DashboardCarousel

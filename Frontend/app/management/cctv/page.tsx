@@ -1,582 +1,546 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Camera, Plus, Edit, Trash2, ArrowUpDown, Eye, EyeOff, Search, Play, TestTube, Monitor, Wifi, WifiOff, Activity } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
-  CctvCamera, 
-  CreateCctvCameraRequest, 
-  UpdateCctvCameraRequest,
-  CctvStreamType,
-  CctvStreamProtocol,
-  CctvResolution,
-  cctvApi,
-  containmentsApi,
-  racksApi,
-  Containment,
-  Rack
-} from '@/lib/api-service';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  EyeOff, 
-  TestTube, 
-  Camera,
-  RefreshCw,
-  Search,
-  Filter,
-  Download,
-  Monitor
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { CctvCamera, CreateUpdateCctvCameraRequest, cctvApi, containmentsApi } from "@/lib/api-service";
+import { useSortableTable } from "@/hooks/use-sort-table";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function CctvManagementPage() {
-  console.log('🎬 CctvManagementPage component rendered');
-  
   const [cameras, setCameras] = useState<CctvCamera[]>([]);
-  const [containments, setContainments] = useState<Containment[]>([]);
-  const [racks, setRacks] = useState<Rack[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [containments, setContainments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [testingConnectionId, setTestingConnectionId] = useState<number | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCamera, setEditingCamera] = useState<CctvCamera | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
-  const { user } = useAuth();
-
-  console.log('📹 Current cameras state:', cameras);
-
-  const [formData, setFormData] = useState<CreateCctvCameraRequest>({
-    name: '',
-    description: '',
-    streamUrl: '',
-    snapshotUrl: '',
-    streamType: CctvStreamType.Live,
-    protocol: CctvStreamProtocol.HTTP,
-    username: '',
-    password: '',
-    port: undefined,
-    location: '',
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Form state
+  const [formData, setFormData] = useState<CreateUpdateCctvCameraRequest>({
+    name: "",
+    ip: "",
+    port: 554,
+    username: "",
+    password: "",
+    streamUrl: "",
     containmentId: undefined,
-    rackId: undefined,
-    resolution: CctvResolution.HD720p,
-    frameRate: 30,
-    showDashboard: false
   });
 
+  // Sorting functionality
+  const { sorted, sortField, sortDirection, handleSort } = useSortableTable(cameras);
+
+  // Search and filter
+  const filteredCameras = sorted.filter(camera =>
+    camera.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    camera.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    camera.streamUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (camera.containmentName && camera.containmentName.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCameras.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedCameras = filteredCameras.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Statistics
+  const totalCameras = cameras.length;
+  const onlineCameras = cameras.filter(camera => {
+    // We'll use a simple check based on recent updates for now
+    // In real implementation, you would track online status
+    return true; // Placeholder
+  }).length;
+  const offlineCameras = totalCameras - onlineCameras;
+
+  const protocolBreakdown = cameras.reduce((acc, camera) => {
+    const protocol = camera.streamUrl.startsWith('rtsp://') ? 'RTSP' : 
+                    camera.streamUrl.startsWith('https://') ? 'HTTPS' : 
+                    camera.streamUrl.startsWith('http://') ? 'HTTP' : 'Other';
+    acc[protocol] = (acc[protocol] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   useEffect(() => {
-    console.log('🔄 useEffect triggered, calling loadData...');
-    loadData();
+    loadCameras();
+    loadContainments();
   }, []);
 
-  const loadData = async () => {
+  const loadCameras = async () => {
+    setLoading(true);
     try {
-      setIsLoading(true);
-      const [camerasResult, containmentsResult, racksResult] = await Promise.all([
-        cctvApi.getAllCameras(),
-        containmentsApi.getContainments(),
-        racksApi.getRacks()
-      ]);
-
-      console.log('CCTV API Response:', camerasResult);
-      console.log('Containments API Response:', containmentsResult);
-      console.log('Racks API Response:', racksResult);
-
-      if (camerasResult.success && camerasResult.data) {
-        console.log('Setting cameras:', camerasResult.data);
-        setCameras(camerasResult.data);
-      } else {
-        console.error('Camera API failed:', camerasResult);
-        toast.error(`Failed to load cameras: ${camerasResult.message || 'Unknown error'}`);
-      }
-      if (containmentsResult.success && containmentsResult.data) {
-        setContainments(containmentsResult.data);
-      } else {
-        console.error('Containments API failed:', containmentsResult);
-      }
-      if (racksResult.success && racksResult.data) {
-        setRacks(racksResult.data);
-      } else {
-        console.error('Racks API failed:', racksResult);
-      }
-    } catch (error) {
-      console.error('Load data error:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      if (editingCamera) {
-        const result = await cctvApi.updateCamera(editingCamera.id, formData as UpdateCctvCameraRequest);
-        if (result.success) {
-          toast.success('Camera updated successfully');
-          loadData();
-        } else {
-          toast.error(result.message || 'Failed to update camera');
-        }
-      } else {
-        const result = await cctvApi.createCamera(formData);
-        if (result.success) {
-          toast.success('Camera created successfully');
-          loadData();
-        } else {
-          toast.error(result.message || 'Failed to create camera');
-        }
-      }
-      
-      resetForm();
-      setIsDialogOpen(false);
-    } catch (error) {
-      toast.error('Error saving camera');
-    }
-  };
-
-  const handleEdit = (camera: CctvCamera) => {
-    setEditingCamera(camera);
-    setFormData({
-      name: camera.name,
-      description: camera.description || '',
-      streamUrl: camera.streamUrl,
-      snapshotUrl: camera.snapshotUrl || '',
-      streamType: camera.streamType,
-      protocol: camera.protocol,
-      username: '',
-      password: '',
-      port: camera.port,
-      location: camera.location,
-      containmentId: camera.containmentId,
-      rackId: camera.rackId,
-      resolution: camera.resolution,
-      frameRate: camera.frameRate,
-      showDashboard: camera.showDashboard
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      const result = await cctvApi.deleteCamera(id);
-      if (result.success) {
-        toast.success('Camera deleted successfully');
-        loadData();
-      } else {
-        toast.error(result.message || 'Failed to delete camera');
-      }
-    } catch (error) {
-      toast.error('Error deleting camera');
-    }
-  };
-
-  const handleTestConnection = async (id: number) => {
-    try {
-      const result = await cctvApi.testCameraConnection(id);
+      const result = await cctvApi.getCameras();
       if (result.success && result.data) {
-        toast.success(result.data.message);
-        loadData(); // Refresh to get updated status
+        setCameras(result.data);
       } else {
-        toast.error(result.message || 'Connection test failed');
+        toast.error(result.message || "Failed to load CCTV cameras");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error loading CCTV cameras");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadContainments = async () => {
+    try {
+      const result = await containmentsApi.getContainments();
+      if (result.success && result.data) {
+        setContainments(result.data);
       }
     } catch (error) {
-      toast.error('Error testing connection');
+      console.error("Failed to load containments:", error);
+    }
+  };
+
+  const handleCreateCamera = async () => {
+    setActionLoading(true);
+    try {
+      const result = await cctvApi.createCamera(formData);
+      if (result.success) {
+        toast.success("CCTV camera created successfully");
+        setShowCreateDialog(false);
+        resetForm();
+        loadCameras();
+      } else {
+        toast.error(result.message || "Failed to create CCTV camera");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error creating CCTV camera");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditCamera = async () => {
+    if (!editingCamera) return;
+    
+    setActionLoading(true);
+    try {
+      const result = await cctvApi.updateCamera(editingCamera.id, formData);
+      if (result.success) {
+        toast.success("CCTV camera updated successfully");
+        setShowEditDialog(false);
+        setEditingCamera(null);
+        resetForm();
+        loadCameras();
+      } else {
+        toast.error(result.message || "Failed to update CCTV camera");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error updating CCTV camera");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteCamera = async (camera: CctvCamera) => {
+    try {
+      const result = await cctvApi.deleteCamera(camera.id);
+      if (result.success) {
+        toast.success("CCTV camera deleted successfully");
+        loadCameras();
+      } else {
+        toast.error(result.message || "Failed to delete CCTV camera");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error deleting CCTV camera");
+    }
+  };
+
+  const handleTestConnection = async (camera: CctvCamera) => {
+    setTestingConnectionId(camera.id);
+    try {
+      const result = await cctvApi.testConnection(camera.id);
+      if (result.success && result.data) {
+        const { isConnected } = result.data;
+        if (isConnected) {
+          toast.success(`Camera "${camera.name}" is online and responding`);
+        } else {
+          toast.error(`Camera "${camera.name}" is offline or not responding`);
+        }
+      } else {
+        toast.error(result.message || "Failed to test camera connection");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error testing camera connection");
+    } finally {
+      setTestingConnectionId(null);
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
-      streamUrl: '',
-      snapshotUrl: '',
-      streamType: CctvStreamType.Live,
-      protocol: CctvStreamProtocol.HTTP,
-      username: '',
-      password: '',
-      port: undefined,
-      location: '',
+      name: "",
+      ip: "",
+      port: 554,
+      username: "",
+      password: "",
+      streamUrl: "",
       containmentId: undefined,
-      rackId: undefined,
-      resolution: CctvResolution.HD720p,
-      frameRate: 30,
-      showDashboard: false
     });
-    setEditingCamera(null);
   };
 
-  const filteredCameras = cameras.filter(camera => {
-    const matchesSearch = camera.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         camera.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'online' && camera.isOnline) ||
-                         (statusFilter === 'offline' && !camera.isOnline);
-    return matchesSearch && matchesStatus;
-  });
-
-  const getProtocolName = (protocol: CctvStreamProtocol) => {
-    const names = {
-      [CctvStreamProtocol.RTSP]: 'RTSP',
-      [CctvStreamProtocol.HTTP]: 'HTTP',
-      [CctvStreamProtocol.HTTPS]: 'HTTPS',
-      [CctvStreamProtocol.WebRTC]: 'WebRTC',
-      [CctvStreamProtocol.HLS]: 'HLS',
-      [CctvStreamProtocol.MJPEG]: 'MJPEG',
-    };
-    return names[protocol] || 'Unknown';
+  const openEditDialog = (camera: CctvCamera) => {
+    setEditingCamera(camera);
+    setFormData({
+      name: camera.name,
+      ip: camera.ip,
+      port: camera.port,
+      username: camera.username || "",
+      password: camera.password || "",
+      streamUrl: camera.streamUrl,
+      containmentId: camera.containmentId || undefined,
+    });
+    setShowEditDialog(true);
   };
 
-  const getResolutionName = (resolution: CctvResolution) => {
-    const names = {
-      [CctvResolution.QVGA]: 'QVGA (320x240)',
-      [CctvResolution.VGA]: 'VGA (640x480)',
-      [CctvResolution.HD720p]: 'HD 720p (1280x720)',
-      [CctvResolution.HD1080p]: 'HD 1080p (1920x1080)',
-      [CctvResolution.UHD4K]: '4K UHD (3840x2160)',
-    };
-    return names[resolution] || 'Unknown';
+  const generateStreamUrl = () => {
+    if (formData.ip && formData.port && formData.username && formData.password) {
+      const protocol = formData.port === 80 || formData.port === 8080 ? 'http' : 'rtsp';
+      const url = `${protocol}://${formData.username}:${formData.password}@${formData.ip}:${formData.port}/stream1`;
+      setFormData(prev => ({ ...prev, streamUrl: url }));
+    }
   };
+
+  if (loading) {
+    return (
+      <SidebarInset>
+        <header className="flex h-16 items-center justify-between border-b px-4">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Camera className="h-5 w-5" />
+            <h1 className="text-lg font-semibold">CCTV Camera Management</h1>
+          </div>
+        </header>
+        <div className="flex items-center justify-center flex-1">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <span className="ml-2">Loading CCTV cameras...</span>
+        </div>
+      </SidebarInset>
+    );
+  }
 
   return (
     <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
+      <header className="flex h-16 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
           <Camera className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">CCTV Management</h1>
+          <h1 className="text-lg font-semibold">CCTV Camera Management</h1>
         </div>
-        <div className="ml-auto">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={() => {resetForm(); setShowCreateDialog(true)}}>
               <Plus className="h-4 w-4 mr-2" />
               Add Camera
             </Button>
           </DialogTrigger>
-          
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>
-                {editingCamera ? 'Edit Camera' : 'Add New Camera'}
-              </DialogTitle>
+              <DialogTitle>Add New CCTV Camera</DialogTitle>
             </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Camera Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="location">Location *</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={2}
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Camera Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                  placeholder="e.g., Camera Pintu Masuk"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="protocol">Protocol *</Label>
-                  <Select 
-                    value={formData.protocol.toString()} 
-                    onValueChange={(value) => setFormData({...formData, protocol: parseInt(value) as CctvStreamProtocol})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={CctvStreamProtocol.HTTP.toString()}>HTTP</SelectItem>
-                      <SelectItem value={CctvStreamProtocol.HTTPS.toString()}>HTTPS</SelectItem>
-                      <SelectItem value={CctvStreamProtocol.RTSP.toString()}>RTSP</SelectItem>
-                      <SelectItem value={CctvStreamProtocol.HLS.toString()}>HLS</SelectItem>
-                      <SelectItem value={CctvStreamProtocol.MJPEG.toString()}>MJPEG</SelectItem>
-                      <SelectItem value={CctvStreamProtocol.WebRTC.toString()}>WebRTC</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid gap-2">
+                  <Label htmlFor="ip">IP Address</Label>
+                  <Input
+                    id="ip"
+                    value={formData.ip}
+                    onChange={(e) => setFormData(prev => ({...prev, ip: e.target.value}))}
+                    placeholder="192.168.1.100"
+                  />
                 </div>
-                
-                <div>
+                <div className="grid gap-2">
                   <Label htmlFor="port">Port</Label>
                   <Input
                     id="port"
                     type="number"
-                    value={formData.port || ''}
-                    onChange={(e) => setFormData({...formData, port: e.target.value ? parseInt(e.target.value) : undefined})}
+                    value={formData.port}
+                    onChange={(e) => setFormData(prev => ({...prev, port: parseInt(e.target.value) || 554}))}
+                    placeholder="554"
                   />
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="streamUrl">Stream URL *</Label>
-                <Input
-                  id="streamUrl"
-                  value={formData.streamUrl}
-                  onChange={(e) => setFormData({...formData, streamUrl: e.target.value})}
-                  placeholder="rtsp://192.168.1.100:554/stream1"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="snapshotUrl">Snapshot URL</Label>
-                <Input
-                  id="snapshotUrl"
-                  value={formData.snapshotUrl}
-                  onChange={(e) => setFormData({...formData, snapshotUrl: e.target.value})}
-                  placeholder="http://192.168.1.100/snapshot.jpg"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="grid gap-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
                     value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({...prev, username: e.target.value}))}
+                    placeholder="admin"
                   />
                 </div>
-                
-                <div>
+                <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
+                    placeholder="password"
                   />
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="containment">Containment</Label>
-                  <Select 
-                    value={formData.containmentId?.toString() || ''} 
-                    onValueChange={(value) => setFormData({...formData, containmentId: value ? parseInt(value) : undefined})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select containment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {containments.map(containment => (
-                        <SelectItem key={containment.id} value={containment.id.toString()}>
-                          {containment.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="grid gap-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="streamUrl">Stream URL</Label>
+                  <Button variant="outline" size="sm" onClick={generateStreamUrl}>
+                    Auto Generate
+                  </Button>
                 </div>
-                
-                <div>
-                  <Label htmlFor="rack">Rack</Label>
-                  <Select 
-                    value={formData.rackId?.toString() || ''} 
-                    onValueChange={(value) => setFormData({...formData, rackId: value ? parseInt(value) : undefined})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select rack" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {racks.map(rack => (
-                        <SelectItem key={rack.id} value={rack.id.toString()}>
-                          {rack.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="resolution">Resolution</Label>
-                  <Select 
-                    value={formData.resolution.toString()} 
-                    onValueChange={(value) => setFormData({...formData, resolution: parseInt(value) as CctvResolution})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={CctvResolution.QVGA.toString()}>QVGA (320x240)</SelectItem>
-                      <SelectItem value={CctvResolution.VGA.toString()}>VGA (640x480)</SelectItem>
-                      <SelectItem value={CctvResolution.HD720p.toString()}>HD 720p (1280x720)</SelectItem>
-                      <SelectItem value={CctvResolution.HD1080p.toString()}>HD 1080p (1920x1080)</SelectItem>
-                      <SelectItem value={CctvResolution.UHD4K.toString()}>4K UHD (3840x2160)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="frameRate">Frame Rate (fps)</Label>
-                  <Input
-                    id="frameRate"
-                    type="number"
-                    min="1"
-                    max="60"
-                    value={formData.frameRate}
-                    onChange={(e) => setFormData({...formData, frameRate: parseInt(e.target.value)})}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="showDashboard"
-                  checked={formData.showDashboard || false}
-                  onCheckedChange={(checked) => setFormData({...formData, showDashboard: checked})}
+                <Input
+                  id="streamUrl"
+                  value={formData.streamUrl}
+                  onChange={(e) => setFormData(prev => ({...prev, streamUrl: e.target.value}))}
+                  placeholder="rtsp://admin:password@192.168.1.100:554/stream1"
                 />
-                <Label htmlFor="showDashboard" className="text-sm font-medium">
-                  Show in Dashboard Widget
-                </Label>
-                <div className="text-xs text-gray-500 ml-2">
-                  Enable this camera to be displayed as a widget in the main dashboard
-                </div>
               </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingCamera ? 'Update Camera' : 'Create Camera'}
-                </Button>
+              <div className="grid gap-2">
+                <Label htmlFor="containment">Containment (Optional)</Label>
+                <Select 
+                  value={formData.containmentId?.toString() || "none"} 
+                  onValueChange={(value) => setFormData(prev => ({...prev, containmentId: value === "none" ? undefined : parseInt(value)}))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select containment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Containment</SelectItem>
+                    {containments.map((containment) => (
+                      <SelectItem key={containment.id} value={containment.id.toString()}>
+                        {containment.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </form>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+              <Button onClick={handleCreateCamera} disabled={actionLoading}>
+                {actionLoading ? "Creating..." : "Create Camera"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
-        </div>
       </header>
-      
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <p className="text-muted-foreground">Manage and monitor security cameras</p>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 m-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Cameras</CardTitle>
+            <Camera className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCameras}</div>
+            <p className="text-xs text-muted-foreground">
+              +{cameras.filter(c => {
+                const createdAt = new Date(c.createdAt);
+                const now = new Date();
+                const diffTime = Math.abs(now.getTime() - createdAt.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 30;
+              }).length} from last month
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Online Cameras</CardTitle>
+            <Wifi className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{onlineCameras}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalCameras > 0 ? Math.round((onlineCameras / totalCameras) * 100) : 0}% of total cameras
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Offline Cameras</CardTitle>
+            <WifiOff className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{offlineCameras}</div>
+            <p className="text-xs text-muted-foreground">
+              {totalCameras > 0 ? Math.round((offlineCameras / totalCameras) * 100) : 0}% of total cameras
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">RTSP Cameras</CardTitle>
+            <Activity className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{protocolBreakdown.RTSP || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              HTTP: {protocolBreakdown.HTTP || 0}, HTTPS: {protocolBreakdown.HTTPS || 0}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Table */}
+      <Card className="m-4">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Cameras ({filteredCameras.length})</CardTitle>
-            <div className="flex items-center gap-2">
+          <div className="flex justify-between items-center">
+            <CardTitle>CCTV Cameras ({filteredCameras.length})</CardTitle>
+            <div className="flex gap-2">
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search cameras..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-64"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 w-[300px]"
                 />
               </div>
-              
-              <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="offline">Offline</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button variant="outline" size="sm" onClick={loadData}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </CardHeader>
-        
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead className="w-[50px]">#</TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:text-foreground"
+                  onClick={() => handleSort("name")}
+                >
+                  Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:text-foreground"
+                  onClick={() => handleSort("ip")}
+                >
+                  IP Address <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                </TableHead>
+                <TableHead>Port</TableHead>
                 <TableHead>Protocol</TableHead>
-                <TableHead>Resolution</TableHead>
                 <TableHead>Containment</TableHead>
-                <TableHead>Dashboard</TableHead>
-                <TableHead>Last Online</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCameras.map((camera) => (
+              {paginatedCameras.map((camera, index) => (
                 <TableRow key={camera.id}>
+                  <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
                   <TableCell>
-                    <Badge variant={camera.isOnline ? "default" : "destructive"}>
-                      {camera.isOnline ? "Online" : "Offline"}
+                    <div className="font-medium">{camera.name}</div>
+                    <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                      {camera.streamUrl}
+                    </div>
+                  </TableCell>
+                  <TableCell>{camera.ip}</TableCell>
+                  <TableCell>{camera.port}</TableCell>
+                  <TableCell>
+                    <Badge variant={camera.streamUrl.startsWith('rtsp://') ? 'default' : 'secondary'}>
+                      {camera.streamUrl.startsWith('rtsp://') ? 'RTSP' : 
+                       camera.streamUrl.startsWith('https://') ? 'HTTPS' : 
+                       camera.streamUrl.startsWith('http://') ? 'HTTP' : 'Other'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{camera.name}</TableCell>
-                  <TableCell>{camera.location}</TableCell>
-                  <TableCell>{getProtocolName(camera.protocol)}</TableCell>
-                  <TableCell>{getResolutionName(camera.resolution)}</TableCell>
-                  <TableCell>{camera.containmentName || camera.rackName || '-'}</TableCell>
                   <TableCell>
-                    <Badge variant={camera.showDashboard ? "default" : "secondary"} className="flex items-center gap-1">
-                      <Monitor className="h-3 w-3" />
-                      {camera.showDashboard ? "Enabled" : "Disabled"}
+                    {camera.containmentName ? (
+                      <Badge variant="outline">{camera.containmentName}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="flex items-center w-fit gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                      Unknown
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {camera.lastOnlineAt 
-                      ? new Date(camera.lastOnlineAt).toLocaleString()
-                      : 'Never'
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        size="sm" 
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button
+                        size="sm"
                         variant="outline"
-                        onClick={() => handleTestConnection(camera.id)}
+                        onClick={() => handleTestConnection(camera)}
+                        disabled={testingConnectionId === camera.id}
                       >
-                        <TestTube className="h-4 w-4" />
+                        {testingConnectionId === camera.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                        ) : (
+                          <TestTube className="h-4 w-4" />
+                        )}
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleEdit(camera)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => openEditDialog(camera)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
@@ -587,14 +551,17 @@ export default function CctvManagementPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Camera</AlertDialogTitle>
+                            <AlertDialogTitle>Delete CCTV Camera</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete "{camera.name}"? This action cannot be undone.
+                              Are you sure you want to delete camera "{camera.name}"? This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(camera.id)}>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteCamera(camera)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -604,21 +571,144 @@ export default function CctvManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredCameras.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
-                    <div className="flex flex-col items-center gap-2">
-                      <Camera className="h-8 w-8 text-gray-400" />
-                      <p className="text-gray-500">No cameras found</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  {Array.from({length: totalPages}, (_, i) => (
+                    <PaginationItem key={i}>
+                      <PaginationLink 
+                        onClick={() => setCurrentPage(i + 1)}
+                        isActive={currentPage === i + 1}
+                        className="cursor-pointer"
+                      >
+                        {i + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
-      </div>
-      </SidebarInset>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit CCTV Camera</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Camera Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                placeholder="e.g., Camera Pintu Masuk"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-ip">IP Address</Label>
+                <Input
+                  id="edit-ip"
+                  value={formData.ip}
+                  onChange={(e) => setFormData(prev => ({...prev, ip: e.target.value}))}
+                  placeholder="192.168.1.100"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-port">Port</Label>
+                <Input
+                  id="edit-port"
+                  type="number"
+                  value={formData.port}
+                  onChange={(e) => setFormData(prev => ({...prev, port: parseInt(e.target.value) || 554}))}
+                  placeholder="554"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-username">Username</Label>
+                <Input
+                  id="edit-username"
+                  value={formData.username}
+                  onChange={(e) => setFormData(prev => ({...prev, username: e.target.value}))}
+                  placeholder="admin"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-password">Password</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
+                  placeholder="password"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="edit-streamUrl">Stream URL</Label>
+                <Button variant="outline" size="sm" onClick={generateStreamUrl}>
+                  Auto Generate
+                </Button>
+              </div>
+              <Input
+                id="edit-streamUrl"
+                value={formData.streamUrl}
+                onChange={(e) => setFormData(prev => ({...prev, streamUrl: e.target.value}))}
+                placeholder="rtsp://admin:password@192.168.1.100:554/stream1"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-containment">Containment (Optional)</Label>
+              <Select 
+                value={formData.containmentId?.toString() || "none"} 
+                onValueChange={(value) => setFormData(prev => ({...prev, containmentId: value === "none" ? undefined : parseInt(value)}))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select containment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Containment</SelectItem>
+                  {containments.map((containment) => (
+                    <SelectItem key={containment.id} value={containment.id.toString()}>
+                      {containment.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button onClick={handleEditCamera} disabled={actionLoading}>
+              {actionLoading ? "Updating..." : "Update Camera"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </SidebarInset>
   );
 }

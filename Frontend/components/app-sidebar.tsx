@@ -46,6 +46,7 @@ import {
   Fingerprint,
   Code,
   Unlock,
+  SlidersHorizontalIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -84,13 +85,18 @@ const navigation = [
         title: "Containment Overview", 
         url: "/", 
         icon: LayoutDashboard,
-      }
+      },
+      {
+        title: "Virtual Control",
+        url: "/control/containment",
+        icon: SlidersHorizontalIcon,
+      },
     ],
   },
   {
     title: "Management",
     items: [
-      {
+          {
         title: "Manage Containments",
         url: "/management/containments",
         icon: Server,
@@ -106,6 +112,11 @@ const navigation = [
         icon: HardDriveUpload,
       },
       { 
+        title: "Manage CCTV", 
+        url: "/management/cctv", 
+        icon: Camera,
+      },
+      { 
         title: "Manage Users", 
         url: "/management/users", 
         icon: Users,
@@ -115,35 +126,15 @@ const navigation = [
         url: "/management/maintenance", 
         icon: Wrench,
       },
-      { 
-        title: "Manage CCTV", 
-        url: "/management/cctv", 
-        icon: Camera,
-      },
     ],
   },
-  // {
-  //   title: "Monitoring",
-  //   items: [
-  //     {
-  //       title: "CCTV Monitoring",
-  //       url: "/monitoring/cctv",
-  //       icon: Monitor,
-  //     },
-  //     {
-  //       title: "IoT Status",
-  //       url: "/monitoring/iot-status",
-  //       icon: Activity,
-  //     },
-  //   ],
-  // },
   {
-    title: "Control",
+    title: "Monitoring",
     items: [
       {
-        title: "Containment Control",
-        url: "/control/containment",
-        icon: Gamepad2,
+        title: "CCTV Monitoring",
+        url: "/monitoring/cctv",
+        icon: Monitor,
       },
     ],
   },
@@ -185,16 +176,6 @@ const navigation = [
         url: "/settings/setting", 
         icon: Settings,
       },
-      { 
-        title: "Dashboard Settings", 
-        url: "/settings/setting?tab=dashboard", 
-        icon: LayoutDashboard,
-      },
-    ],
-  },
-  {
-    title: "System Information",
-    items: [
       { 
         title: "System Info", 
         url: "/info", 

@@ -148,7 +148,7 @@ export function getRoleColor(role?: string | null): string {
   
   switch (role.toLowerCase()) {
     case 'admin':
-      return 'text-red-600 bg-red-100 border-red-600';
+      return 'text-red-600 bg-red-100';
     case 'developer':
       return 'text-blue-600 bg-blue-100';
     case 'user':

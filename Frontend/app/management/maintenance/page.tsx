@@ -513,7 +513,7 @@ export default function MaintenancePage() {
             <TabsTrigger value="calendar">Calendar View</TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-4 mt-4">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
               <span className="text-sm font-medium">Filters:</span>
@@ -531,19 +531,22 @@ export default function MaintenancePage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={targetFilter.toString()} onValueChange={(value) => setTargetFilter(value === "all" ? "" : value as MaintenanceTarget)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Target Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {TARGET_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value.toString()}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Select 
+  value={targetFilter.toString()} 
+  onValueChange={(value) => setTargetFilter(value === "all" ? "" : (value as unknown as MaintenanceTarget))}
+>
+  <SelectTrigger className="w-40">
+    <SelectValue placeholder="Target Type" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">All Types</SelectItem>
+    {TARGET_TYPES.map((type) => (
+      <SelectItem key={type.value} value={type.value.toString()}>
+        {type.label}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
             {activeTab === "all" && (
               <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
                 <SelectTrigger className="w-48">

@@ -39,8 +39,10 @@ export function DashboardCarousel({
   const { preferences, isLoaded, toggleCarouselMode, toggleAutoPlay, setLastViewedComponent } = useDashboardPreferences();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Early return if no components
   if (!components || components.length === 0) {
@@ -51,21 +53,38 @@ export function DashboardCarousel({
     );
   }
 
-  // Use preferences when loaded
+  // Use preferences when loaded, with stable defaults
   const isCarouselMode = isLoaded ? preferences.isCarouselMode : true;
-  const isAutoPlay = isLoaded ? preferences.autoPlayEnabled : false;
+  const isAutoPlay = isLoaded && isInitialized ? preferences.autoPlayEnabled : false;
   const effectiveInterval = isLoaded ? preferences.autoPlayInterval : autoPlayInterval;
 
-  // Initialize from saved preferences
+  // Initialize from saved preferences with delay to prevent glitch
   useEffect(() => {
-    if (isLoaded && components.length > 0 && preferences.lastViewedComponent < components.length) {
-      setCurrentIndex(preferences.lastViewedComponent);
+    if (isLoaded && components.length > 0) {
+      // Clear any existing timeout
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+      
+      // Delay initialization to ensure stable render
+      initTimeoutRef.current = setTimeout(() => {
+        if (preferences.lastViewedComponent < components.length) {
+          setCurrentIndex(preferences.lastViewedComponent);
+        }
+        setIsInitialized(true);
+      }, 100); // Small delay to prevent race conditions
     }
+    
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
   }, [isLoaded, preferences.lastViewedComponent, components.length]);
 
-  // Auto-play functionality
+  // Auto-play functionality - only start after initialization
   useEffect(() => {
-    if (isAutoPlay && isCarouselMode) {
+    if (isAutoPlay && isCarouselMode && isInitialized) {
       intervalRef.current = setInterval(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % components.length);
       }, effectiveInterval);
@@ -81,14 +100,14 @@ export function DashboardCarousel({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isAutoPlay, components.length, effectiveInterval, isCarouselMode]);
+  }, [isAutoPlay, components.length, effectiveInterval, isCarouselMode, isInitialized]);
 
-  // Save current index to preferences
+  // Save current index to preferences - only after initialization
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && isInitialized) {
       setLastViewedComponent(currentIndex);
     }
-  }, [currentIndex, isLoaded]); // Remove setLastViewedComponent from dependencies
+  }, [currentIndex, isLoaded, isInitialized, setLastViewedComponent]);
 
   const goToNext = () => {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % components.length);
@@ -119,7 +138,19 @@ export function DashboardCarousel({
       <div className="relative">
         {/* Component Display */}
         <div className="min-h-[400px] transition-all duration-300 ease-in-out">
-          <CurrentComponent />
+          {!isInitialized ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-32 mx-auto mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <CurrentComponent />
+          )}
         </div>
 
         {/* Navigation Controls */}

@@ -2,7 +2,7 @@
 
 // lib/api-service.ts
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5218";
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 // Types based on backend models and responses
 export interface User {
@@ -42,35 +42,6 @@ export enum MaintenanceTarget {
   Containment = 3
 }
 
-export enum CctvStreamType {
-  Live = 1,
-  Recording = 2,
-  Snapshot = 3
-}
-
-export enum CctvStreamProtocol {
-  RTSP = 1,
-  HTTP = 2,
-  HTTPS = 3,
-  WebRTC = 4,
-  HLS = 5,
-  MJPEG = 6
-}
-
-export enum CctvResolution {
-  QVGA = 1,      // 320x240
-  VGA = 2,       // 640x480
-  HD720p = 3,    // 1280x720
-  HD1080p = 4,   // 1920x1080
-  UHD4K = 5      // 3840x2160
-}
-
-export enum CctvStatus {
-  Offline = 0,
-  Online = 1,
-  Error = 2,
-  Maintenance = 3
-}
 
 export interface Containment {
   id: number;
@@ -2236,6 +2207,334 @@ export const accessControlApi = {
   },
 };
 
+// System Information API methods
+export const systemInfoApi = {
+  async getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
+    try {
+      const data = await client.get<SystemInfo>('/system/info');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get system information',
+      };
+    }
+  },
+
+  async getSystemStatus(): Promise<ApiResponse<SystemInfo>> {
+    try {
+      const data = await client.get<SystemInfo>('/system/status');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get system status',
+      };
+    }
+  },
+
+  async refreshSystemInfo(): Promise<ApiResponse<SystemInfo>> {
+    try {
+      const data = await client.post<SystemInfo>('/system/refresh');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to refresh system information',
+      };
+    }
+  },
+
+  async getBasicSystemInfo(): Promise<ApiResponse<BasicSystemInfo>> {
+    try {
+      const data = await client.get<BasicSystemInfo>('/system/basic');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get basic system information',
+      };
+    }
+  },
+
+  async getSystemHealth(): Promise<ApiResponse<SystemHealth>> {
+    try {
+      const data = await client.get<SystemHealth>('/system/health');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get system health',
+      };
+    }
+  },
+};
+
+// System Information types
+export interface SystemInfo {
+  cpu_usage: number;
+  cpu_temp: string;
+  memory_usage: number;
+  used_memory: number;
+  total_memory: number;
+  disk_usage: number;
+  used_disk: number;
+  total_disk: number;
+  eth0_ip_address: string;
+  wlan0_ip_address: string;
+  uptime: number;
+  hostname: string;
+  os_platform: string;
+  os_version: string;
+  processor_count: number;
+  timestamp: string;
+  is_available: boolean;
+  error_message?: string;
+}
+
+export interface BasicSystemInfo {
+  hostname: string;
+  os_platform: string;
+  os_version: string;
+  processor_count: number;
+  clr_version: string;
+  working_set: number;
+  timestamp: string;
+}
+
+// CCTV Camera interfaces
+export interface CctvCamera {
+  id: number;
+  name: string;
+  ip: string;
+  port: number;
+  username?: string;
+  password?: string;
+  streamUrl: string;
+  containmentId?: number;
+  containmentName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUpdateCctvCameraRequest {
+  name: string;
+  ip: string;
+  port: number;
+  username?: string;
+  password?: string;
+  streamUrl: string;
+  containmentId?: number;
+}
+
+export interface CctvStreamInfo {
+  cameraId: number;
+  cameraName: string;
+  streamUrl: string;
+  isOnline: boolean;
+  lastOnlineAt?: string;
+  errorMessage?: string;
+  contentType: string;
+  contentLength?: number;
+}
+
+export interface SystemHealth {
+  status: string;
+  timestamp: string;
+  uptime_ms: number;
+}
+
+// CCTV Camera API methods
+export const cctvApi = {
+  async getCameras(): Promise<ApiResponse<CctvCamera[]>> {
+    try {
+      const data = await client.get<CctvCamera[]>('/cctv');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get CCTV cameras',
+      };
+    }
+  },
+
+  async getCamera(id: number): Promise<ApiResponse<CctvCamera>> {
+    try {
+      const data = await client.get<CctvCamera>(`/cctv/${id}`);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get CCTV camera',
+      };
+    }
+  },
+
+  async getCamerasByContainment(containmentId: number): Promise<ApiResponse<CctvCamera[]>> {
+    try {
+      const data = await client.get<CctvCamera[]>(`/cctv/containment/${containmentId}`);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get CCTV cameras for containment',
+      };
+    }
+  },
+
+  async createCamera(request: CreateUpdateCctvCameraRequest): Promise<ApiResponse<CctvCamera>> {
+    try {
+      const data = await client.post<CctvCamera>('/cctv', request);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to create CCTV camera',
+      };
+    }
+  },
+
+  async updateCamera(id: number, request: CreateUpdateCctvCameraRequest): Promise<ApiResponse<CctvCamera>> {
+    try {
+      const data = await client.put<CctvCamera>(`/cctv/${id}`, request);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to update CCTV camera',
+      };
+    }
+  },
+
+  async deleteCamera(id: number): Promise<ApiResponse> {
+    try {
+      await client.delete(`/cctv/${id}`);
+      
+      return {
+        success: true,
+        message: 'CCTV camera deleted successfully',
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to delete CCTV camera',
+      };
+    }
+  },
+
+  async testConnection(id: number): Promise<ApiResponse<{cameraId: number; cameraName: string; isConnected: boolean; testedAt: string}>> {
+    try {
+      const data = await client.get<{cameraId: number; cameraName: string; isConnected: boolean; testedAt: string}>(`/cctv/${id}/test-connection`);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to test camera connection',
+      };
+    }
+  },
+
+  async testAllConnections(): Promise<ApiResponse<{summary: {totalCameras: number; onlineCameras: number; offlineCameras: number; testedAt: string}; cameras: any[]}>> {
+    try {
+      const data = await client.get<{summary: {totalCameras: number; onlineCameras: number; offlineCameras: number; testedAt: string}; cameras: any[]}>('/cctv/test-all-connections');
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to test all camera connections',
+      };
+    }
+  },
+
+  async getStreamInfo(id: number): Promise<ApiResponse<CctvStreamInfo>> {
+    try {
+      const data = await client.get<CctvStreamInfo>(`/cctv/${id}/stream-info`);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get stream info',
+      };
+    }
+  },
+
+  getStreamUrl(id: number): string {
+    return `${BASE_URL}/api/cctv/${id}/stream`;
+  },
+
+  getSnapshotUrl(id: number): string {
+    return `${BASE_URL}/api/cctv/${id}/snapshot`;
+  },
+
+  async checkCameraExists(id: number): Promise<ApiResponse<boolean>> {
+    try {
+      const data = await client.get<boolean>(`/cctv/${id}/exists`);
+      
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Failed to check if camera exists',
+      };
+    }
+  },
+};
+
 // Legacy support - keeping the old api object for backward compatibility
 export const api = {
   async post<T = any>(endpoint: string, body: Record<string, any>): Promise<T> {
@@ -2249,231 +2548,3 @@ export const api = {
 
 export default api;
 
-// CCTV Camera interfaces
-export interface CctvCamera {
-  id: number;
-  name: string;
-  description?: string;
-  streamUrl: string;
-  snapshotUrl?: string;
-  streamType: CctvStreamType;
-  protocol: CctvStreamProtocol;
-  port?: number;
-  location: string;
-  containmentId?: number;
-  rackId?: number;
-  resolution: CctvResolution;
-  frameRate: number;
-  isActive: boolean;
-  isOnline: boolean;
-  lastOnlineAt?: string;
-  showDashboard: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: number;
-  containmentName?: string;
-  rackName?: string;
-}
-
-export interface CreateCctvCameraRequest {
-  name: string;
-  description?: string;
-  streamUrl: string;
-  snapshotUrl?: string;
-  streamType: CctvStreamType;
-  protocol: CctvStreamProtocol;
-  username?: string;
-  password?: string;
-  port?: number;
-  location: string;
-  containmentId?: number;
-  rackId?: number;
-  resolution: CctvResolution;
-  frameRate: number;
-  showDashboard?: boolean;
-}
-
-export interface UpdateCctvCameraRequest {
-  name: string;
-  description?: string;
-  streamUrl: string;
-  snapshotUrl?: string;
-  protocol: CctvStreamProtocol;
-  username?: string;
-  password?: string;
-  port?: number;
-  location: string;
-  containmentId?: number;
-  rackId?: number;
-  resolution: CctvResolution;
-  frameRate: number;
-  showDashboard?: boolean;
-}
-
-// CCTV API methods
-export const cctvApi = {
-  async getAllCameras(): Promise<ApiResponse<CctvCamera[]>> {
-    try {
-      const data = await client.get<CctvCamera[]>('/cctv');
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get cameras',
-      };
-    }
-  },
-
-  async getCameraById(id: number): Promise<ApiResponse<CctvCamera>> {
-    try {
-      const data = await client.get<CctvCamera>(`/cctv/${id}`);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get camera',
-      };
-    }
-  },
-
-  async getCamerasByContainment(containmentId: number): Promise<ApiResponse<CctvCamera[]>> {
-    try {
-      const data = await client.get<CctvCamera[]>(`/cctv/containment/${containmentId}`);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get cameras',
-      };
-    }
-  },
-
-  async getCamerasByRack(rackId: number): Promise<ApiResponse<CctvCamera[]>> {
-    try {
-      const data = await client.get<CctvCamera[]>(`/cctv/rack/${rackId}`);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get cameras',
-      };
-    }
-  },
-
-  async getOnlineCameras(): Promise<ApiResponse<CctvCamera[]>> {
-    try {
-      const data = await client.get<CctvCamera[]>('/cctv/online');
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get online cameras',
-      };
-    }
-  },
-
-  async getOfflineCameras(): Promise<ApiResponse<CctvCamera[]>> {
-    try {
-      const data = await client.get<CctvCamera[]>('/cctv/offline');
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get offline cameras',
-      };
-    }
-  },
-
-  async createCamera(camera: CreateCctvCameraRequest): Promise<ApiResponse<CctvCamera>> {
-    try {
-      const data = await client.post<CctvCamera>('/cctv', camera);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to create camera',
-      };
-    }
-  },
-
-  async updateCamera(id: number, camera: UpdateCctvCameraRequest): Promise<ApiResponse<CctvCamera>> {
-    try {
-      const data = await client.put<CctvCamera>(`/cctv/${id}`, camera);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to update camera',
-      };
-    }
-  },
-
-  async deleteCamera(id: number): Promise<ApiResponse<any>> {
-    try {
-      const data = await client.delete<any>(`/cctv/${id}`);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to delete camera',
-      };
-    }
-  },
-
-  async testCameraConnection(id: number): Promise<ApiResponse<{ isOnline: boolean; message: string }>> {
-    try {
-      const data = await client.post<{ isOnline: boolean; message: string }>(`/cctv/${id}/test-connection`);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to test camera connection',
-      };
-    }
-  },
-
-  async getCameraSnapshot(id: number): Promise<ApiResponse<{ snapshot: string }>> {
-    try {
-      const data = await client.get<{ snapshot: string }>(`/cctv/${id}/snapshot`);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Failed to get camera snapshot',
-      };
-    }
-  },
-};

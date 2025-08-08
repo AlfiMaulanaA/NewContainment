@@ -30,6 +30,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
+// Add memory cache for system info caching
+builder.Services.AddMemoryCache();
+
 // Add CORS for testing
 builder.Services.AddCors(options =>
 {
@@ -60,11 +63,12 @@ builder.Services.AddScoped<Backend.Services.IContainmentControlService, Backend.
 builder.Services.AddScoped<Backend.Services.IEmergencyReportService, Backend.Services.EmergencyReportService>();
 builder.Services.AddScoped<Backend.Services.IMqttConfigurationService, Backend.Services.MqttConfigurationService>();
 builder.Services.AddScoped<Backend.Services.INetworkConfigurationService, Backend.Services.NetworkConfigurationService>();
-builder.Services.AddScoped<Backend.Services.ICctvService, Backend.Services.CctvService>();
 builder.Services.AddScoped<Backend.Services.IFileService, Backend.Services.FileService>();
 builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.MqttService>();
+builder.Services.AddScoped<Backend.Services.ISystemInfoService, Backend.Services.SystemInfoService>();
+builder.Services.AddScoped<Backend.Services.ICctvService, Backend.Services.CctvService>();
+builder.Services.AddScoped<Backend.Services.ICctvStreamingService, Backend.Services.CctvStreamingService>();
 
-// Add HttpClient for CCTV service
 builder.Services.AddHttpClient();
 
 // Add background services
@@ -168,16 +172,30 @@ logger.LogInformation("Environment: {Environment}", environment);
 logger.LogInformation("Startup Time: {StartupTime}", DateTime.UtcNow);
 
 // Auto migrate database and seed data
+// ...existing code...
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
     var authService = scope.ServiceProvider.GetRequiredService<Backend.Services.IAuthService>();
     var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    logger.LogInformation("Initializing database and seed data...");
-    await Backend.Data.SeedData.InitializeAsync(context, authService, scopedLogger);
-    logger.LogInformation("Database initialization completed");
+    logger.LogInformation("Migrating database...");
+    await context.Database.MigrateAsync(); // Selalu migrasi
+
+    // Enable/disable seed data dengan env variable
+    var enableSeed = Environment.GetEnvironmentVariable("ENABLE_SEED_DATA") ?? "true";
+    if (enableSeed.ToLower() == "true")
+    {
+        logger.LogInformation("Seeding initial data...");
+        await Backend.Data.SeedData.InitializeAsync(context, authService, scopedLogger);
+        logger.LogInformation("Database seeding completed");
+    }
+    else
+    {
+        logger.LogInformation("Database seeding skipped (ENABLE_SEED_DATA=false)");
+    }
 }
+// ...existing code...
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -67,6 +67,9 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ApiKeys")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("ContainmentId")
                         .HasColumnType("INTEGER");
 
@@ -339,6 +342,63 @@ namespace Backend.Migrations
                     b.HasIndex("UpdatedBy");
 
                     b.ToTable("Devices");
+                });
+
+            modelBuilder.Entity("Backend.Models.DeviceSensorData", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ContainmentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DeviceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("Humidity")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("RackId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RawPayload")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Temperature")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainmentId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("RackId");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("Topic");
+
+                    b.HasIndex("ContainmentId", "Timestamp");
+
+                    b.HasIndex("DeviceId", "Timestamp");
+
+                    b.ToTable("DeviceSensorData");
                 });
 
             modelBuilder.Entity("Backend.Models.EmergencyReport", b =>
@@ -803,6 +863,33 @@ namespace Backend.Migrations
                     b.Navigation("Rack");
 
                     b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.DeviceSensorData", b =>
+                {
+                    b.HasOne("Backend.Models.Containment", "Containment")
+                        .WithMany()
+                        .HasForeignKey("ContainmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Device", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Rack", "Rack")
+                        .WithMany()
+                        .HasForeignKey("RackId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Containment");
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Rack");
                 });
 
             modelBuilder.Entity("Backend.Models.Maintenance", b =>

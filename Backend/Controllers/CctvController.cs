@@ -392,4 +392,48 @@ public class CctvController : ControllerBase
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
+
+    /// <summary>
+    /// Stream MJPEG dari CCTV camera (untuk RTSP streams)
+    /// </summary>
+    /// <param name="id">ID CCTV camera</param>
+    /// <returns>MJPEG stream</returns>
+    [HttpGet("{id}/mjpeg")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<IActionResult> StreamMjpeg(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var camera = await _cctvService.GetByIdAsync(id);
+            if (camera == null)
+            {
+                return NotFound(new { error = $"CCTV camera with ID {id} not found" });
+            }
+
+            // Set response headers for MJPEG streaming
+            Response.ContentType = "multipart/x-mixed-replace; boundary=--boundary";
+            Response.Headers.Add("Cache-Control", "no-cache, no-store, max-age=0");
+            Response.Headers.Add("Pragma", "no-cache");
+            Response.Headers.Add("Connection", "close");
+
+            var outputStream = Response.Body;
+
+            // Start MJPEG streaming
+            await _streamingService.StreamMjpegAsync(id, outputStream, cancellationToken);
+
+            return new EmptyResult();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("MJPEG stream cancelled for camera {CameraId}", id);
+            return new EmptyResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error streaming MJPEG for camera {CameraId}", id);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
 }

@@ -15,23 +15,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // Memeriksa apakah path saat ini dimulai dengan "/auth/login" atau "/auth/register"
   // Ini lebih robust terhadap trailing slashes atau sub-path
-  const hideSidebar = pathname.startsWith("/auth/login") || pathname.startsWith("/auth/register");
-
-  // Temporarily disabled route preloader to isolate syntax error
-  // useRoutePreloader({
-  //   routes: [
-  //     '/',
-  //     '/management/containments',
-  //     '/management/racks',
-  //     '/management/devices',
-  //     '/settings/setting',
-  //     '/network',
-  //     '/mqtt',
-  //     '/reports/emergency',
-  //     '/reports/maintenance',
-  //   ],
-  //   preloadDelay: 1500,
-  // });
+  const hideSidebar = pathname.startsWith("/auth/login") || pathname.startsWith("/auth/register") || pathname.startsWith("/auth/forgot-password");
 
   return (
     <AuthProvider>

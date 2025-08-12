@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services
 {
@@ -7,16 +8,42 @@ namespace Backend.Services
         private readonly ILogger<ContainmentMqttHostedService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly IMqttService _mqttService;
+        private readonly IConfiguration _configuration;
         private readonly string _containmentStatusTopic = "IOT/Containment/Status";
+        private readonly Dictionary<int, DateTime> _lastSaveTime = new();
+        private readonly int _saveIntervalSeconds;
+        private readonly int _minIntervalSeconds;
+        private readonly Dictionary<int, (string Topic, string Payload, DateTime ReceivedAt)> _dataBuffer = new();
+        private Timer? _batchSaveTimer;
 
         public ContainmentMqttHostedService(
             ILogger<ContainmentMqttHostedService> logger,
             IServiceProvider serviceProvider,
-            IMqttService mqttService)
+            IMqttService mqttService,
+            IConfiguration configuration)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _mqttService = mqttService;
+            _configuration = configuration;
+            
+            // Load interval configuration from environment variables
+            _saveIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_SAVE_INTERVAL") ?? 
+                                           _configuration["SensorData:SaveInterval"] ?? "60");
+            _minIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_MIN_INTERVAL") ?? 
+                                          _configuration["SensorData:MinInterval"] ?? "10");
+            
+            _logger.LogInformation("Sensor data save interval: {SaveInterval}s, min interval: {MinInterval}s", 
+                _saveIntervalSeconds, _minIntervalSeconds);
+                
+            // Initialize batch save timer if save interval is configured
+            if (_saveIntervalSeconds > _minIntervalSeconds)
+            {
+                _batchSaveTimer = new Timer(BatchSaveCallback, null, 
+                    TimeSpan.FromSeconds(_saveIntervalSeconds), 
+                    TimeSpan.FromSeconds(_saveIntervalSeconds));
+                _logger.LogInformation("Batch save timer initialized with {SaveInterval}s interval", _saveIntervalSeconds);
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -33,6 +60,11 @@ namespace Backend.Services
 
                 _logger.LogInformation("Successfully subscribed to containment status topic: {Topic}", _containmentStatusTopic);
 
+                // Subscribe to specific topics from devices with type "Sensor"
+                await SubscribeToSensorDeviceTopics();
+
+                _logger.LogInformation("Successfully subscribed to sensor device topics");
+
                 // Keep the service running
                 while (!stoppingToken.IsCancellationRequested)
                 {
@@ -46,6 +78,7 @@ namespace Backend.Services
                         {
                             await _mqttService.ConnectAsync();
                             await _mqttService.SubscribeAsync(_containmentStatusTopic, HandleContainmentStatusMessage);
+                            await SubscribeToSensorDeviceTopics();
                             _logger.LogInformation("Reconnected to MQTT and resubscribed to topics");
                         }
                         catch (Exception ex)
@@ -159,6 +192,223 @@ namespace Backend.Services
             return 1;
         }
 
+        private async Task SubscribeToSensorDeviceTopics()
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
+
+                // Get only devices with type "Sensor" that are active
+                var sensorDevices = await dbContext.Devices
+                    .Where(d => d.IsActive && d.Type.ToLower() == "sensor")
+                    .ToListAsync();
+
+                _logger.LogInformation("Found {Count} active sensor devices to subscribe", sensorDevices.Count);
+
+                foreach (var device in sensorDevices)
+                {
+                    if (!string.IsNullOrEmpty(device.Topic))
+                    {
+                        await _mqttService.SubscribeAsync(device.Topic, HandleSensorMessage);
+                        _logger.LogInformation("Subscribed to sensor device topic: {Topic} for device {DeviceName} (ID: {DeviceId})", 
+                            device.Topic, device.Name, device.Id);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Sensor device {DeviceName} (ID: {DeviceId}) has no topic configured", 
+                            device.Name, device.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error subscribing to sensor device topics");
+            }
+        }
+
+        private async Task HandleSensorMessage(string topic, string payload)
+        {
+            _logger.LogDebug("Received sensor message on topic {Topic}: {Payload}", topic, payload);
+
+            try
+            {
+                // Extract device ID from topic
+                var deviceId = ExtractDeviceIdFromTopic(topic);
+                if (deviceId == null)
+                {
+                    _logger.LogWarning("Could not extract device ID from topic: {Topic}", topic);
+                    return;
+                }
+
+                // Check if batch saving is enabled
+                if (_batchSaveTimer != null && _saveIntervalSeconds > _minIntervalSeconds)
+                {
+                    // Use buffer for batch saving
+                    if (ShouldBufferData(deviceId.Value))
+                    {
+                        _dataBuffer[deviceId.Value] = (topic, payload, DateTime.UtcNow);
+                        _logger.LogTrace("Buffered sensor data for device {DeviceId} - will save in next batch", deviceId);
+                        return;
+                    }
+                }
+                else
+                {
+                    // Use immediate saving with min interval throttling
+                    if (!ShouldSaveData(deviceId.Value))
+                    {
+                        _logger.LogTrace("Skipping data save for device {DeviceId} due to interval throttling", deviceId);
+                        return;
+                    }
+                }
+
+                // Process and store sensor data immediately
+                await SaveSensorDataAsync(deviceId.Value, topic, payload);
+                
+                _logger.LogInformation("Successfully stored sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing sensor message from topic {Topic}: {Payload}", topic, payload);
+            }
+        }
+
+        private bool ShouldSaveData(int deviceId)
+        {
+            if (!_lastSaveTime.ContainsKey(deviceId))
+            {
+                // First time receiving data for this device
+                return true;
+            }
+
+            var timeSinceLastSave = DateTime.UtcNow - _lastSaveTime[deviceId];
+            var shouldSave = timeSinceLastSave.TotalSeconds >= _minIntervalSeconds;
+            
+            _logger.LogTrace("Device {DeviceId}: Time since last save: {TimeSinceLastSave}s, Min interval: {MinInterval}s, Should save: {ShouldSave}", 
+                deviceId, timeSinceLastSave.TotalSeconds, _minIntervalSeconds, shouldSave);
+                
+            return shouldSave;
+        }
+
+        private bool ShouldBufferData(int deviceId)
+        {
+            // Always buffer data if we don't have any buffered data for this device yet
+            if (!_dataBuffer.ContainsKey(deviceId))
+            {
+                return true;
+            }
+
+            // Check if enough time has passed since last buffer update (to avoid too frequent updates)
+            var timeSinceLastBuffer = DateTime.UtcNow - _dataBuffer[deviceId].ReceivedAt;
+            return timeSinceLastBuffer.TotalSeconds >= (_minIntervalSeconds / 2); // Update buffer at half the min interval
+        }
+
+        private async Task SaveSensorDataAsync(int deviceId, string topic, string payload)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var sensorDataService = scope.ServiceProvider.GetRequiredService<IDeviceSensorDataService>();
+            
+            await sensorDataService.ParseAndStoreSensorDataAsync(deviceId, topic, payload);
+            
+            // Update last save time
+            _lastSaveTime[deviceId] = DateTime.UtcNow;
+        }
+
+        private async void BatchSaveCallback(object? state)
+        {
+            if (_dataBuffer.Count == 0)
+            {
+                return;
+            }
+
+            _logger.LogInformation("Starting batch save for {Count} buffered sensor data entries", _dataBuffer.Count);
+
+            var dataToSave = new Dictionary<int, (string Topic, string Payload, DateTime ReceivedAt)>(_dataBuffer);
+            _dataBuffer.Clear();
+
+            try
+            {
+                foreach (var kvp in dataToSave)
+                {
+                    var deviceId = kvp.Key;
+                    var (topic, payload, receivedAt) = kvp.Value;
+
+                    try
+                    {
+                        await SaveSensorDataAsync(deviceId, topic, payload);
+                        _logger.LogTrace("Batch saved sensor data for device {DeviceId}", deviceId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error saving buffered sensor data for device {DeviceId}", deviceId);
+                    }
+                }
+
+                _logger.LogInformation("Completed batch save for {Count} sensor data entries", dataToSave.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during batch save operation");
+            }
+        }
+
+        private int? ExtractDeviceIdFromTopic(string topic)
+        {
+            try
+            {
+                // Try different topic patterns to extract device ID
+                var patterns = new[]
+                {
+                    @"sensors/containment/\d+/rack/\d+/device/(\d+)",
+                    @"sensors/device/(\d+)",
+                    @"IOT/Containment/\d+/Rack/\d+/Device/(\d+)",
+                    @"IOT/Containment/([^/]+)/Rack_(\d+)",  // Pattern for IOT/Containment/DeviceName/Rack_X
+                };
+
+                foreach (var pattern in patterns)
+                {
+                    var match = Regex.Match(topic, pattern);
+                    if (match.Success && match.Groups.Count > 1 && int.TryParse(match.Groups[1].Value, out var deviceId))
+                    {
+                        return deviceId;
+                    }
+                }
+
+                // Try to find device by name or topic match in topic
+                using var scope = _serviceProvider.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
+                
+                var devices = dbContext.Devices.Where(d => d.IsActive).ToList();
+                foreach (var device in devices)
+                {
+                    // First try exact topic match
+                    if (!string.IsNullOrEmpty(device.Topic) && device.Topic.Equals(topic, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogDebug("Found device {DeviceId} by exact topic match: {Topic}", device.Id, topic);
+                        return device.Id;
+                    }
+                    
+                    // Then try name-based matching
+                    if (!string.IsNullOrEmpty(device.Name))
+                    {
+                        var deviceNamePattern = device.Name.Replace(" ", "_").ToLower();
+                        if (topic.ToLower().Contains(deviceNamePattern))
+                        {
+                            _logger.LogDebug("Found device {DeviceId} by name pattern: {Name} in topic {Topic}", device.Id, device.Name, topic);
+                            return device.Id;
+                        }
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error extracting device ID from topic: {Topic}", topic);
+                return null;
+            }
+        }
+
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("ContainmentMqttHostedService is stopping...");
@@ -175,7 +425,16 @@ namespace Backend.Services
                 _logger.LogError(ex, "Error unsubscribing from MQTT topics during shutdown");
             }
 
+            // Dispose timer
+            _batchSaveTimer?.Dispose();
+
             await base.StopAsync(stoppingToken);
+        }
+
+        public override void Dispose()
+        {
+            _batchSaveTimer?.Dispose();
+            base.Dispose();
         }
     }
 }

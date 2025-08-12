@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { useMQTTPublish } from '@/hooks/useMQTTPublish';
 import { useMQTTStatus } from '@/hooks/useMQTTStatus';
+import { useMQTTConnection } from '@/hooks/useMQTTConnection';
+import { MQTTTroubleshootingGuide } from '@/components/mqtt/mqtt-troubleshooting-guide';
 import MQTTConnectionBadge from '@/components/mqtt-status';
 import { toast } from 'sonner';
 
@@ -50,9 +52,11 @@ export default function ContainmentControlPage() {
   
   const [publishHistory, setPublishHistory] = useState<PublishHistory[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   
   const { publishControlCommand } = useMQTTPublish();
   const mqttStatus = useMQTTStatus();
+  const { isInitializing } = useMQTTConnection(); // Auto-initialize MQTT connection
 
   const addToHistory = (command: string, success: boolean) => {
     const historyItem: PublishHistory = {
@@ -131,14 +135,20 @@ export default function ContainmentControlPage() {
   };
 
   const getMQTTStatusIcon = () => {
+    if (isInitializing) {
+      return <Activity className="h-4 w-4 text-blue-500 animate-pulse" />;
+    }
+    
     switch (mqttStatus) {
       case 'connected':
         return <Wifi className="h-4 w-4 text-green-500" />;
+      case 'connecting':
+        return <Activity className="h-4 w-4 text-yellow-500 animate-pulse" />;
       case 'disconnected':
       case 'error':
         return <WifiOff className="h-4 w-4 text-red-500" />;
       default:
-        return <Activity className="h-4 w-4 text-yellow-500 animate-pulse" />;
+        return <Activity className="h-4 w-4 text-gray-500 animate-pulse" />;
     }
   };
 
@@ -165,17 +175,47 @@ export default function ContainmentControlPage() {
         </p>
 
         {/* Connection Status Alert */}
-        {!isConnected && (
-          <Card className="border-orange-200 bg-orange-50">
+        {isInitializing && (
+          <Card className="border-blue-200 bg-blue-50">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-orange-700">
-                <AlertCircle className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-blue-700">
+                <Activity className="h-4 w-4 animate-pulse" />
                 <span className="text-sm font-medium">
-                  MQTT connection required to send control commands
+                  Initializing MQTT connection...
                 </span>
               </div>
             </CardContent>
           </Card>
+        )}
+        
+        {!isInitializing && !isConnected && (
+          <div className="space-y-4">
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-orange-700">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      MQTT connection required to send control commands.
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                  >
+                    {showTroubleshooting ? "Hide" : "Show"} Troubleshooting
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <MQTTTroubleshootingGuide
+              isVisible={showTroubleshooting}
+              connectionError={mqttStatus === 'error' ? 'WebSocket connection failed' : undefined}
+              onClose={() => setShowTroubleshooting(false)}
+            />
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

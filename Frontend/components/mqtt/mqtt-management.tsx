@@ -16,7 +16,8 @@ import {
   Database, 
   FileText, 
   Radio,
-  Settings
+  Settings,
+  HelpCircle
 } from "lucide-react";
 import { 
   MqttConfiguration,
@@ -24,11 +25,15 @@ import {
 } from "@/lib/api-service";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/loading-skeleton";
+import { ConfigurationHelperDialog } from "@/components/mqtt/configuration-helper-dialog";
+import { MQTTConfigSourceToggle } from "@/components/mqtt/mqtt-config-source-toggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MQTTManagementProps {
   configurations: MqttConfiguration[];
   activeConfiguration: MqttConfiguration | null;
   effectiveConfiguration: Record<string, any>;
+  connectionStatuses?: Record<string, boolean>;
   isLoading?: boolean;
   onEdit?: (config: MqttConfiguration) => void;
   onView?: (config: MqttConfiguration) => void;
@@ -42,6 +47,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
   configurations,
   activeConfiguration,
   effectiveConfiguration,
+  connectionStatuses = {},
   isLoading = false,
   onEdit,
   onView,
@@ -51,6 +57,8 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
   onRefresh
 }) => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showHelperDialog, setShowHelperDialog] = useState(false);
+  const [selectedConfigForHelper, setSelectedConfigForHelper] = useState<MqttConfiguration | null>(null);
 
   const handleDelete = async (id: number) => {
     setDeletingId(id);
@@ -83,17 +91,28 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
     }
   };
 
-  const getStatusBadge = useMemo(() => (isEnabled: boolean, isActive: boolean) => {
-    if (isActive && isEnabled) {
-      return <Badge variant="default" className="bg-green-500">Active & Enabled</Badge>;
+  const handleShowConfigHelper = (config: MqttConfiguration) => {
+    setSelectedConfigForHelper(config);
+    setShowHelperDialog(true);
+  };
+
+  const getStatusBadge = useMemo(() => (isEnabled: boolean, isActive: boolean, configId: number) => {
+    const isConnected = connectionStatuses[configId.toString()] || false;
+    
+    if (isActive && isEnabled && isConnected) {
+      return <Badge variant="default" className="bg-green-500">Connected & Active</Badge>;
+    } else if (isActive && isEnabled && !isConnected) {
+      return <Badge variant="destructive">Active but Disconnected</Badge>;
     } else if (isActive && !isEnabled) {
       return <Badge variant="secondary">Active but Disabled</Badge>;
-    } else if (isEnabled) {
-      return <Badge variant="outline">Enabled but Inactive</Badge>;
+    } else if (isEnabled && isConnected) {
+      return <Badge className="bg-orange-500">Connected but Inactive</Badge>;
+    } else if (isEnabled && !isConnected) {
+      return <Badge variant="outline" className="text-yellow-600">Enabled but Disconnected</Badge>;
     } else {
       return <Badge variant="destructive">Disabled</Badge>;
     }
-  }, []);
+  }, [connectionStatuses]);
 
   if (isLoading) {
     return (
@@ -126,7 +145,15 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <TooltipProvider>
+      <div className="space-y-4">
+      {/* Configuration Source Toggle */}
+      <MQTTConfigSourceToggle
+        activeConfiguration={activeConfiguration}
+        effectiveConfiguration={effectiveConfiguration}
+        onConfigurationChange={onRefresh}
+      />
+
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -218,7 +245,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(config.isEnabled, config.isActive)}
+                    {getStatusBadge(config.isEnabled, config.isActive, config.id)}
                   </TableCell>
                   <TableCell>
                     {new Date(config.createdAt).toLocaleDateString()}
@@ -226,51 +253,100 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {onView && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onView(config)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onView(config)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            View detailed configuration information
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                       {onEdit && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onEdit(config)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onEdit(config)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Edit MQTT configuration settings
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                       {!config.isActive && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSetActive(config.id)}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSetActive(config.id)}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Set as active configuration
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                       {onTest && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onTest(config)}
-                          disabled={testingConnection}
-                        >
-                          <TestTube className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onTest(config)}
+                              disabled={testingConnection}
+                            >
+                              <TestTube className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Test connection to MQTT broker
+                          </TooltipContent>
+                        </Tooltip>
                       )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleShowConfigHelper(config)}
+                          >
+                            <HelpCircle className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Configuration analysis and troubleshooting
+                        </TooltipContent>
+                      </Tooltip>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled={deletingId === config.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                disabled={deletingId === config.id}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Delete MQTT configuration
+                            </TooltipContent>
+                          </Tooltip>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -326,7 +402,16 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
           </div>
         </CardContent>
       </Card>
-    </div>
+
+      {/* Configuration Helper Dialog */}
+      <ConfigurationHelperDialog
+        isOpen={showHelperDialog}
+        onClose={() => setShowHelperDialog(false)}
+        configuration={selectedConfigForHelper}
+        connectionStatus={selectedConfigForHelper ? connectionStatuses[selectedConfigForHelper.id.toString()] : false}
+      />
+      </div>
+    </TooltipProvider>
   );
 };
 

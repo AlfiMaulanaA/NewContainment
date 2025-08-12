@@ -189,6 +189,34 @@ namespace Backend.Services
             return effectiveConfig;
         }
 
+        public async Task<Dictionary<int, bool>> GetAllConnectionStatusAsync()
+        {
+            var configurations = await GetAllConfigurationsAsync();
+            var statusDict = new Dictionary<int, bool>();
+
+            foreach (var config in configurations)
+            {
+                if (config.IsEnabled)
+                {
+                    try
+                    {
+                        var connectionStatus = await TestConnectionAsync(config);
+                        statusDict[config.Id] = connectionStatus;
+                    }
+                    catch
+                    {
+                        statusDict[config.Id] = false;
+                    }
+                }
+                else
+                {
+                    statusDict[config.Id] = false; // Disabled = not connected
+                }
+            }
+
+            return statusDict;
+        }
+
         public async Task<bool> TestConnectionAsync(MqttConfiguration configuration)
         {
             try

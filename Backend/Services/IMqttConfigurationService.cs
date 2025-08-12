@@ -14,5 +14,6 @@ namespace Backend.Services
         Task<bool> ToggleMqttAsync(bool enabled, int userId);
         Task<Dictionary<string, object>> GetEffectiveConfigurationAsync();
         Task<bool> TestConnectionAsync(MqttConfiguration configuration);
+        Task<Dictionary<int, bool>> GetAllConnectionStatusAsync();
     }
 }

@@ -105,6 +105,43 @@ namespace Backend.Controllers
                 Role = userRole
             });
         }
+
+        [HttpPost("verify-reset-credentials")]
+        public async Task<ActionResult<VerifyResetCredentialsResponse>> VerifyResetCredentials(VerifyResetCredentialsRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _authService.FindUserForPasswordResetAsync(request.Email, request.Name);
+            
+            if (user == null)
+                return NotFound(new { message = "User with the provided email and name combination not found" });
+
+            return Ok(new VerifyResetCredentialsResponse 
+            { 
+                UserId = user.Id,
+                Message = "Credentials verified successfully. You can now reset your password.",
+                IsValid = true
+            });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<ResetPasswordResponse>> ResetPassword(ResetPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var success = await _authService.ResetPasswordAsync(request.UserId, request.NewPassword);
+            
+            if (!success)
+                return BadRequest(new { message = "Failed to reset password. User not found." });
+
+            return Ok(new ResetPasswordResponse 
+            { 
+                Message = "Password reset successfully",
+                Success = true
+            });
+        }
     }
 
     public class LoginRequest
@@ -150,5 +187,45 @@ namespace Backend.Controllers
         public string Email { get; set; } = string.Empty;
         public UserRole Role { get; set; }
         public string? PhoneNumber { get; set; }
+    }
+
+    public class VerifyResetCredentialsRequest
+    {
+        [Required]
+        [EmailAddress]
+        [StringLength(255)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class VerifyResetCredentialsResponse
+    {
+        public int UserId { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public bool IsValid { get; set; }
+    }
+
+    public class ResetPasswordRequest
+    {
+        [Required]
+        public int UserId { get; set; }
+
+        [Required]
+        [MinLength(6)]
+        [StringLength(100)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        [Compare("NewPassword", ErrorMessage = "Password confirmation does not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordResponse
+    {
+        public string Message { get; set; } = string.Empty;
+        public bool Success { get; set; }
     }
 }

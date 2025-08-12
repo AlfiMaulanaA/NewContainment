@@ -25,13 +25,17 @@ import {
   GaugeCircle,
   HardDrive,
   Database,
+  Info,
+  Shield,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SessionInfo } from "@/components/session-info";
 
-export default function InfoFAQPage() {
+export default function SystemInfoPage() {
   const techStack = [
     { name: "Next.js", icon: <SiNextdotjs size={32} className="text-black dark:text-white" /> },
     { name: "TypeScript", icon: <SiTypescript size={32} className="text-sky-600" /> },
@@ -89,8 +93,8 @@ export default function InfoFAQPage() {
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
-          <FileQuestion className="w-5 h-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Information & FAQ</h1>
+          <Info className="w-5 h-5" />
+          <h1 className="text-lg font-semibold">System Information</h1>
         </div>
         <Button
           variant="outline"
@@ -104,7 +108,20 @@ export default function InfoFAQPage() {
       </header>
 
       {/* Content */}
-      <main className="px-6 md:px-12 lg:px-24 py-8 space-y-12 transition-all">
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <Tabs defaultValue="system" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              System Info
+            </TabsTrigger>
+            <TabsTrigger value="session" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Session Info
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="system" className="mt-6 px-6 md:px-12 lg:px-24 space-y-12">
         {/* Info Section */}
         <section>
           <div className="flex items-center gap-2 mb-2">
@@ -167,7 +184,13 @@ export default function InfoFAQPage() {
             ))}
           </div>
         </section>
-      </main>
+          </TabsContent>
+          
+          <TabsContent value="session" className="mt-6">
+            <SessionInfo />
+          </TabsContent>
+        </Tabs>
+      </div>
     </SidebarInset>
   );
 }

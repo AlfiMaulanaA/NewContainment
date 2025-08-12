@@ -234,6 +234,13 @@ namespace Backend.Controllers
             });
         }
 
+        [HttpGet("status/all")]
+        public async Task<ActionResult<Dictionary<int, bool>>> GetAllConnectionStatus()
+        {
+            var statuses = await _mqttConfigurationService.GetAllConnectionStatusAsync();
+            return Ok(statuses);
+        }
+
         private int GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst(ClaimTypes.NameIdentifier);

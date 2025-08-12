@@ -153,6 +153,34 @@ namespace Backend.Services
             return true;
         }
 
+        public async Task<IFormFile?> GetUserPhotoFileAsync(string photoPath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(photoPath) || photoPath == GetDefaultPhotoPath())
+                {
+                    return null;
+                }
+
+                var fullPath = Path.Combine(_environment.WebRootPath, photoPath.TrimStart('/'));
+                if (!File.Exists(fullPath))
+                {
+                    return null;
+                }
+
+                var bytes = await File.ReadAllBytesAsync(fullPath);
+                var fileName = Path.GetFileName(photoPath);
+                var contentType = GetContentType(photoPath);
+                
+                return new FileStreamFormFile(new MemoryStream(bytes), fileName, contentType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error creating form file from user photo: {ex.Message}");
+                return null;
+            }
+        }
+
         public string GetDefaultPhotoPath()
         {
             return "/images/avatar-user.png";
@@ -169,5 +197,32 @@ namespace Backend.Services
                 _ => "application/octet-stream"
             };
         }
+    }
+
+    // Custom IFormFile implementation for existing files
+    public class FileStreamFormFile : IFormFile
+    {
+        private readonly Stream _stream;
+        
+        public FileStreamFormFile(Stream stream, string fileName, string contentType)
+        {
+            _stream = stream;
+            FileName = fileName;
+            ContentType = contentType;
+            Length = stream.Length;
+        }
+
+        public string ContentType { get; }
+        public string ContentDisposition => $"form-data; name=\"file\"; filename=\"{FileName}\"";
+        public IHeaderDictionary Headers => new HeaderDictionary();
+        public long Length { get; }
+        public string Name => "file";
+        public string FileName { get; }
+
+        public void CopyTo(Stream target) => _stream.CopyTo(target);
+        public Task CopyToAsync(Stream target, CancellationToken cancellationToken = default) => _stream.CopyToAsync(target, cancellationToken);
+        public Stream OpenReadStream() => _stream;
+
+        public void Dispose() => _stream?.Dispose();
     }
 }

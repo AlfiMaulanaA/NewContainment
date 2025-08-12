@@ -88,5 +88,35 @@ namespace Backend.Services
                 return false;
             }
         }
+
+        public async Task<User?> FindUserForPasswordResetAsync(string email, string name)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => 
+                u.Email.ToLower() == email.ToLower() && 
+                u.Name.ToLower() == name.ToLower() && 
+                u.IsActive);
+            
+            return user;
+        }
+
+        public async Task<bool> ResetPasswordAsync(int userId, string newPassword)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+                if (user == null)
+                    return false;
+
+                user.PasswordHash = HashPassword(newPassword);
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

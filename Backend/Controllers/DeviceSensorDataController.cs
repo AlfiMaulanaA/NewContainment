@@ -1,0 +1,413 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Backend.Services;
+using Backend.Models;
+
+namespace Backend.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class DeviceSensorDataController : ControllerBase
+    {
+        private readonly IDeviceSensorDataService _sensorDataService;
+        private readonly ILogger<DeviceSensorDataController> _logger;
+
+        public DeviceSensorDataController(
+            IDeviceSensorDataService sensorDataService,
+            ILogger<DeviceSensorDataController> logger)
+        {
+            _sensorDataService = sensorDataService;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Get all sensor data with pagination
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetAllSensorData(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                var allData = await _sensorDataService.GetAllSensorDataAsync();
+                var pagedData = allData.Skip((page - 1) * pageSize).Take(pageSize);
+
+                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = true,
+                    Data = pagedData,
+                    Message = $"Retrieved {pagedData.Count()} sensor data records (page {page})"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all sensor data");
+                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get latest sensor data with limit
+        /// </summary>
+        [HttpGet("latest")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetLatestSensorData(
+            [FromQuery] int limit = 100)
+        {
+            try
+            {
+                var data = await _sensorDataService.GetLatestSensorDataAsync(limit);
+                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = true,
+                    Data = data,
+                    Message = $"Retrieved latest {data.Count()} sensor data records"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving latest sensor data");
+                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get sensor data by device ID
+        /// </summary>
+        [HttpGet("device/{deviceId}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetSensorDataByDevice(
+            int deviceId,
+            [FromQuery] int limit = 50)
+        {
+            try
+            {
+                var data = await _sensorDataService.GetSensorDataByDeviceIdAsync(deviceId);
+                var limitedData = data.Take(limit);
+
+                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = true,
+                    Data = limitedData,
+                    Message = $"Retrieved {limitedData.Count()} sensor data records for device {deviceId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving sensor data for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get latest sensor data for a specific device
+        /// </summary>
+        [HttpGet("device/{deviceId}/latest")]
+        public async Task<ActionResult<ApiResponse<DeviceSensorData>>> GetLatestSensorDataByDevice(int deviceId)
+        {
+            try
+            {
+                var data = await _sensorDataService.GetLatestSensorDataByDeviceAsync(deviceId);
+                
+                if (data == null)
+                {
+                    return NotFound(new ApiResponse<DeviceSensorData>
+                    {
+                        Success = false,
+                        Message = $"No sensor data found for device {deviceId}"
+                    });
+                }
+
+                return Ok(new ApiResponse<DeviceSensorData>
+                {
+                    Success = true,
+                    Data = data,
+                    Message = $"Latest sensor data for device {deviceId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving latest sensor data for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<DeviceSensorData>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get sensor data by rack ID
+        /// </summary>
+        [HttpGet("rack/{rackId}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetSensorDataByRack(
+            int rackId,
+            [FromQuery] int limit = 100)
+        {
+            try
+            {
+                var data = await _sensorDataService.GetSensorDataByRackIdAsync(rackId);
+                var limitedData = data.Take(limit);
+
+                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = true,
+                    Data = limitedData,
+                    Message = $"Retrieved {limitedData.Count()} sensor data records for rack {rackId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving sensor data for rack {RackId}", rackId);
+                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get sensor data by containment ID
+        /// </summary>
+        [HttpGet("containment/{containmentId}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetSensorDataByContainment(
+            int containmentId,
+            [FromQuery] int limit = 100)
+        {
+            try
+            {
+                var data = await _sensorDataService.GetSensorDataByContainmentIdAsync(containmentId);
+                var limitedData = data.Take(limit);
+
+                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = true,
+                    Data = limitedData,
+                    Message = $"Retrieved {limitedData.Count()} sensor data records for containment {containmentId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving sensor data for containment {ContainmentId}", containmentId);
+                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get sensor statistics for a device
+        /// </summary>
+        [HttpGet("device/{deviceId}/statistics")]
+        public async Task<ActionResult<ApiResponse<object>>> GetSensorStatistics(
+            int deviceId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var stats = await _sensorDataService.GetSensorStatisticsAsync(deviceId, startDate, endDate);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = stats,
+                    Message = $"Statistics for device {deviceId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving statistics for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get temperature history for a device
+        /// </summary>
+        [HttpGet("device/{deviceId}/temperature-history")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetTemperatureHistory(
+            int deviceId,
+            [FromQuery] int hours = 24)
+        {
+            try
+            {
+                var timeRange = TimeSpan.FromHours(hours);
+                var history = await _sensorDataService.GetTemperatureHistoryAsync(deviceId, timeRange);
+                
+                return Ok(new ApiResponse<IEnumerable<object>>
+                {
+                    Success = true,
+                    Data = history,
+                    Message = $"Temperature history for device {deviceId} (last {hours} hours)"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving temperature history for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<IEnumerable<object>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get humidity history for a device
+        /// </summary>
+        [HttpGet("device/{deviceId}/humidity-history")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetHumidityHistory(
+            int deviceId,
+            [FromQuery] int hours = 24)
+        {
+            try
+            {
+                var timeRange = TimeSpan.FromHours(hours);
+                var history = await _sensorDataService.GetHumidityHistoryAsync(deviceId, timeRange);
+                
+                return Ok(new ApiResponse<IEnumerable<object>>
+                {
+                    Success = true,
+                    Data = history,
+                    Message = $"Humidity history for device {deviceId} (last {hours} hours)"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving humidity history for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<IEnumerable<object>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get all active topics
+        /// </summary>
+        [HttpGet("topics")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetActiveTopics()
+        {
+            try
+            {
+                var topics = await _sensorDataService.GetActiveTopicsAsync();
+                return Ok(new ApiResponse<IEnumerable<string>>
+                {
+                    Success = true,
+                    Data = topics,
+                    Message = $"Retrieved {topics.Count()} active topics"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving active topics");
+                return StatusCode(500, new ApiResponse<IEnumerable<string>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get topics by containment
+        /// </summary>
+        [HttpGet("containment/{containmentId}/topics")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetTopicsByContainment(int containmentId)
+        {
+            try
+            {
+                var topics = await _sensorDataService.GetTopicsByContainmentAsync(containmentId);
+                return Ok(new ApiResponse<IEnumerable<string>>
+                {
+                    Success = true,
+                    Data = topics,
+                    Message = $"Retrieved {topics.Count()} topics for containment {containmentId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving topics for containment {ContainmentId}", containmentId);
+                return StatusCode(500, new ApiResponse<IEnumerable<string>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Manually parse and store sensor data (for testing)
+        /// </summary>
+        [HttpPost("device/{deviceId}/parse")]
+        public async Task<ActionResult<ApiResponse<DeviceSensorData>>> ParseAndStoreSensorData(
+            int deviceId,
+            [FromBody] ManualSensorDataRequest request)
+        {
+            try
+            {
+                var result = await _sensorDataService.ParseAndStoreSensorDataAsync(
+                    deviceId, 
+                    request.Topic, 
+                    request.Payload);
+
+                return Ok(new ApiResponse<DeviceSensorData>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Sensor data parsed and stored for device {deviceId}"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ApiResponse<DeviceSensorData>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing and storing sensor data for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<DeviceSensorData>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+    }
+
+    public class ManualSensorDataRequest
+    {
+        public string Topic { get; set; } = string.Empty;
+        public string Payload { get; set; } = string.Empty;
+    }
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public T? Data { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+}

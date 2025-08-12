@@ -8,6 +8,7 @@ namespace Backend.Services
         Task<string> SaveUserPhotoAsync(IFormFile file, int userId);
         Task<bool> DeleteUserPhotoAsync(string photoPath);
         Task<FileContentResult?> GetUserPhotoAsync(string photoPath);
+        Task<IFormFile?> GetUserPhotoFileAsync(string photoPath);
         bool IsValidImageFile(IFormFile file);
         string GetDefaultPhotoPath();
     }

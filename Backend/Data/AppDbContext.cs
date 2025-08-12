@@ -22,6 +22,7 @@ namespace Backend.Data
         public DbSet<MqttConfiguration> MqttConfigurations { get; set; }
         public DbSet<NetworkConfiguration> NetworkConfigurations { get; set; }
         public DbSet<CctvCamera> CctvCameras { get; set; }
+        public DbSet<DeviceSensorData> DeviceSensorData { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -365,6 +366,46 @@ namespace Backend.Data
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Ip);
                 entity.HasIndex(e => e.ContainmentId);
+            });
+
+            modelBuilder.Entity<DeviceSensorData>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.DeviceId).IsRequired();
+                entity.Property(e => e.RackId).IsRequired();
+                entity.Property(e => e.ContainmentId).IsRequired();
+                entity.Property(e => e.Topic).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Temperature).HasColumnType("decimal(5,2)");
+                entity.Property(e => e.Humidity).HasColumnType("decimal(5,2)");
+                entity.Property(e => e.Timestamp).IsRequired();
+                entity.Property(e => e.ReceivedAt).IsRequired();
+                entity.Property(e => e.RawPayload).HasMaxLength(1000);
+
+                // Foreign key relationships
+                entity.HasOne(e => e.Device)
+                      .WithMany()
+                      .HasForeignKey(e => e.DeviceId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Rack)
+                      .WithMany()
+                      .HasForeignKey(e => e.RackId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Containment)
+                      .WithMany()
+                      .HasForeignKey(e => e.ContainmentId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.DeviceId);
+                entity.HasIndex(e => e.RackId);
+                entity.HasIndex(e => e.ContainmentId);
+                entity.HasIndex(e => e.Topic);
+                entity.HasIndex(e => e.Timestamp);
+                entity.HasIndex(e => e.ReceivedAt);
+                entity.HasIndex(e => new { e.DeviceId, e.Timestamp });
+                entity.HasIndex(e => new { e.ContainmentId, e.Timestamp });
             });
 
             // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing

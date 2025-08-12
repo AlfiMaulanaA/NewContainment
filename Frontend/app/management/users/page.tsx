@@ -287,6 +287,7 @@ export default function UserManagementPage() {
     return userPhotoApi.getPhotoUrl(user);
   };
 
+
   // Get role enum from string
   const getRoleEnum = (roleString: string): UserRole => {
     switch (roleString.toLowerCase()) {
@@ -770,6 +771,7 @@ export default function UserManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </SidebarInset>
   );
 }

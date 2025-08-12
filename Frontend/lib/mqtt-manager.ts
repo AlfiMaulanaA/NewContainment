@@ -1,5 +1,6 @@
 import mqtt, { MqttClient } from 'mqtt';
 import { toast } from 'sonner';
+import MQTTConfigManager from './mqtt-config-manager';
 
 interface Subscription {
   topic: string;
@@ -15,8 +16,11 @@ class MQTTManager {
   private maxConnectionAttempts = 3;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isConnecting = false;
+  private configManager: MQTTConfigManager;
 
-  private constructor() {}
+  private constructor() {
+    this.configManager = MQTTConfigManager.getInstance();
+  }
 
   static getInstance(): MQTTManager {
     if (!MQTTManager.instance) {
@@ -48,12 +52,23 @@ class MQTTManager {
     try {
       this.isConnecting = true;
       
-      const brokerUrl = process.env.NEXT_PUBLIC_MQTT_BROKER_URL || 'ws://localhost:8000/mqtt';
+      // Get effective configuration from ConfigManager
+      const mqttConfig = await this.configManager.getEffectiveConfiguration();
+      
+      // Check if MQTT is enabled
+      if (!mqttConfig.isEnabled) {
+        console.log('MQTT is disabled in configuration');
+        this.isConnecting = false;
+        return null;
+      }
+      
+      const brokerUrl = this.configManager.getConnectionUrl(mqttConfig);
+      const connectionOptions = this.configManager.getConnectionOptions(mqttConfig);
+      
+      console.log(`Connecting to MQTT broker: ${brokerUrl} (Source: ${mqttConfig.source})`);
       
       this.client = mqtt.connect(brokerUrl, {
-        clientId: `containment_web_${Math.random().toString(16).substr(2, 8)}`,
-        clean: true,
-        connectTimeout: 5000,
+        ...connectionOptions,
         reconnectPeriod: 0, // Disable automatic reconnection, we'll handle it manually
       });
 
@@ -277,6 +292,27 @@ class MQTTManager {
   getActiveTopics(): string[] {
     return Array.from(this.subscriptions.keys());
   }
+
+  // Refresh configuration and reconnect if needed
+  async refreshConfiguration(): Promise<void> {
+    try {
+      await this.configManager.refreshConfiguration();
+      
+      // If we're currently connected, disconnect and reconnect with new config
+      if (this.client?.connected) {
+        this.disconnect();
+        await this.connect();
+      }
+    } catch (error) {
+      console.error('Failed to refresh MQTT configuration:', error);
+      throw error;
+    }
+  }
+
+  // Get current configuration status
+  async getConfigurationStatus() {
+    return this.configManager.getConfigurationStatus();
+  }
 }
 
 // Hook for React components
@@ -301,12 +337,22 @@ export function useMQTT() {
 
   const isConnected = () => manager.isConnected();
 
+  const refreshConfiguration = async () => {
+    return manager.refreshConfiguration();
+  };
+
+  const getConfigurationStatus = async () => {
+    return manager.getConfigurationStatus();
+  };
+
   return {
     subscribe,
     unsubscribe,
     publish,
     isConnected,
-    getClient: () => manager.getClient()
+    getClient: () => manager.getClient(),
+    refreshConfiguration,
+    getConfigurationStatus
   };
 }
 

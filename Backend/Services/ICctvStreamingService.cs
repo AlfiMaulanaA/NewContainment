@@ -10,6 +10,7 @@ public interface ICctvStreamingService
     Task<CctvStreamInfo?> GetStreamInfoAsync(int cameraId);
     Task<byte[]?> GetSnapshotAsync(int cameraId);
     Task UpdateStreamStatusAsync(int cameraId, bool isOnline, string? errorMessage = null);
+    Task StreamMjpegAsync(int cameraId, Stream outputStream, CancellationToken cancellationToken = default);
 }
 
 public class CctvStreamInfo

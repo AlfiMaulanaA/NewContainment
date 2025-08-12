@@ -1,9 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Camera, Plus, Edit, Trash2, ArrowUpDown, Eye, EyeOff, Search, Play, TestTube, Monitor, Wifi, WifiOff, Activity } from "lucide-react";
+import {
+  Camera,
+  Plus,
+  Edit,
+  Trash2,
+  ArrowUpDown,
+  Eye,
+  EyeOff,
+  Search,
+  TestTube,
+  WifiOff,
+  Activity,
+  Wifi,
+  Power,
+  Terminal,
+  RotateCw,
+  Settings,
+  Thermometer,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Clock,
+  Moon,
+  Sun,
+  BatteryCharging,
+  Grid,
+  List,
+  Play,
+  Pause,
+  Monitor,
+  Save,
+  Loader2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +49,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -52,7 +84,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { CctvCamera, CreateUpdateCctvCameraRequest, cctvApi, containmentsApi } from "@/lib/api-service";
+import {
+  CctvCamera,
+  CreateUpdateCctvCameraRequest,
+  cctvApi,
+  containmentsApi,
+  systemInfoApi,
+  type SystemInfo,
+} from "@/lib/api-service";
+
+// Import API service
 import { useSortableTable } from "@/hooks/use-sort-table";
 
 const ITEMS_PER_PAGE = 10;
@@ -62,13 +103,89 @@ export default function CctvManagementPage() {
   const [containments, setContainments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [testingConnectionId, setTestingConnectionId] = useState<number | null>(null);
+  const [testingConnectionId, setTestingConnectionId] = useState<number | null>(
+    null
+  );
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingCamera, setEditingCamera] = useState<CctvCamera | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  
+
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [isLoadingSystemInfo, setIsLoadingSystemInfo] = useState(false);
+  const [systemInfoError, setSystemInfoError] = useState<string | null>(null);
+
+  const [ipIndex, setIpIndex] = useState(0);
+
+  // Function to fetch system info
+  const fetchSystemInfo = useCallback(async () => {
+    setIsLoadingSystemInfo(true);
+    setSystemInfoError(null);
+    try {
+      const response = await systemInfoApi.getSystemInfo();
+      if (response.success && response.data) {
+        setSystemInfo(response.data);
+      } else {
+        setSystemInfoError(response.message || "Failed to fetch system info");
+        toast.error(response.message || "Failed to fetch system info");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      setSystemInfoError(errorMessage);
+      toast.error("Error fetching system info: " + errorMessage);
+    } finally {
+      setIsLoadingSystemInfo(false);
+    }
+  }, []);
+
+  // Function to refresh system info
+  const refreshSystemInfo = useCallback(async () => {
+    setIsLoadingSystemInfo(true);
+    setSystemInfoError(null);
+    try {
+      const response = await systemInfoApi.refreshSystemInfo();
+      if (response.success && response.data) {
+        setSystemInfo(response.data);
+        toast.success("System info refreshed successfully");
+      } else {
+        setSystemInfoError(response.message || "Failed to refresh system info");
+        toast.error(response.message || "Failed to refresh system info");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      setSystemInfoError(errorMessage);
+      toast.error("Error refreshing system info: " + errorMessage);
+    } finally {
+      setIsLoadingSystemInfo(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetch system info on component mount
+    fetchSystemInfo();
+
+    // Only handles IP address rotation
+    const ipInterval = setInterval(() => setIpIndex((i) => (i + 1) % 2), 3000);
+
+    // Auto-refresh system info every 30 seconds
+    const systemInfoInterval = setInterval(fetchSystemInfo, 30000);
+
+    return () => {
+      clearInterval(ipInterval);
+      clearInterval(systemInfoInterval);
+    };
+  }, [fetchSystemInfo]);
+
+  const ipType = ipIndex === 0 ? "eth0" : "wlan0";
+  const ipAddress = systemInfo
+    ? ipIndex === 0
+      ? systemInfo.eth0_ip_address
+      : systemInfo.wlan0_ip_address
+    : "N/A";
+
   // Form state
   const [formData, setFormData] = useState<CreateUpdateCctvCameraRequest>({
     name: "",
@@ -76,29 +193,38 @@ export default function CctvManagementPage() {
     port: 554,
     username: "",
     password: "",
+    apiKeys: "",
     streamUrl: "",
     containmentId: undefined,
   });
 
   // Sorting functionality
-  const { sorted, sortField, sortDirection, handleSort } = useSortableTable(cameras);
+  const { sorted, sortField, sortDirection, handleSort } =
+    useSortableTable(cameras);
 
   // Search and filter
-  const filteredCameras = sorted.filter(camera =>
-    camera.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    camera.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    camera.streamUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (camera.containmentName && camera.containmentName.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredCameras = sorted.filter(
+    (camera) =>
+      camera.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      camera.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      camera.streamUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (camera.containmentName &&
+        camera.containmentName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()))
   );
 
   // Pagination
   const totalPages = Math.ceil(filteredCameras.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedCameras = filteredCameras.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedCameras = filteredCameras.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
 
   // Statistics
   const totalCameras = cameras.length;
-  const onlineCameras = cameras.filter(camera => {
+  const onlineCameras = cameras.filter((camera) => {
     // We'll use a simple check based on recent updates for now
     // In real implementation, you would track online status
     return true; // Placeholder
@@ -106,9 +232,13 @@ export default function CctvManagementPage() {
   const offlineCameras = totalCameras - onlineCameras;
 
   const protocolBreakdown = cameras.reduce((acc, camera) => {
-    const protocol = camera.streamUrl.startsWith('rtsp://') ? 'RTSP' : 
-                    camera.streamUrl.startsWith('https://') ? 'HTTPS' : 
-                    camera.streamUrl.startsWith('http://') ? 'HTTP' : 'Other';
+    const protocol = camera.streamUrl.startsWith("rtsp://")
+      ? "RTSP"
+      : camera.streamUrl.startsWith("https://")
+      ? "HTTPS"
+      : camera.streamUrl.startsWith("http://")
+      ? "HTTP"
+      : "Other";
     acc[protocol] = (acc[protocol] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -166,7 +296,7 @@ export default function CctvManagementPage() {
 
   const handleEditCamera = async () => {
     if (!editingCamera) return;
-    
+
     setActionLoading(true);
     try {
       const result = await cctvApi.updateCamera(editingCamera.id, formData);
@@ -228,6 +358,7 @@ export default function CctvManagementPage() {
       port: 554,
       username: "",
       password: "",
+      apiKeys: "",
       streamUrl: "",
       containmentId: undefined,
     });
@@ -241,6 +372,7 @@ export default function CctvManagementPage() {
       port: camera.port,
       username: camera.username || "",
       password: camera.password || "",
+      apiKeys: camera.apiKeys || "",
       streamUrl: camera.streamUrl,
       containmentId: camera.containmentId || undefined,
     });
@@ -248,10 +380,16 @@ export default function CctvManagementPage() {
   };
 
   const generateStreamUrl = () => {
-    if (formData.ip && formData.port && formData.username && formData.password) {
-      const protocol = formData.port === 80 || formData.port === 8080 ? 'http' : 'rtsp';
+    if (
+      formData.ip &&
+      formData.port &&
+      formData.username &&
+      formData.password
+    ) {
+      const protocol =
+        formData.port === 80 || formData.port === 8080 ? "http" : "rtsp";
       const url = `${protocol}://${formData.username}:${formData.password}@${formData.ip}:${formData.port}/stream1`;
-      setFormData(prev => ({ ...prev, streamUrl: url }));
+      setFormData((prev) => ({ ...prev, streamUrl: url }));
     }
   };
 
@@ -283,10 +421,15 @@ export default function CctvManagementPage() {
           <Camera className="h-5 w-5" />
           <h1 className="text-lg font-semibold">CCTV Camera Management</h1>
         </div>
-        
+
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button onClick={() => {resetForm(); setShowCreateDialog(true)}}>
+            <Button
+              onClick={() => {
+                resetForm();
+                setShowCreateDialog(true);
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Camera
             </Button>
@@ -301,7 +444,9 @@ export default function CctvManagementPage() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   placeholder="e.g., Camera Pintu Masuk"
                 />
               </div>
@@ -311,7 +456,9 @@ export default function CctvManagementPage() {
                   <Input
                     id="ip"
                     value={formData.ip}
-                    onChange={(e) => setFormData(prev => ({...prev, ip: e.target.value}))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, ip: e.target.value }))
+                    }
                     placeholder="192.168.1.100"
                   />
                 </div>
@@ -321,7 +468,12 @@ export default function CctvManagementPage() {
                     id="port"
                     type="number"
                     value={formData.port}
-                    onChange={(e) => setFormData(prev => ({...prev, port: parseInt(e.target.value) || 554}))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        port: parseInt(e.target.value) || 554,
+                      }))
+                    }
                     placeholder="554"
                   />
                 </div>
@@ -332,7 +484,12 @@ export default function CctvManagementPage() {
                   <Input
                     id="username"
                     value={formData.username}
-                    onChange={(e) => setFormData(prev => ({...prev, username: e.target.value}))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        username: e.target.value,
+                      }))
+                    }
                     placeholder="admin"
                   />
                 </div>
@@ -342,7 +499,12 @@ export default function CctvManagementPage() {
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
                     placeholder="password"
                   />
                 </div>
@@ -350,22 +512,56 @@ export default function CctvManagementPage() {
               <div className="grid gap-2">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="streamUrl">Stream URL</Label>
-                  <Button variant="outline" size="sm" onClick={generateStreamUrl}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateStreamUrl}
+                  >
                     Auto Generate
                   </Button>
                 </div>
                 <Input
                   id="streamUrl"
                   value={formData.streamUrl}
-                  onChange={(e) => setFormData(prev => ({...prev, streamUrl: e.target.value}))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      streamUrl: e.target.value,
+                    }))
+                  }
                   placeholder="rtsp://admin:password@192.168.1.100:554/stream1"
                 />
               </div>
               <div className="grid gap-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="apiKeys">Api Keys</Label>
+                  <span className="p-2 bg-gray-200 rounded-full text-xs text-muted-foreground">
+                    For Motion Detection
+                  </span>
+                </div>
+                <Input
+                  id="apiKeys"
+                  value={formData.apiKeys}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      apiKeys: e.target.value,
+                    }))
+                  }
+                  placeholder="Api Keys Shinobi CCTV"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="containment">Containment (Optional)</Label>
-                <Select 
-                  value={formData.containmentId?.toString() || "none"} 
-                  onValueChange={(value) => setFormData(prev => ({...prev, containmentId: value === "none" ? undefined : parseInt(value)}))}
+                <Select
+                  value={formData.containmentId?.toString() || "none"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      containmentId:
+                        value === "none" ? undefined : parseInt(value),
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select containment" />
@@ -373,7 +569,10 @@ export default function CctvManagementPage() {
                   <SelectContent>
                     <SelectItem value="none">No Containment</SelectItem>
                     {containments.map((containment) => (
-                      <SelectItem key={containment.id} value={containment.id.toString()}>
+                      <SelectItem
+                        key={containment.id}
+                        value={containment.id.toString()}
+                      >
                         {containment.name}
                       </SelectItem>
                     ))}
@@ -382,7 +581,12 @@ export default function CctvManagementPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+              >
+                Cancel
+              </Button>
               <Button onClick={handleCreateCamera} disabled={actionLoading}>
                 {actionLoading ? "Creating..." : "Create Camera"}
               </Button>
@@ -396,44 +600,65 @@ export default function CctvManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cameras</CardTitle>
+
             <Camera className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCameras}</div>
             <p className="text-xs text-muted-foreground">
-              +{cameras.filter(c => {
-                const createdAt = new Date(c.createdAt);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - createdAt.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 30;
-              }).length} from last month
+              +
+              {
+                cameras.filter((c) => {
+                  const createdAt = new Date(c.createdAt);
+                  const now = new Date();
+                  const diffTime = Math.abs(
+                    now.getTime() - createdAt.getTime()
+                  );
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  return diffDays <= 30;
+                }).length
+              }{" "}
+              from last month
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Online Cameras</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Online Cameras
+            </CardTitle>
             <Wifi className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{onlineCameras}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {onlineCameras}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {totalCameras > 0 ? Math.round((onlineCameras / totalCameras) * 100) : 0}% of total cameras
+              {totalCameras > 0
+                ? Math.round((onlineCameras / totalCameras) * 100)
+                : 0}
+              % of total cameras
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Offline Cameras</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Offline Cameras
+            </CardTitle>
             <WifiOff className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{offlineCameras}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {offlineCameras}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {totalCameras > 0 ? Math.round((offlineCameras / totalCameras) * 100) : 0}% of total cameras
+              {totalCameras > 0
+                ? Math.round((offlineCameras / totalCameras) * 100)
+                : 0}
+              % of total cameras
             </p>
           </CardContent>
         </Card>
@@ -444,14 +669,55 @@ export default function CctvManagementPage() {
             <Activity className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{protocolBreakdown.RTSP || 0}</div>
+            <div className="text-2xl font-bold">
+              {protocolBreakdown.RTSP || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
-              HTTP: {protocolBreakdown.HTTP || 0}, HTTPS: {protocolBreakdown.HTTPS || 0}
+              HTTP: {protocolBreakdown.HTTP || 0}, HTTPS:{" "}
+              {protocolBreakdown.HTTPS || 0}
             </p>
           </CardContent>
         </Card>
       </div>
-
+      <Card className="m-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">
+              Manage CCTV for Motion Detection
+            </CardTitle>
+            {isLoadingSystemInfo && !systemInfo ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <div className="h-6 w-6 bg-gray-300 rounded animate-pulse" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 bg-gray-300 rounded w-24 animate-pulse" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : systemInfo ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <h6 className="font-medium">IP Address</h6>
+                  <p className="text-sm text-muted-foreground">
+                    <a
+                      href={`http://${ipAddress}:8080`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      <strong>{ipType}:</strong> {ipAddress}
+                    </a>
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </CardHeader>
+      </Card>
       {/* Main Table */}
       <Card className="m-4">
         <CardHeader>
@@ -475,21 +741,20 @@ export default function CctvManagementPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">#</TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:text-foreground"
                   onClick={() => handleSort("name")}
                 >
                   Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:text-foreground"
                   onClick={() => handleSort("ip")}
                 >
                   IP Address <ArrowUpDown className="inline ml-1 h-4 w-4" />
                 </TableHead>
-                <TableHead>Port</TableHead>
+                <TableHead>Api Keys</TableHead>
                 <TableHead>Protocol</TableHead>
-                <TableHead>Containment</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -497,31 +762,52 @@ export default function CctvManagementPage() {
             <TableBody>
               {paginatedCameras.map((camera, index) => (
                 <TableRow key={camera.id}>
-                  <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
+                  <TableCell className="font-medium">
+                    {startIndex + index + 1}
+                  </TableCell>
                   <TableCell>
                     <div className="font-medium">{camera.name}</div>
                     <div className="text-sm text-muted-foreground truncate max-w-[200px]">
                       {camera.streamUrl}
                     </div>
                   </TableCell>
-                  <TableCell>{camera.ip}</TableCell>
-                  <TableCell>{camera.port}</TableCell>
                   <TableCell>
-                    <Badge variant={camera.streamUrl.startsWith('rtsp://') ? 'default' : 'secondary'}>
-                      {camera.streamUrl.startsWith('rtsp://') ? 'RTSP' : 
-                       camera.streamUrl.startsWith('https://') ? 'HTTPS' : 
-                       camera.streamUrl.startsWith('http://') ? 'HTTP' : 'Other'}
+                    <a
+                      href={`http://${camera.ip}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {camera.ip}
+                    </a>
+                  </TableCell>
+                  <TableCell className="w-[80px]">
+                    <span className="block w-full truncate">
+                      {camera.apiKeys || "Not set"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        camera.streamUrl.startsWith("rtsp://")
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {camera.streamUrl.startsWith("rtsp://")
+                        ? "RTSP"
+                        : camera.streamUrl.startsWith("https://")
+                        ? "HTTPS"
+                        : camera.streamUrl.startsWith("http://")
+                        ? "HTTP"
+                        : "Other"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {camera.containmentName ? (
-                      <Badge variant="outline">{camera.containmentName}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="flex items-center w-fit gap-1">
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center w-fit gap-1"
+                    >
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
                       Unknown
                     </Badge>
@@ -540,7 +826,11 @@ export default function CctvManagementPage() {
                           <TestTube className="h-4 w-4" />
                         )}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => openEditDialog(camera)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditDialog(camera)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
@@ -551,14 +841,17 @@ export default function CctvManagementPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete CCTV Camera</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Delete CCTV Camera
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete camera "{camera.name}"? This action cannot be undone.
+                              Are you sure you want to delete camera "
+                              {camera.name}"? This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
+                            <AlertDialogAction
                               onClick={() => handleDeleteCamera(camera)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
@@ -580,14 +873,18 @@ export default function CctvManagementPage() {
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
                     />
                   </PaginationItem>
-                  {Array.from({length: totalPages}, (_, i) => (
+                  {Array.from({ length: totalPages }, (_, i) => (
                     <PaginationItem key={i}>
-                      <PaginationLink 
+                      <PaginationLink
                         onClick={() => setCurrentPage(i + 1)}
                         isActive={currentPage === i + 1}
                         className="cursor-pointer"
@@ -597,9 +894,15 @@ export default function CctvManagementPage() {
                     </PaginationItem>
                   ))}
                   <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    <PaginationNext
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -621,7 +924,9 @@ export default function CctvManagementPage() {
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="e.g., Camera Pintu Masuk"
               />
             </div>
@@ -631,7 +936,9 @@ export default function CctvManagementPage() {
                 <Input
                   id="edit-ip"
                   value={formData.ip}
-                  onChange={(e) => setFormData(prev => ({...prev, ip: e.target.value}))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, ip: e.target.value }))
+                  }
                   placeholder="192.168.1.100"
                 />
               </div>
@@ -641,7 +948,12 @@ export default function CctvManagementPage() {
                   id="edit-port"
                   type="number"
                   value={formData.port}
-                  onChange={(e) => setFormData(prev => ({...prev, port: parseInt(e.target.value) || 554}))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      port: parseInt(e.target.value) || 554,
+                    }))
+                  }
                   placeholder="554"
                 />
               </div>
@@ -652,7 +964,12 @@ export default function CctvManagementPage() {
                 <Input
                   id="edit-username"
                   value={formData.username}
-                  onChange={(e) => setFormData(prev => ({...prev, username: e.target.value}))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      username: e.target.value,
+                    }))
+                  }
                   placeholder="admin"
                 />
               </div>
@@ -662,7 +979,12 @@ export default function CctvManagementPage() {
                   id="edit-password"
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      password: e.target.value,
+                    }))
+                  }
                   placeholder="password"
                 />
               </div>
@@ -677,15 +999,45 @@ export default function CctvManagementPage() {
               <Input
                 id="edit-streamUrl"
                 value={formData.streamUrl}
-                onChange={(e) => setFormData(prev => ({...prev, streamUrl: e.target.value}))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    streamUrl: e.target.value,
+                  }))
+                }
                 placeholder="rtsp://admin:password@192.168.1.100:554/stream1"
               />
             </div>
             <div className="grid gap-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="apiKeys">Api Keys</Label>
+                <span className="p-2 bg-gray-200 rounded-full text-xs text-muted-foreground">
+                  For Motion Detection
+                </span>
+              </div>
+              <Input
+                id="apiKeys"
+                value={formData.apiKeys}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    apiKeys: e.target.value,
+                  }))
+                }
+                placeholder="Api Keys Shinobi CCTV"
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="edit-containment">Containment (Optional)</Label>
-              <Select 
-                value={formData.containmentId?.toString() || "none"} 
-                onValueChange={(value) => setFormData(prev => ({...prev, containmentId: value === "none" ? undefined : parseInt(value)}))}
+              <Select
+                value={formData.containmentId?.toString() || "none"}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    containmentId:
+                      value === "none" ? undefined : parseInt(value),
+                  }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select containment" />
@@ -693,7 +1045,10 @@ export default function CctvManagementPage() {
                 <SelectContent>
                   <SelectItem value="none">No Containment</SelectItem>
                   {containments.map((containment) => (
-                    <SelectItem key={containment.id} value={containment.id.toString()}>
+                    <SelectItem
+                      key={containment.id}
+                      value={containment.id.toString()}
+                    >
                       {containment.name}
                     </SelectItem>
                   ))}
@@ -702,7 +1057,9 @@ export default function CctvManagementPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleEditCamera} disabled={actionLoading}>
               {actionLoading ? "Updating..." : "Update Camera"}
             </Button>

@@ -30,6 +30,7 @@ public class CctvService : ICctvService
                     Port = c.Port,
                     Username = c.Username,
                     Password = c.Password,
+                    ApiKeys = c.ApiKeys,
                     StreamUrl = c.StreamUrl,
                     ContainmentId = c.ContainmentId,
                     ContainmentName = c.Containment != null ? c.Containment.Name : null,
@@ -62,6 +63,7 @@ public class CctvService : ICctvService
                     Port = c.Port,
                     Username = c.Username,
                     Password = c.Password,
+                    ApiKeys = c.ApiKeys,
                     StreamUrl = c.StreamUrl,
                     ContainmentId = c.ContainmentId,
                     ContainmentName = c.Containment != null ? c.Containment.Name : null,
@@ -95,6 +97,7 @@ public class CctvService : ICctvService
                     Port = c.Port,
                     Username = c.Username,
                     Password = c.Password,
+                    ApiKeys = c.ApiKeys,
                     StreamUrl = c.StreamUrl,
                     ContainmentId = c.ContainmentId,
                     ContainmentName = c.Containment != null ? c.Containment.Name : null,
@@ -123,6 +126,7 @@ public class CctvService : ICctvService
                 Port = dto.Port,
                 Username = dto.Username,
                 Password = dto.Password,
+                ApiKeys = dto.ApiKeys,
                 StreamUrl = dto.StreamUrl,
                 ContainmentId = dto.ContainmentId,
                 CreatedAt = DateTime.UtcNow,
@@ -158,6 +162,7 @@ public class CctvService : ICctvService
             camera.Port = dto.Port;
             camera.Username = dto.Username;
             camera.Password = dto.Password;
+            camera.ApiKeys = dto.ApiKeys;
             camera.StreamUrl = dto.StreamUrl;
             camera.ContainmentId = dto.ContainmentId;
             camera.UpdatedAt = DateTime.UtcNow;

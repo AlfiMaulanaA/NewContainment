@@ -1,0 +1,160 @@
+Using launch settings from D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\Properties\launchSettings.json...
+Building...
+info: Program[0]
+      === IoT Containment Management System ===
+info: Program[0]
+      Version: 1.0.0.0
+info: Program[0]
+      Environment: Development
+info: Program[0]
+      Startup Time: 08/11/2025 07:35:12
+info: Program[0]
+      Migrating database...
+info: Microsoft.EntityFrameworkCore.Migrations[20411]
+      Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (100ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*) FROM "sqlite_master" WHERE "name" = '__EFMigrationsLock' AND "type" = 'table';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      INSERT OR IGNORE INTO "__EFMigrationsLock"("Id", "Timestamp") VALUES(1, '2025-08-11 07:35:17.4044332+00:00');
+      SELECT changes();
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+          "MigrationId" TEXT NOT NULL CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY,
+          "ProductVersion" TEXT NOT NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*) FROM "sqlite_master" WHERE "name" = '__EFMigrationsHistory' AND "type" = 'table';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "__EFMigrationsLock";
+info: Program[0]
+      Seeding initial data...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*) FROM "sqlite_master" WHERE "type" = 'table' AND "rootpage" IS NOT NULL;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Users" AS "u")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "u"."Id", "u"."CreatedAt", "u"."Email", "u"."IsActive", "u"."Name", "u"."PasswordHash", "u"."PhoneNumber", "u"."PhotoPath", "u"."Role", "u"."UpdatedAt"
+      FROM "Users" AS "u"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Containments" AS "c")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "c"."Id", "c"."CreatedAt", "c"."CreatedBy", "c"."Description", "c"."IsActive", "c"."Location", "c"."Name", "c"."Type", "c"."UpdatedAt", "c"."UpdatedBy"
+      FROM "Containments" AS "c"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Racks" AS "r")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "r"."Id", "r"."ContainmentId", "r"."CreatedAt", "r"."CreatedBy", "r"."Description", "r"."IsActive", "r"."Name", "r"."UpdatedAt", "r"."UpdatedBy"
+      FROM "Racks" AS "r"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Devices" AS "d")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "ContainmentStatuses" AS "c")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Maintenances" AS "m")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "CctvCameras" AS "c")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "ActivityReports" AS "a")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "EmergencyReports" AS "e")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "MqttConfigurations" AS "m")
+info: Program[0]
+      Database seeding completed successfully
+info: Program[0]
+      Database seeding completed
+info: Program[0]
+      Server starting on: http://localhost:5000
+info: Program[0]
+      === Server Ready ===
+info: Backend.Services.BackupHostedService[0]
+      Backup service started
+info: Backend.Services.ContainmentMqttHostedService[0]
+      ContainmentMqttHostedService starting...
+info: Backend.Services.ContainmentMqttHostedService[0]
+      Waiting for MQTT connection... Attempt 1/30
+info: Backend.Services.MqttService[0]
+      Configuring MQTT over TCP: 192.168.0.138:1883 (TLS: False)
+info: Backend.Services.MqttService[0]
+      MQTT client connected successfully
+info: Backend.Services.MqttService[0]
+      Successfully connected to MQTT broker via TCP: 192.168.0.138:1883
+info: Backend.Services.ContainmentMqttHostedService[0]
+      MQTT connection established successfully
+info: Backend.Services.MqttService[0]
+      Subscribed to topic: IOT/Containment/Status
+info: Backend.Services.ContainmentMqttHostedService[0]
+      Successfully subscribed to containment status topic: IOT/Containment/Status
+info: Backend.Services.MqttService[0]
+      Subscribed to topic: sensors/#
+info: Backend.Services.MqttService[0]
+      Subscribed to topic: IOT/+/+/+/+
+info: Backend.Services.ContainmentMqttHostedService[0]
+      Successfully subscribed to sensor data topics
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5000
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend
+info: Backend.Services.MqttService[0]
+      Received message from topic IOT/Moratel/Modular/relay_mini/1: {"mac": "70:f7:54:cb:dd:35", "protocol_type": "I2C MODULAR", "number_address": 32, "value": "{\"relayMiniOutput1\": true, \"relayMiniOutput2\": false, \"relayMiniOutput3\": false, \"relayMiniOutput4\": false, \"relayMiniOutput5\": false, \"relayMiniOutput6\": false}", "Timestamp": "2025-05-16 08:32:45"}
+info: Backend.Services.ContainmentMqttHostedService[0]
+      Received sensor message on topic IOT/Moratel/Modular/relay_mini/1: {"mac": "70:f7:54:cb:dd:35", "protocol_type": "I2C MODULAR", "number_address": 32, "value": "{\"relayMiniOutput1\": true, \"relayMiniOutput2\": false, \"relayMiniOutput3\": false, \"relayMiniOutput4\": false, \"relayMiniOutput5\": false, \"relayMiniOutput6\": false}", "Timestamp": "2025-05-16 08:32:45"}
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "d"."Id", "d"."CreatedAt", "d"."CreatedBy", "d"."Description", "d"."IsActive", "d"."Name", "d"."RackId", "d"."SerialNumber", "d"."Status", "d"."Topic", "d"."Type", "d"."UpdatedAt", "d"."UpdatedBy"
+      FROM "Devices" AS "d"
+      WHERE "d"."IsActive"
+warn: Backend.Services.ContainmentMqttHostedService[0]
+      Could not extract device ID from topic: IOT/Moratel/Modular/relay_mini/1
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.

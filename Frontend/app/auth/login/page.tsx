@@ -21,6 +21,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   // const [currentImage, setCurrentImage] = useState("/images/images-node-2.png");
   const [currentImage, setCurrentImage] = useState("/images/Containment-AsBuilt.png");
   const [loading, setLoading] = useState(false);
@@ -39,11 +40,36 @@ const LoginPage = () => {
       setCurrentImage(images[imageIndex]);
     }, 5000);
     return () => clearInterval(intervalId);
-  }, [images]); // Hapus router dari dependency array jika tidak digunakan untuk redirect di sini
+  }, [images]);
+
+  // Load saved credentials if remember me was enabled
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem('rememberedCredentials');
+    if (savedCredentials) {
+      const { email: savedEmail, rememberMe: wasRemembered } = JSON.parse(savedCredentials);
+      if (wasRemembered) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }
+    }
+  }, []);
 
   // Fungsi untuk menyimpan token di cookie (backup untuk compatibility)
-  const saveCookieToken = (token: string) => {
-    setCookie('authToken', token, { path: '/', maxAge: 60 * 60 * 24 * 7 }); // Cookie valid 7 hari
+  const saveCookieToken = (token: string, remember: boolean = false) => {
+    const maxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7; // 30 hari jika remember me, 7 hari jika tidak
+    setCookie('authToken', token, { path: '/', maxAge });
+  };
+
+  // Fungsi untuk menyimpan/menghapus credentials yang diingat
+  const handleRememberCredentials = (email: string, remember: boolean) => {
+    if (remember) {
+      localStorage.setItem('rememberedCredentials', JSON.stringify({
+        email,
+        rememberMe: true
+      }));
+    } else {
+      localStorage.removeItem('rememberedCredentials');
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -61,9 +87,12 @@ const LoginPage = () => {
       const result = await authApi.login({ email, password });
       
       if (result.success && result.data) {
+        // Handle remember me functionality
+        handleRememberCredentials(email, rememberMe);
+        
         // Token is automatically stored in localStorage by authApi
         // Also save to cookie for compatibility
-        saveCookieToken(result.data.token);
+        saveCookieToken(result.data.token, rememberMe);
         
         // Verify token is working
         const user = getCurrentUserFromToken();
@@ -206,11 +235,16 @@ const LoginPage = () => {
               </div>
               <div className="flex items-center justify-between mt-2">
                 <label className="flex items-center gap-2 text-xs text-gray-600">
-                  <input type="checkbox" className="accent-blue-600" /> Remember
-                  me
+                  <input 
+                    type="checkbox" 
+                    className="accent-blue-600"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  /> 
+                  Remember me
                 </label>
                 <a
-                  href="#"
+                  href="/auth/forgot-password"
                   className="text-xs text-blue-600 hover:underline"
                 >
                   Forgot password?

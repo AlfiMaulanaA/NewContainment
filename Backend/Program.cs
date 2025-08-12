@@ -68,6 +68,8 @@ builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.Mq
 builder.Services.AddScoped<Backend.Services.ISystemInfoService, Backend.Services.SystemInfoService>();
 builder.Services.AddScoped<Backend.Services.ICctvService, Backend.Services.CctvService>();
 builder.Services.AddScoped<Backend.Services.ICctvStreamingService, Backend.Services.CctvStreamingService>();
+builder.Services.AddScoped<Backend.Services.IDeviceSensorDataService, Backend.Services.DeviceSensorDataService>();
+builder.Services.AddScoped<Backend.Services.SensorDataSimulatorService>();
 
 builder.Services.AddHttpClient();
 
@@ -79,6 +81,8 @@ var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ??
 if (enableMqtt)
 {
     builder.Services.AddHostedService<Backend.Services.ContainmentMqttHostedService>();
+    // Note: MqttDeviceSubscriptionService is disabled to avoid conflicts
+    // Sensor data handling is now integrated in ContainmentMqttHostedService
 }
 
 // Add JWT Authentication

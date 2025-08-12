@@ -344,4 +344,207 @@ public class CctvStreamingService : ICctvStreamingService
             _logger.LogError(ex, "Error updating stream status for camera {CameraId}", cameraId);
         }
     }
+
+    public async Task StreamMjpegAsync(int cameraId, Stream outputStream, CancellationToken cancellationToken = default)
+    {
+        var camera = await _context.CctvCameras.FindAsync(cameraId);
+        if (camera == null)
+        {
+            _logger.LogWarning("Camera with ID {CameraId} not found for MJPEG streaming", cameraId);
+            return;
+        }
+
+        _logger.LogInformation("Starting MJPEG stream for camera {CameraName} ({CameraId})", camera.Name, cameraId);
+
+        try
+        {
+            // For RTSP streams, we'll use snapshot-based streaming (simple MJPEG)
+            if (camera.StreamUrl.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase))
+            {
+                await StreamMjpegFromSnapshotsAsync(camera, outputStream, cancellationToken);
+            }
+            else if (camera.StreamUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                // Try to proxy HTTP stream directly or convert to MJPEG
+                await StreamMjpegFromHttpAsync(camera, outputStream, cancellationToken);
+            }
+            else
+            {
+                _logger.LogWarning("Unsupported stream URL format for MJPEG streaming: {StreamUrl}", camera.StreamUrl);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("MJPEG stream cancelled for camera {CameraId}", cameraId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in MJPEG streaming for camera {CameraId}", cameraId);
+        }
+    }
+
+    private async Task StreamMjpegFromSnapshotsAsync(CctvCamera camera, Stream outputStream, CancellationToken cancellationToken)
+    {
+        const int frameRateMs = 500; // 2 FPS for RTSP snapshot streaming
+        var boundary = "--boundary";
+
+        // Write initial boundary
+        var initialBoundary = $"\r\n{boundary}\r\n";
+        await outputStream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(initialBoundary), cancellationToken);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                // Get snapshot from camera (this would need implementation for RTSP)
+                var snapshotData = await GetSnapshotFromRtspAsync(camera);
+                
+                if (snapshotData != null && snapshotData.Length > 0)
+                {
+                    // Write MJPEG frame headers
+                    var headers = $"Content-Type: image/jpeg\r\nContent-Length: {snapshotData.Length}\r\n\r\n";
+                    await outputStream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(headers), cancellationToken);
+                    
+                    // Write image data
+                    await outputStream.WriteAsync(snapshotData, cancellationToken);
+                    
+                    // Write frame separator
+                    var separator = $"\r\n{boundary}\r\n";
+                    await outputStream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(separator), cancellationToken);
+                    
+                    await outputStream.FlushAsync(cancellationToken);
+                    
+                    _logger.LogDebug("Sent MJPEG frame for camera {CameraId}, size: {Size} bytes", camera.Id, snapshotData.Length);
+                }
+                else
+                {
+                    _logger.LogWarning("No snapshot data available for camera {CameraId}", camera.Id);
+                }
+                
+                // Wait for next frame
+                await Task.Delay(frameRateMs, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing frame for camera {CameraId}", camera.Id);
+                await Task.Delay(frameRateMs, cancellationToken);
+            }
+        }
+    }
+
+    private async Task StreamMjpegFromHttpAsync(CctvCamera camera, Stream outputStream, CancellationToken cancellationToken)
+    {
+        // For HTTP streams, try to proxy directly if it's already MJPEG, or convert if needed
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromMinutes(10);
+
+        if (!string.IsNullOrEmpty(camera.Username) && !string.IsNullOrEmpty(camera.Password))
+        {
+            var credentials = Convert.ToBase64String(
+                System.Text.Encoding.ASCII.GetBytes($"{camera.Username}:{camera.Password}"));
+            httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+        }
+
+        try
+        {
+            using var response = await httpClient.GetAsync(camera.StreamUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                using var inputStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                await inputStream.CopyToAsync(outputStream, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error streaming HTTP content for camera {CameraId}", camera.Id);
+        }
+    }
+
+    private async Task<byte[]?> GetSnapshotFromRtspAsync(CctvCamera camera)
+    {
+        try
+        {
+            // For RTSP, we need to use FFmpeg or similar tool to extract frames
+            // For now, we'll generate a placeholder image or try camera's snapshot endpoint
+            
+            // Try common IP camera snapshot URLs
+            var baseUrl = camera.StreamUrl.Replace("rtsp://", "http://");
+            var uri = new Uri(camera.StreamUrl);
+            var baseHttp = $"http://{uri.Host}";
+            var baseHttpAuth = $"http://{camera.Username}:{camera.Password}@{uri.Host}";
+            
+            var possibleSnapshotUrls = new[]
+            {
+                // Hikvision patterns
+                $"{baseHttpAuth}/ISAPI/Streaming/channels/101/picture",
+                $"{baseHttpAuth}/ISAPI/Streaming/channels/1/picture",
+                $"{baseHttpAuth}/cgi-bin/snapshot.cgi",
+                $"{baseHttpAuth}/snapshot.jpg",
+                $"{baseHttpAuth}/cgi-bin/snapshot.cgi?channel=0",
+                
+                // Dahua patterns  
+                $"{baseHttpAuth}/cgi-bin/snapshot.cgi?channel=1&subtype=0",
+                $"{baseHttpAuth}/cgi-bin/currentpic.cgi",
+                
+                // General patterns
+                $"{baseHttp}/snapshot.jpg",
+                $"{baseHttp}/image.jpg",
+                $"{baseHttp}/capture.jpg",
+                $"{baseHttp}/webcapture.jpg",
+                
+                // Alternative ports
+                $"http://{camera.Username}:{camera.Password}@{uri.Host}:8080/snapshot.jpg",
+                $"http://{camera.Username}:{camera.Password}@{uri.Host}:80/snapshot.jpg",
+                
+                // Try original RTSP to HTTP conversion
+                camera.StreamUrl.Replace("/Channels/Stream1", "/Channels/Snapshot/1"),
+                camera.StreamUrl.Replace("rtsp://", "http://").Replace(":554", ":80") + "/snapshot.jpg"
+            };
+
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(5);
+
+            if (!string.IsNullOrEmpty(camera.Username) && !string.IsNullOrEmpty(camera.Password))
+            {
+                var credentials = Convert.ToBase64String(
+                    System.Text.Encoding.ASCII.GetBytes($"{camera.Username}:{camera.Password}"));
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+            }
+
+            foreach (var snapshotUrl in possibleSnapshotUrls)
+            {
+                try
+                {
+                    var response = await httpClient.GetAsync(snapshotUrl);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var data = await response.Content.ReadAsByteArrayAsync();
+                        if (data.Length > 1000) // Ensure it's a valid image (not error page)
+                        {
+                            _logger.LogDebug("Got snapshot from URL: {SnapshotUrl}", snapshotUrl);
+                            return data;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to get snapshot from URL: {SnapshotUrl}", snapshotUrl);
+                }
+            }
+
+            // If snapshot URLs don't work, return null (could implement FFmpeg here)
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting RTSP snapshot for camera {CameraId}", camera.Id);
+            return null;
+        }
+    }
 }

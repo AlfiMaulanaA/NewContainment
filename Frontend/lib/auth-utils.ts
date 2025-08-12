@@ -80,6 +80,95 @@ export function getTokenTimeRemaining(token: string): number {
   return Math.max(0, Math.floor(remainingSeconds / 60));
 }
 
+// Get token time remaining in seconds
+export function getTokenTimeRemainingInSeconds(token: string): number {
+  const decodedToken = decodeJWT(token);
+  if (!decodedToken) return 0;
+  
+  const currentTime = Math.floor(Date.now() / 1000);
+  const remainingSeconds = decodedToken.exp - currentTime;
+  
+  return Math.max(0, remainingSeconds);
+}
+
+// Get token expiry date
+export function getTokenExpiryDate(token: string): Date | null {
+  const decodedToken = decodeJWT(token);
+  if (!decodedToken) return null;
+  
+  return new Date(decodedToken.exp * 1000);
+}
+
+// Get token issued date
+export function getTokenIssuedDate(token: string): Date | null {
+  const decodedToken = decodeJWT(token);
+  if (!decodedToken) return null;
+  
+  return new Date(decodedToken.iat * 1000);
+}
+
+// Get detailed token information
+export interface TokenInfo {
+  isValid: boolean;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+  remainingMinutes: number;
+  remainingSeconds: number;
+  expiryDate: Date | null;
+  issuedDate: Date | null;
+  user: CurrentUser | null;
+}
+
+export function getTokenInfo(withinMinutes: number = 10): TokenInfo {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  
+  if (!token) {
+    return {
+      isValid: false,
+      isExpired: true,
+      isExpiringSoon: true,
+      remainingMinutes: 0,
+      remainingSeconds: 0,
+      expiryDate: null,
+      issuedDate: null,
+      user: null,
+    };
+  }
+
+  const decodedToken = decodeJWT(token);
+  if (!decodedToken) {
+    return {
+      isValid: false,
+      isExpired: true,
+      isExpiringSoon: true,
+      remainingMinutes: 0,
+      remainingSeconds: 0,
+      expiryDate: null,
+      issuedDate: null,
+      user: null,
+    };
+  }
+
+  const expired = isTokenExpired(token);
+  const expiringSoon = isTokenExpiringSoon(token, withinMinutes);
+  const remainingMinutes = getTokenTimeRemaining(token);
+  const remainingSeconds = getTokenTimeRemainingInSeconds(token);
+  const expiryDate = getTokenExpiryDate(token);
+  const issuedDate = getTokenIssuedDate(token);
+  const user = getCurrentUserFromToken();
+
+  return {
+    isValid: !expired,
+    isExpired: expired,
+    isExpiringSoon: expiringSoon,
+    remainingMinutes,
+    remainingSeconds,
+    expiryDate,
+    issuedDate,
+    user,
+  };
+}
+
 // Get current user from token
 export function getCurrentUserFromToken(): CurrentUser | null {
   try {

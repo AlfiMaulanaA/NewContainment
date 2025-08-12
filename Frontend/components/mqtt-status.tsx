@@ -1,9 +1,9 @@
 //components/mqtt-status.tsx
 "use client";
 
-import { useMQTTStatus } from "@/hooks/useMQTTStatus";
+import { useMQTTStatus, type MQTTStatus } from "@/hooks/useMQTTStatus";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Loader2, Activity } from "lucide-react";
 
 export default function MQTTConnectionBadge() {
   const status = useMQTTStatus();
@@ -15,6 +15,12 @@ export default function MQTTConnectionBadge() {
           color: "bg-green-500",
           icon: <CheckCircle className="w-4 h-4 mr-1" />,
           label: "Connected",
+        };
+      case "connecting":
+        return {
+          color: "bg-blue-500",
+          icon: <Activity className="w-4 h-4 mr-1 animate-pulse" />,
+          label: "Connecting...",
         };
       case "disconnected":
         return {
@@ -32,7 +38,7 @@ export default function MQTTConnectionBadge() {
         return {
           color: "bg-gray-400",
           icon: <Loader2 className="w-4 h-4 mr-1 animate-spin" />,
-          label: "Connecting...",
+          label: "Initializing...",
         };
     }
   };

@@ -38,7 +38,7 @@ namespace Backend.Data
                 await SeedActivityReportsAsync(context, users);
 
                 // Seed EmergencyReports
-                // await SeedEmergencyReportsAsync(context);
+                await SeedEmergencyReportsAsync(context);
 
                 // Seed MqttConfiguration
                 await SeedMqttConfigurationAsync(context, users);
@@ -215,7 +215,7 @@ namespace Backend.Data
                     Description = "Primary web application server",
                     SerialNumber = "SRV-WEB-001",
                     Status = "Active",
-                    Topic = "server/web/01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = adminUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -229,7 +229,7 @@ namespace Backend.Data
                     Description = "Secondary web application server",
                     SerialNumber = "SRV-WEB-002",
                     Status = "Active",
-                    Topic = "server/web/02",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = adminUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -243,7 +243,7 @@ namespace Backend.Data
                     Description = "Uninterruptible power supply for rack A-01",
                     SerialNumber = "UPS-A01-001",
                     Status = "Active",
-                    Topic = "power/ups/a01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = adminUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -259,7 +259,7 @@ namespace Backend.Data
                     Description = "Primary MySQL database server",
                     SerialNumber = "SRV-DB-001",
                     Status = "Active",
-                    Topic = "server/database/01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = adminUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -273,7 +273,7 @@ namespace Backend.Data
                     Description = "Secondary database server for replication",
                     SerialNumber = "SRV-DB-002",
                     Status = "Active",
-                    Topic = "server/database/02",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = adminUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -289,7 +289,7 @@ namespace Backend.Data
                     Description = "High-capacity storage array",
                     SerialNumber = "STO-ARR-001",
                     Status = "Active",
-                    Topic = "storage/array/01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -303,7 +303,7 @@ namespace Backend.Data
                     Description = "Automated backup and recovery server",
                     SerialNumber = "SRV-BAK-001",
                     Status = "Active",
-                    Topic = "server/backup/01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -319,7 +319,7 @@ namespace Backend.Data
                     Description = "48-port gigabit core network switch",
                     SerialNumber = "SW-CORE-001",
                     Status = "Active",
-                    Topic = "network/switch/core01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -333,7 +333,7 @@ namespace Backend.Data
                     Description = "Main internet gateway router",
                     SerialNumber = "RTR-MAIN-001",
                     Status = "Active",
-                    Topic = "network/router/main01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = devUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -347,8 +347,66 @@ namespace Backend.Data
                     Description = "Network security firewall appliance",
                     SerialNumber = "FW-SEC-001",
                     Status = "Active",
-                    Topic = "network/firewall/sec01",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
                     CreatedBy = devUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+
+                // Sensor Devices for Temperature and Humidity Monitoring
+                new Device
+                {
+                    Name = "Temperature Sensor Rack A-01",
+                    Type = "Sensor",
+                    RackId = racks[0].Id, // Rack A-01 (Web Applications)
+                    Description = "Temperature and humidity sensor for web application rack",
+                    SerialNumber = "SENS-TH-001",
+                    Status = "Active",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_A01",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+                new Device
+                {
+                    Name = "Temperature Sensor Rack A-02",
+                    Type = "Sensor",
+                    RackId = racks[1].Id, // Rack A-02 (Database)
+                    Description = "Temperature and humidity sensor for database rack",
+                    SerialNumber = "SENS-TH-002",
+                    Status = "Active",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_A02",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+                new Device
+                {
+                    Name = "Temperature Sensor Rack A-03",
+                    Type = "Sensor",
+                    RackId = racks[2].Id, // Rack A-03 (Storage)
+                    Description = "Temperature and humidity sensor for storage rack",
+                    SerialNumber = "SENS-TH-003",
+                    Status = "Active",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_A03",
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsActive = true
+                },
+                new Device
+                {
+                    Name = "Temperature Sensor Rack B-01",
+                    Type = "Sensor",
+                    RackId = racks[3].Id, // Rack B-01 (Network)
+                    Description = "Temperature and humidity sensor for network rack",
+                    SerialNumber = "SENS-TH-004",
+                    Status = "Active",
+                    Topic = "IOT/Containment/Sensor_TH/Rack_B01",
+                    CreatedBy = adminUser.Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     IsActive = true
@@ -526,60 +584,80 @@ namespace Backend.Data
             context.ActivityReports.AddRange(activityReports);
             await context.SaveChangesAsync();
         }
+private static async Task SeedEmergencyReportsAsync(AppDbContext context)
+{
+    // Periksa apakah sudah ada data. Jika ada, hentikan proses.
+    if (context.EmergencyReports.Any())
+    {
+        return;
+    }
 
-        // private static async Task SeedEmergencyReportsAsync(AppDbContext context)
-        // {
-        //     if (context.EmergencyReports.Any())
-        //     {
-        //         return;
-        //     }
+    var emergencyReports = new List<EmergencyReport>
+    {
+        // 1. Data untuk "Fire Suppression System" - Skenario: Kejadian masa lalu dan sudah selesai
+        new EmergencyReport
+        {
+            EmergencyType = "Fire Suppression System",
+            Status = false,
+            StartTime = DateTime.UtcNow.AddDays(-7),
+            EndTime = DateTime.UtcNow.AddDays(-7).AddHours(2),
+            Duration = TimeSpan.FromHours(2),
+            IsActive = false,
+            Notes = "FSS activated due to high temperature, system has been reset.",
+            RawMqttPayload = "{\"type\":\"fire_suppression_system\",\"status\":\"activated\",\"zone\":\"server_room_a\"}",
+            CreatedAt = DateTime.UtcNow.AddDays(-7),
+            UpdatedAt = DateTime.UtcNow.AddDays(-7).AddHours(2)
+        },
 
-        //     var emergencyReports = new List<EmergencyReport>
-        //     {
-        //         new EmergencyReport
-        //         {
-        //             EmergencyType = "Fire",
-        //             Status = false,
-        //             StartTime = DateTime.UtcNow.AddDays(-7),
-        //             EndTime = DateTime.UtcNow.AddDays(-7).AddHours(2),
-        //             Duration = TimeSpan.FromHours(2),
-        //             IsActive = false,
-        //             Notes = "False alarm triggered by dust sensor malfunction",
-        //             RawMqttPayload = "{\"type\":\"fire\",\"sensor\":\"smoke_detector_1\",\"status\":\"triggered\"}",
-        //             CreatedAt = DateTime.UtcNow.AddDays(-7),
-        //             UpdatedAt = DateTime.UtcNow.AddDays(-7).AddHours(2)
-        //         },
-        //         new EmergencyReport
-        //         {
-        //             EmergencyType = "Temperature",
-        //             Status = false,
-        //             StartTime = DateTime.UtcNow.AddDays(-3),
-        //             EndTime = DateTime.UtcNow.AddDays(-3).AddHours(1),
-        //             Duration = TimeSpan.FromHours(1),
-        //             IsActive = false,
-        //             Notes = "Temperature spike resolved after AC unit restart",
-        //             RawMqttPayload = "{\"type\":\"temperature\",\"sensor\":\"temp_01\",\"value\":45.2}",
-        //             CreatedAt = DateTime.UtcNow.AddDays(-3),
-        //             UpdatedAt = DateTime.UtcNow.AddDays(-3).AddHours(1)
-        //         },
-        //         new EmergencyReport
-        //         {
-        //             EmergencyType = "Power",
-        //             Status = true,
-        //             StartTime = DateTime.UtcNow.AddHours(-1),
-        //             EndTime = null,
-        //             Duration = null,
-        //             IsActive = true,
-        //             Notes = "UPS battery backup activated, investigating main power issue",
-        //             RawMqttPayload = "{\"type\":\"power\",\"status\":\"main_failure\",\"backup\":\"active\"}",
-        //             CreatedAt = DateTime.UtcNow.AddHours(-1),
-        //             UpdatedAt = DateTime.UtcNow.AddMinutes(-10)
-        //         }
-        //     };
+        // 2. Data untuk "Emergency Temperature" - Skenario: Kejadian masa lalu dan sudah selesai
+        new EmergencyReport
+        {
+            EmergencyType = "Emergency Temperature",
+            Status = false,
+            StartTime = DateTime.UtcNow.AddDays(-3),
+            EndTime = DateTime.UtcNow.AddDays(-3).AddMinutes(30),
+            Duration = TimeSpan.FromMinutes(30),
+            IsActive = false,
+            Notes = "Critical temperature spike resolved after cooling system check.",
+            RawMqttPayload = "{\"type\":\"emergency_temperature\",\"sensor_id\":\"temp_01\",\"value\":85.5,\"threshold\":80.0}",
+            CreatedAt = DateTime.UtcNow.AddDays(-3),
+            UpdatedAt = DateTime.UtcNow.AddDays(-3).AddMinutes(30)
+        },
 
-        //     context.EmergencyReports.AddRange(emergencyReports);
-        //     await context.SaveChangesAsync();
-        // }
+        // 3. Data untuk "Smoke Detector" - Skenario: Kejadian yang sedang berlangsung
+        new EmergencyReport
+        {
+            EmergencyType = "Smoke Detector",
+            Status = true, // Status 'true' untuk menunjukkan kejadian masih aktif
+            StartTime = DateTime.UtcNow.AddMinutes(-15),
+            EndTime = null, // EndTime null karena kejadian masih berlangsung
+            Duration = null,
+            IsActive = true,
+            Notes = "Smoke detected in data center. Investigating source.",
+            RawMqttPayload = "{\"type\":\"smoke_detector\",\"sensor_id\":\"sd_05\",\"status\":\"alert\"}",
+            CreatedAt = DateTime.UtcNow.AddMinutes(-15),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-15)
+        },
+
+        // 4. Data untuk "Emergency Button" - Skenario: Kejadian yang sedang berlangsung
+        new EmergencyReport
+        {
+            EmergencyType = "Emergency Button",
+            Status = true, // Status 'true' karena tombol darurat sedang aktif
+            StartTime = DateTime.UtcNow.AddMinutes(-5),
+            EndTime = null,
+            Duration = null,
+            IsActive = true,
+            Notes = "Emergency button pressed near entrance B. Security dispatched.",
+            RawMqttPayload = "{\"type\":\"emergency_button\",\"location\":\"main_entrance\",\"state\":true}",
+            CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-5)
+        }
+    };
+
+    context.EmergencyReports.AddRange(emergencyReports);
+    await context.SaveChangesAsync();
+}
 
         private static async Task SeedMqttConfigurationAsync(AppDbContext context, List<User> users)
         {
@@ -598,8 +676,8 @@ namespace Backend.Data
                     UseEnvironmentConfig = false,
                     BrokerHost = "localhost",
                     BrokerPort = 1883,
-                    Username = "admin",
-                    Password = "password123",
+                    Username = "",
+                    Password = "",
                     ClientId = "ContainmentSystem_Primary",
                     UseSsl = false,
                     KeepAliveInterval = 60,
@@ -615,8 +693,8 @@ namespace Backend.Data
                 {
                     IsEnabled = false,
                     UseEnvironmentConfig = false,
-                    BrokerHost = "mqtt.example.com",
-                    BrokerPort = 8883,
+                    BrokerHost = "mqttws.iotech.my.id",
+                    BrokerPort = 443,
                     Username = "containment_user",
                     Password = "secure_password",
                     ClientId = "ContainmentSystem_Cloud",
@@ -650,11 +728,11 @@ namespace Backend.Data
                 new CctvCamera
                 {
                     Name = "Camera Pintu Masuk Data Center A",
-                    Ip = "192.168.1.10",
+                    Ip = "192.168.0.64",
                     Port = 554,
                     Username = "admin",
-                    Password = "password123",
-                    StreamUrl = "rtsp://admin:password123@192.168.1.10:554/stream1",
+                    Password = "gspe-intercon",
+                    StreamUrl = "rtsp://admin:gspe-intercon@192.168.0.64:554/Channels/Stream1",
                     ContainmentId = containments.First().Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow

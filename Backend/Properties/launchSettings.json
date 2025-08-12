@@ -29,6 +29,36 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    "websocket": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7139;http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MQTT_USE_WEBSOCKET": "true",
+        "MQTT_WEBSOCKET_URI": "wss://mqttws.iotech.my.id/mqtt",
+        "MQTT_WEBSOCKET_PATH": "/mqtt",
+        "MQTT_CLIENT_ID": "IoT_Backend_WS_Test",
+        "MQTT_ENABLE": "true"
+      }
+    },
+    "tcp-mqtt": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7140;http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MQTT_USE_WEBSOCKET": "false",
+        "MQTT_BROKER_HOST": "mqttws.iotech.my.id",
+        "MQTT_BROKER_PORT": "1883",
+        "MQTT_CLIENT_ID": "IoT_Backend_TCP_Test",
+        "MQTT_ENABLE": "true"
+      }
+    },
     "Production": {
       "commandName": "Project",
       "dotnetRunMessages": true,

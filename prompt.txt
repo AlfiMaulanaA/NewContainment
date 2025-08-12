@@ -1,31 +1,19 @@
 
-1. Tambah field use untuk table device
-2. Buat fungsi untuk subscribe semua topic dari semua device yang di install
-3. Parse data datanya, ada 2 tipe payload dari topic yg di subscribe. 
-    Payload 1 : 
-    //{ “temp” : 26.0, “hum”: 50,0, "Timestamp": "2023-10-12 16:41:41}
-    dia langsung mengirim data
-    Payload 2 : 
-    {
-        "mac":"e4:5f:01:94:3e:92",
-        "protocol_type":"I2C MODULAR",
-        "number_address":34,
-        "value":"{\"optocouplerInput1\": false, \"optocouplerInput2\": false,
-        \"optocouplerInput3\": false, \"optocouplerInput4\": false, \"optocouplerInput5\":
-        false, \"optocouplerInput6\": false, \"optocouplerInput7\": false,
-        \"optocouplerOutput1\": false, \"optocouplerOutput2\": false,
-        \"optocouplerOutput3\": false, \"optocouplerOutput4\": false,
-        \"optocouplerOutput5\": false, \"optocouplerOutput6\": false,
-        \"optocouplerOutput7\": false}",
-        "Timestamp":"2023-08-29 10:12:33"
-    }
-                Pada payload ke 2 data nya berada dalam "value", jadi yang perlu di parse itu valuenya.
+1. Buatkan fungsi untuk subscribe semua topic dari data device berdasarkan deviceId, rackId, containmentId buatkan fiturnya dibackend.
+2. parse data dari topic dengan payload seperti ini
+{ “temp” : 26.0, “hum”: 50,0, "Timestamp": "2023-10-12 16:41:41}
+3. Kirim datanya lewat api ke frontend
+3. Simpan data yang sudah diparse jika deviceType tersebut sensor, dan save dengan interval setiap 1 menit dengan stuktur.
 
-4. Buat sebuah fungsi logger berdasarkan data data yang sudah diparsing dari device topic yang sudah di daftarnya, buat logg setiap 5 menit atau bisa di atur.
-5. Simpan data log device berdasarkan deviceID, rackId, ContainmentId
-6. Selain itu data juga bisa dikirimkan ke UI Frontend setelah di parsing dibackend secara realtime. 
+apakah kamu paham dengan yang saya minta? intinya saya hanya minta anda subscribe semua topic yang terdapat dari setiap data device dengan device type "Sensor"
+
+4. show new data realtime to frontend per each racks kalau type device adalah sensor change from dmmy to real data
+5. Bisa setting berapa lama waktu save
+6. Bisa setting color untuk badgenya
+7. Disatu rack bisa menampilkan 2 device
 
 
+1. Total Rack pada containment berdasarkan ContainmentID
 3. Buat fitur untuk disable dan enable menu untuk beberapa menu agar hilang atau terganti di client
 4. Buat fitur untuk authorize role untuk menu menu tertentu
 5. Access Control
@@ -45,3 +33,79 @@ Import trace for requested module:
 ./app/management/cctv/page.tsx
 
 dan perbaiki UI untuk menampilkan cameranya agar lebih baik dam lebih bagus, untuk cctv sudah ada yg online dan memang sudah bisa dicek diaplikai lain. Akan tetapi untuk  di monitoring dia hanya menampilkan streamUrl dll. bukan menampilkan stream view dari kameranya.
+
+Successfully installed cmake-4.0.3
+Collecting dlib
+  Downloading dlib-20.0.0.tar.gz (3.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 330.1 kB/s  0:00:09
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+Building wheels for collected packages: dlib
+  Building wheel for dlib (pyproject.toml) ... error
+  error: subprocess-exited-with-error
+
+  × Building wheel for dlib (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [47 lines of output]
+      running bdist_wheel
+      running build
+      running build_ext
+      Traceback (most recent call last):
+        File "<frozen runpy>", line 198, in _run_module_as_main
+        File "<frozen runpy>", line 88, in _run_code
+        File "D:\Alfi\RnD\DEVELOPMENT\NewContainment\FaceRecognitionService\venv\Scripts\cmake.exe\__main__.py", line 2, in <module>
+          from cmake import cmake
+      ModuleNotFoundError: No module named 'cmake'
+
+      ================================================================================
+      ================================================================================
+      ================================================================================
+
+                         CMake is not installed on your system!
+
+          Or it is possible some broken copy of cmake is installed on your system.
+          It is unfortunately very common for python package managers to include
+          broken copies of cmake.  So if the error above this refers to some file
+          path to a cmake file inside a python or anaconda or miniconda path then you
+          should delete that broken copy of cmake from your computer.
+
+          Instead, please get an official copy of cmake from one of these known good
+          sources of an official cmake:
+              - cmake.org (this is how windows users should get cmake)
+              - apt install cmake (for Ubuntu or Debian based systems)
+              - yum install cmake (for Redhat or CenOS based systems)
+
+          On a linux machine you can run `which cmake` to see what cmake you are
+          actually using.  If it tells you it's some cmake from any kind of python
+          packager delete it and install an official cmake.
+
+          More generally, cmake is not installed if when you open a terminal window
+          and type
+             cmake --version
+          you get an error.  So you can use that as a very basic test to see if you
+          have cmake installed.  That is, if cmake --version doesn't run from the
+          same terminal window from which you are reading this error message, then
+          you have not installed cmake.  Windows users should take note that they
+          need to tell the cmake installer to add cmake to their PATH.  Since you
+          can't run commands that are not in your PATH.  This is how the PATH works
+          on Linux as well, but failing to add cmake to the PATH is a particularly
+          common problem on windows and rarely a problem on Linux.
+
+      ================================================================================
+      ================================================================================
+      ================================================================================
+      [end of output]
+
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for dlib
+Failed to build dlib
+error: failed-wheel-build-for-install
+
+× Failed to build installable wheels for some pyproject.toml based projects
+╰─> dlib
+Collecting face-recognition
+  Using cached face_recognition-1.3.0-py2.py3-none-any.whl.metadata (21 kB)
+Collecting face-recognition-models>=0.3.0 (from face-recognition)
+  Downloading face_recognition_models-0.3.0.tar.gz (100.1 MB)
+

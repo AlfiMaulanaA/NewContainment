@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Shield, 
   UserCheck, 
-  Fingerprint, 
   Activity,
   Users,
   CheckCircle,
@@ -71,15 +70,6 @@ export default function AccessControlOverviewPage() {
       color: "text-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-green-200"
-    },
-    {
-      title: "Biometric Registration",
-      description: "Register fingerprints and access cards",
-      icon: Fingerprint,
-      href: "/access-control/biometric",
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      borderColor: "border-purple-200"
     },
     {
       title: "Live Monitoring",
@@ -265,12 +255,6 @@ export default function AccessControlOverviewPage() {
               <Button variant="outline" size="sm">
                 <UserCheck className="h-4 w-4 mr-2" />
                 Add User
-              </Button>
-            </Link>
-            <Link href="/access-control/biometric">
-              <Button variant="outline" size="sm">
-                <Fingerprint className="h-4 w-4 mr-2" />
-                Register Biometric
               </Button>
             </Link>
             <Link href="/access-control/monitoring">

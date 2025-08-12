@@ -48,23 +48,69 @@ namespace Backend.Services
 
                 var host = Environment.GetEnvironmentVariable("MQTT_BROKER_HOST") ?? _configuration["Mqtt:BrokerHost"] ?? "localhost";
                 var port = int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT") ?? _configuration["Mqtt:BrokerPort"] ?? "1883");
-                var clientId = Environment.GetEnvironmentVariable("MQTT_CLIENT_ID") ?? _configuration["Mqtt:ClientId"] ?? "Backend_Client";
+                var baseClientId = Environment.GetEnvironmentVariable("MQTT_CLIENT_ID") ?? _configuration["Mqtt:ClientId"] ?? "Backend_Client";
+                var clientId = $"{baseClientId}_{Guid.NewGuid().ToString("N")[..8]}";
                 var username = Environment.GetEnvironmentVariable("MQTT_USERNAME") ?? _configuration["Mqtt:Username"];
                 var password = Environment.GetEnvironmentVariable("MQTT_PASSWORD") ?? _configuration["Mqtt:Password"];
                 var useTls = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_TLS") ?? _configuration["Mqtt:UseTls"] ?? "false");
+                var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? _configuration["Mqtt:UseWebSocket"] ?? "false");
+                var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? _configuration["Mqtt:WebSocketUri"];
+                var webSocketPath = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_PATH") ?? _configuration["Mqtt:WebSocketPath"] ?? "/mqtt";
 
                 var clientOptionsBuilder = new MqttClientOptionsBuilder()
-                    .WithTcpServer(host, port)
                     .WithClientId(clientId);
 
+                // Configure WebSocket or TCP connection
+                if (useWebSocket && !string.IsNullOrEmpty(webSocketUri))
+                {
+                    // Parse WebSocket URI
+                    if (Uri.TryCreate(webSocketUri, UriKind.Absolute, out var uri))
+                    {
+                        var wsPort = uri.Port == -1 ? (uri.Scheme == "wss" ? 443 : 80) : uri.Port;
+                        var useTlsForWs = uri.Scheme == "wss";
+                        
+                        clientOptionsBuilder.WithWebSocketServer(options =>
+                        {
+                            options.WithUri($"{uri.Scheme}://{uri.Host}:{wsPort}{webSocketPath}");
+                        });
+                        
+                        // Configure TLS at the client level for WebSocket Secure (WSS)
+                        if (useTlsForWs)
+                        {
+                            clientOptionsBuilder.WithTlsOptions(o => 
+                            {
+                                o.UseTls();
+                                o.WithAllowUntrustedCertificates(false);
+                                o.WithIgnoreCertificateChainErrors(false);
+                                o.WithIgnoreCertificateRevocationErrors(false);
+                            });
+                        }
+
+                        _logger.LogInformation("Configuring MQTT over WebSocket: {Uri}", $"{uri.Scheme}://{uri.Host}:{wsPort}{webSocketPath}");
+                    }
+                    else
+                    {
+                        _logger.LogError("Invalid WebSocket URI: {Uri}", webSocketUri);
+                        throw new ArgumentException($"Invalid WebSocket URI: {webSocketUri}");
+                    }
+                }
+                else
+                {
+                    // Traditional TCP connection
+                    clientOptionsBuilder.WithTcpServer(host, port);
+                    
+                    if (useTls)
+                    {
+                        clientOptionsBuilder.WithTlsOptions(o => o.UseTls());
+                    }
+                    
+                    _logger.LogInformation("Configuring MQTT over TCP: {Host}:{Port} (TLS: {UseTls})", host, port, useTls);
+                }
+
+                // Add credentials if provided
                 if (!string.IsNullOrEmpty(username))
                 {
                     clientOptionsBuilder.WithCredentials(username, password);
-                }
-
-                if (useTls)
-                {
-                    clientOptionsBuilder.WithTlsOptions(o => o.UseTls());
                 }
 
                 var clientOptions = clientOptionsBuilder.Build();
@@ -74,7 +120,15 @@ namespace Backend.Services
                 _mqttClient.DisconnectedAsync += OnDisconnected;
 
                 await _mqttClient.ConnectAsync(clientOptions);
-                _logger.LogInformation("Connected to MQTT broker at {Host}:{Port}", host, port);
+                
+                if (useWebSocket && !string.IsNullOrEmpty(webSocketUri))
+                {
+                    _logger.LogInformation("Successfully connected to MQTT broker via WebSocket: {Uri}", webSocketUri);
+                }
+                else
+                {
+                    _logger.LogInformation("Successfully connected to MQTT broker via TCP: {Host}:{Port}", host, port);
+                }
             }
             catch (Exception ex)
             {
@@ -197,15 +251,62 @@ namespace Backend.Services
 
                 _logger.LogInformation("Received message from topic {Topic}: {Payload}", topic, payload);
 
+                // Check for exact topic match first
                 if (_messageHandlers.TryGetValue(topic, out var handler))
                 {
                     await handler(topic, payload);
+                }
+
+                // Check for wildcard pattern matches
+                foreach (var kvp in _messageHandlers)
+                {
+                    var pattern = kvp.Key;
+                    var patternHandler = kvp.Value;
+                    
+                    if (pattern.Contains("+") || pattern.Contains("#"))
+                    {
+                        if (IsTopicMatch(topic, pattern))
+                        {
+                            await patternHandler(topic, payload);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing received MQTT message");
             }
+        }
+
+        private static bool IsTopicMatch(string topic, string pattern)
+        {
+            var topicLevels = topic.Split('/');
+            var patternLevels = pattern.Split('/');
+
+            if (patternLevels.Length > topicLevels.Length && !pattern.EndsWith("#"))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < patternLevels.Length; i++)
+            {
+                if (patternLevels[i] == "#")
+                {
+                    return true; // # matches everything from this level on
+                }
+
+                if (i >= topicLevels.Length)
+                {
+                    return false;
+                }
+
+                if (patternLevels[i] != "+" && patternLevels[i] != topicLevels[i])
+                {
+                    return false;
+                }
+            }
+
+            return patternLevels.Length == topicLevels.Length || pattern.EndsWith("#");
         }
 
         private Task OnConnected(MqttClientConnectedEventArgs e)

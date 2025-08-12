@@ -25,6 +25,7 @@ public class CctvCamera
 
     [StringLength(100)]
     public string? Password { get; set; }
+    public string? ApiKeys { get; set; }
 
     [Required]
     [StringLength(500)]
@@ -49,6 +50,7 @@ public class CctvCameraDto
     public int Port { get; set; }
     public string? Username { get; set; }
     public string? Password { get; set; }
+    public string? ApiKeys { get; set; }
     public string StreamUrl { get; set; } = string.Empty;
     public int? ContainmentId { get; set; }
     public string? ContainmentName { get; set; }
@@ -76,6 +78,7 @@ public class CreateUpdateCctvCameraDto
 
     [StringLength(100)]
     public string? Password { get; set; }
+    public string? ApiKeys { get; set; }
 
     [Required]
     [StringLength(500)]

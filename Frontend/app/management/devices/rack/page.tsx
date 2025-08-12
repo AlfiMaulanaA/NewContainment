@@ -4,7 +4,18 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { HardDrive, Plus, Edit, Trash2, ArrowUpDown, Activity, AlertTriangle, Search, ArrowLeft, Server } from "lucide-react";
+import {
+  HardDrive,
+  Plus,
+  Edit,
+  Trash2,
+  ArrowUpDown,
+  Activity,
+  AlertTriangle,
+  Search,
+  ArrowLeft,
+  Server,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +30,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -53,13 +64,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { 
-  devicesApi, 
+import {
+  devicesApi,
   racksApi,
-  Device, 
+  Device,
   Rack,
-  CreateDeviceRequest, 
-  UpdateDeviceRequest
+  CreateDeviceRequest,
+  UpdateDeviceRequest,
 } from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
@@ -68,7 +79,7 @@ import { toast } from "sonner";
 const ITEMS_PER_PAGE = 10;
 const DEVICE_TYPES = [
   "Server",
-  "Switch", 
+  "Switch",
   "Router",
   "Firewall",
   "Load Balancer",
@@ -77,23 +88,23 @@ const DEVICE_TYPES = [
   "PDU",
   "KVM",
   "Sensor",
-  "Other"
+  "Other",
 ];
 
 const DEVICE_STATUSES = [
   "Active",
-  "Inactive", 
+  "Inactive",
   "Offline",
   "Error",
   "Warning",
-  "Maintenance"
+  "Maintenance",
 ];
 
 function RackDevicesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const rackId = searchParams.get('rackId');
-  const rackName = searchParams.get('rackName') || '';
+  const rackId = searchParams.get("rackId");
+  const rackName = searchParams.get("rackName") || "";
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [rack, setRack] = useState<Rack | null>(null);
@@ -105,7 +116,9 @@ function RackDevicesContent() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Form state
-  const [formData, setFormData] = useState<CreateDeviceRequest | UpdateDeviceRequest>({
+  const [formData, setFormData] = useState<
+    CreateDeviceRequest | UpdateDeviceRequest
+  >({
     name: "",
     type: "",
     rackId: rackId ? parseInt(rackId) : 0,
@@ -116,15 +129,12 @@ function RackDevicesContent() {
   });
 
   // Hooks for sorting and filtering
-  const { sorted, sortField, sortDirection, handleSort } = useSortableTable(devices);
-  const { searchQuery, setSearchQuery, filteredData } = useSearchFilter(sorted, [
-    "name",
-    "type",
-    "description",
-    "serialNumber",
-    "status",
-    "topic",
-  ]);
+  const { sorted, sortField, sortDirection, handleSort } =
+    useSortableTable(devices);
+  const { searchQuery, setSearchQuery, filteredData } = useSearchFilter(
+    sorted,
+    ["name", "type", "description", "serialNumber", "status", "topic"]
+  );
 
   // Pagination logic
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
@@ -135,19 +145,25 @@ function RackDevicesContent() {
 
   // Stats calculations
   const totalDevices = devices.length;
-  const activeDevices = devices.filter(device => device.status === "Active").length;
-  const inactiveDevices = devices.filter(device => device.status !== "Active").length;
-  const errorDevices = devices.filter(device => device.status === "Error").length;
+  const activeDevices = devices.filter(
+    (device) => device.status === "Active"
+  ).length;
+  const inactiveDevices = devices.filter(
+    (device) => device.status !== "Active"
+  ).length;
+  const errorDevices = devices.filter(
+    (device) => device.status === "Error"
+  ).length;
 
   // Load devices and rack info
   const loadData = async () => {
     if (!rackId) return;
-    
+
     setLoading(true);
     try {
       const [devicesResult, rackResult] = await Promise.all([
         devicesApi.getDevicesByRack(parseInt(rackId)),
-        racksApi.getRack(parseInt(rackId))
+        racksApi.getRack(parseInt(rackId)),
       ]);
 
       if (devicesResult.success && devicesResult.data) {
@@ -171,7 +187,7 @@ function RackDevicesContent() {
   useEffect(() => {
     if (rackId) {
       loadData();
-      setFormData(prev => ({ ...prev, rackId: parseInt(rackId) }));
+      setFormData((prev) => ({ ...prev, rackId: parseInt(rackId) }));
     }
   }, [rackId]);
 
@@ -202,7 +218,9 @@ function RackDevicesContent() {
 
     setActionLoading(true);
     try {
-      const result = await devicesApi.createDevice(formData as CreateDeviceRequest);
+      const result = await devicesApi.createDevice(
+        formData as CreateDeviceRequest
+      );
       if (result.success) {
         toast.success("Device created successfully");
         setShowCreateDialog(false);
@@ -236,7 +254,7 @@ function RackDevicesContent() {
   // Handle update device
   const handleUpdateDevice = async () => {
     if (!editingDevice) return;
-    
+
     if (!formData.name.trim()) {
       toast.error("Please enter device name");
       return;
@@ -248,7 +266,10 @@ function RackDevicesContent() {
 
     setActionLoading(true);
     try {
-      const result = await devicesApi.updateDevice(editingDevice.id, formData as UpdateDeviceRequest);
+      const result = await devicesApi.updateDevice(
+        editingDevice.id,
+        formData as UpdateDeviceRequest
+      );
       if (result.success) {
         toast.success("Device updated successfully");
         setShowEditDialog(false);
@@ -285,19 +306,19 @@ function RackDevicesContent() {
   // Get status badge color
   const getStatusBadgeColor = (status?: string) => {
     switch (status?.toLowerCase()) {
-      case 'active':
-        return 'text-green-600 bg-green-100';
-      case 'inactive':
-      case 'offline':
-        return 'text-gray-600 bg-gray-100';
-      case 'error':
-        return 'text-red-600 bg-red-100';
-      case 'warning':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'maintenance':
-        return 'text-blue-600 bg-blue-100';
+      case "active":
+        return "text-green-600 bg-green-100";
+      case "inactive":
+      case "offline":
+        return "text-gray-600 bg-gray-100";
+      case "error":
+        return "text-red-600 bg-red-100";
+      case "warning":
+        return "text-yellow-600 bg-yellow-100";
+      case "maintenance":
+        return "text-blue-600 bg-blue-100";
       default:
-        return 'text-gray-600 bg-gray-100';
+        return "text-gray-600 bg-gray-100";
     }
   };
 
@@ -306,8 +327,12 @@ function RackDevicesContent() {
       <SidebarInset>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-red-600">Invalid Rack ID</h2>
-            <p className="text-muted-foreground">Please provide a valid rack ID.</p>
+            <h2 className="text-lg font-semibold text-red-600">
+              Invalid Rack ID
+            </h2>
+            <p className="text-muted-foreground">
+              Please provide a valid rack ID.
+            </p>
           </div>
         </div>
       </SidebarInset>
@@ -320,19 +345,19 @@ function RackDevicesContent() {
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          
+
           {/* Back button */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/management/racks')}
+            onClick={() => router.push("/management/racks")}
             className="mr-2"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Racks
           </Button>
           <Separator orientation="vertical" className="mr-2 h-4" />
-          
+
           <HardDrive className="h-5 w-5" />
           <h1 className="text-lg font-semibold">
             Device Management
@@ -349,25 +374,40 @@ function RackDevicesContent() {
                 Add Device
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-3xl max-h-[90vh]">
               <DialogHeader>
-                <DialogTitle>Add Device to {rack?.name || rackName}</DialogTitle>
+                <DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <HardDrive />
+                    </div>
+                    <div> Add Device to {rack?.name || rackName}</div>
+                  </div>
+                </DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              {/* Mengubah tata letak menjadi 2 kolom */}
+              <div className="grid grid-cols-2 gap-4 py-4">
+                {/* Baris 1, Kolom 1 */}
                 <div>
                   <Label htmlFor="name">Device Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="Enter device name"
                   />
                 </div>
+
+                {/* Baris 1, Kolom 2 */}
                 <div>
                   <Label htmlFor="type">Device Type *</Label>
                   <Select
                     value={formData.type}
-                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, type: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select device type" />
@@ -381,20 +421,28 @@ function RackDevicesContent() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Baris 2, Kolom 1 */}
                 <div>
                   <Label htmlFor="serialNumber">Serial Number</Label>
                   <Input
                     id="serialNumber"
                     value={formData.serialNumber}
-                    onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, serialNumber: e.target.value })
+                    }
                     placeholder="Enter serial number"
                   />
                 </div>
+
+                {/* Baris 2, Kolom 2 */}
                 <div>
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={formData.status || "Active"}
-                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, status: value })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
@@ -408,28 +456,37 @@ function RackDevicesContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+
+                {/* Field MQTT Topic dan Description akan mengambil lebar penuh (span-2) */}
+                <div className="col-span-2">
                   <Label htmlFor="topic">MQTT Topic</Label>
                   <Input
                     id="topic"
                     value={formData.topic}
-                    onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, topic: e.target.value })
+                    }
                     placeholder="Enter MQTT topic"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Enter description"
                     rows={3}
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateDialog(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleCreateDevice} disabled={actionLoading}>
@@ -453,7 +510,8 @@ function RackDevicesContent() {
                 <div>
                   <h3 className="font-semibold">{rack.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {rack.containment?.name} • {rack.description || 'No description'}
+                    {rack.containment?.name} •{" "}
+                    {rack.description || "No description"}
                   </p>
                 </div>
               </div>
@@ -471,7 +529,7 @@ function RackDevicesContent() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Devices</CardTitle>
             <div className="p-2 bg-gray-100 rounded-lg">
-            <HardDrive className="h-4 w-4 text-gray-600" />
+              <HardDrive className="h-4 w-4 text-gray-600" />
             </div>
           </CardHeader>
           <CardContent>
@@ -482,26 +540,34 @@ function RackDevicesContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Devices</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Devices
+            </CardTitle>
             <div className="p-2 bg-green-100 rounded-lg">
-            <Activity className="h-4 w-4 text-green-600" />
+              <Activity className="h-4 w-4 text-green-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeDevices}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {activeDevices}
+            </div>
             <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Devices</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Inactive Devices
+            </CardTitle>
             <div className="p-2 bg-orange-100 rounded-lg">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{inactiveDevices}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {inactiveDevices}
+            </div>
             <p className="text-xs text-muted-foreground">Not active</p>
           </CardContent>
         </Card>
@@ -510,11 +576,13 @@ function RackDevicesContent() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Error Devices</CardTitle>
             <div className="p-2 bg-red-100 rounded-lg">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertTriangle className="h-4 w-4 text-red-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{errorDevices}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {errorDevices}
+            </div>
             <p className="text-xs text-muted-foreground">Need attention</p>
           </CardContent>
         </Card>
@@ -524,9 +592,7 @@ function RackDevicesContent() {
       <Card className="m-4">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>
-              Devices ({filteredData.length})
-            </CardTitle>
+            <CardTitle>Devices ({filteredData.length})</CardTitle>
             <div className="flex items-center gap-2">
               {/* Search */}
               <div className="relative">
@@ -552,13 +618,14 @@ function RackDevicesContent() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>#</TableHead>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("name")}
                     >
-                      Device Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                      Device Name{" "}
+                      <ArrowUpDown className="inline ml-1 h-4 w-4" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("type")}
                     >
@@ -576,27 +643,33 @@ function RackDevicesContent() {
                   {paginatedDevices.length > 0 ? (
                     paginatedDevices.map((device, index) => (
                       <TableRow key={device.id}>
-                        <TableCell>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
-                        <TableCell className="font-medium">{device.name}</TableCell>
+                        <TableCell>
+                          {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {device.name}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{device.type}</Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
-                          {device.serialNumber || '-'}
+                          {device.serialNumber || "-"}
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusBadgeColor(device.status)}>
-                            {device.status || 'Unknown'}
+                            {device.status || "Unknown"}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
-                          {device.topic || '-'}
+                          {device.topic || "-"}
                         </TableCell>
                         <TableCell className="max-w-xs truncate">
-                          {device.description || '-'}
+                          {device.description || "-"}
                         </TableCell>
                         <TableCell>
-                          {device.createdAt ? new Date(device.createdAt).toLocaleDateString() : '-'}
+                          {device.createdAt
+                            ? new Date(device.createdAt).toLocaleDateString()
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button
@@ -614,9 +687,12 @@ function RackDevicesContent() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Device</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Delete Device
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "{device.name}"? This action cannot be undone.
+                                  Are you sure you want to delete "{device.name}
+                                  "? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -635,9 +711,12 @@ function RackDevicesContent() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                        {searchQuery 
-                          ? "No devices found matching your search." 
+                      <TableCell
+                        colSpan={9}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {searchQuery
+                          ? "No devices found matching your search."
                           : "No devices found in this rack."}
                       </TableCell>
                     </TableRow>
@@ -652,8 +731,14 @@ function RackDevicesContent() {
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={() =>
+                            setCurrentPage((p) => Math.max(p - 1, 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                       {Array.from({ length: totalPages }, (_, i) => (
@@ -669,8 +754,14 @@ function RackDevicesContent() {
                       ))}
                       <PaginationItem>
                         <PaginationNext
-                          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={() =>
+                            setCurrentPage((p) => Math.min(p + 1, totalPages))
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -694,7 +785,9 @@ function RackDevicesContent() {
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Enter device name"
               />
             </div>
@@ -702,7 +795,9 @@ function RackDevicesContent() {
               <Label htmlFor="edit-type">Device Type *</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, type: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select device type" />
@@ -721,7 +816,9 @@ function RackDevicesContent() {
               <Input
                 id="edit-serialNumber"
                 value={formData.serialNumber}
-                onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, serialNumber: e.target.value })
+                }
                 placeholder="Enter serial number"
               />
             </div>
@@ -729,7 +826,9 @@ function RackDevicesContent() {
               <Label htmlFor="edit-status">Status</Label>
               <Select
                 value={formData.status || "Active"}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, status: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -748,7 +847,9 @@ function RackDevicesContent() {
               <Input
                 id="edit-topic"
                 value={formData.topic}
-                onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, topic: e.target.value })
+                }
                 placeholder="Enter MQTT topic"
               />
             </div>
@@ -757,7 +858,9 @@ function RackDevicesContent() {
               <Textarea
                 id="edit-description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Enter description"
                 rows={3}
               />
@@ -779,11 +882,13 @@ function RackDevicesContent() {
 
 export default function RackDevicesPage() {
   return (
-    <Suspense fallback={
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      }
+    >
       <RackDevicesContent />
     </Suspense>
   );

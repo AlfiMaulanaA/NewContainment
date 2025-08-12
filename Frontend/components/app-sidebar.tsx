@@ -2,6 +2,7 @@
 
 import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { DeveloperModeDialog } from "@/components/developer-mode-dialog";
+import JwtTokenInfo from "@/components/jwt-token-info";
 import {
   getCurrentUserFromToken,
   getRoleDisplayName,
@@ -43,10 +44,16 @@ import {
   Activity,
   Shield,
   UserCheck,
-  Fingerprint,
   Code,
   Unlock,
   SlidersHorizontalIcon,
+  Database,
+  Eye,
+  FileText,
+  Cog,
+  ChevronDown,
+  ChevronRight,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -68,8 +75,20 @@ import {
 import { Separator } from "@radix-ui/react-separator";
 import { deleteCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
+
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<any>;
+  requireRole?: string[];
+}
+
+interface NavigationGroup {
+  title: string;
+  items: NavigationItem[];
+}
 
 const appName =
   process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment Monitoring";
@@ -77,139 +96,134 @@ const appName =
 const avatarIcon =
   process.env.NEXT_PUBLIC_APP_AVATAR_URL || "/images/avatar-user.png";
 
-const navigation = [
+const navigation: NavigationGroup[] = [
   {
-    title: "Main",
+    title: "Dashboard",
     items: [
-      { 
-        title: "Containment Overview", 
-        url: "/", 
+      {
+        title: "Overview",
+        url: "/",
         icon: LayoutDashboard,
       },
       {
-        title: "Virtual Control",
+        title: "Control Panel",
         url: "/control/containment",
         icon: SlidersHorizontalIcon,
       },
     ],
   },
   {
-    title: "Management",
+    title: "Infrastructure",
     items: [
-          {
-        title: "Manage Containments",
+      {
+        title: "Containments",
         url: "/management/containments",
         icon: Server,
       },
       {
-        title: "Manage Racks",
+        title: "Racks",
         url: "/management/racks",
         icon: Computer,
       },
-      { 
-        title: "Manage Devices", 
-        url: "/management/devices", 
-        icon: HardDriveUpload,
+      {
+        title: "Devices",
+        url: "/management/devices",
+        icon: Database,
       },
-      { 
-        title: "Manage CCTV", 
-        url: "/management/cctv", 
-        icon: Camera,
-      },
-      { 
-        title: "Manage Users", 
-        url: "/management/users", 
-        icon: Users,
-      },
-      { 
-        title: "Manage Maintenance", 
-        url: "/management/maintenance", 
+      {
+        title: "Maintenance",
+        url: "/management/maintenance",
         icon: Wrench,
       },
     ],
   },
   {
-    title: "Monitoring",
+    title: "Surveillance",
     items: [
       {
-        title: "CCTV Monitoring",
+        title: "CCTV Setup",
+        url: "/management/cctv",
+        icon: Video,
+      },
+      {
+        title: "Live Monitor",
         url: "/monitoring/cctv",
         icon: Monitor,
       },
     ],
   },
   {
-    title: "Reports",
+    title: "Analytics",
     items: [
       {
-        title: "Emergency Reports",
+        title: "Sensor Data",
+        url: "/reports/sensor-data",
+        icon: BarChart3,
+      },
+      {
+        title: "Emergency Logs",
         url: "/reports/emergency",
         icon: AlertTriangle,
       },
       {
         title: "Maintenance Reports",
         url: "/reports/maintenance",
-        icon: FileSpreadsheet,
+        icon: FileText,
       },
     ],
   },
   {
-    title: "Network Configuration",
-    items: [
-      { 
-        title: "Network Settings", 
-        url: "/network", 
-        icon: Network,
-      },
-      { 
-        title: "MQTT Configuration", 
-        url: "/mqtt", 
-        icon: Wifi,
-      },
-    ],
-  },
-  {
-    title: "System Management",
-    items: [
-      { 
-        title: "System Settings", 
-        url: "/settings/setting", 
-        icon: Settings,
-      },
-      { 
-        title: "System Info", 
-        url: "/info", 
-        icon: InfoIcon,
-      },
-    ],
-  },
-  {
-    title: "Access Control",
+    title: "Security & Access",
     items: [
       {
-        title: "Overview",
+        title: "Access Overview",
         url: "/access-control",
         icon: Shield,
       },
       {
-        title: "Device Management",
+        title: "Access Devices",
         url: "/access-control/devices",
         icon: ShieldAlert,
       },
       {
-        title: "User Management", 
+        title: "Access Users",
         url: "/access-control/users",
         icon: UserCheck,
       },
       {
-        title: "Biometric Registration",
-        url: "/access-control/biometric",
-        icon: Fingerprint,
+        title: "Live Access Monitor",
+        url: "/access-control/monitoring",
+        icon: Eye,
       },
       {
-        title: "Live Monitoring",
-        url: "/access-control/monitoring",
-        icon: Activity,
+        title: "User Management",
+        url: "/management/users",
+        icon: Users,
+      },
+    ],
+  },
+  {
+    title: "Configuration",
+    items: [
+      {
+        title: "Network Settings",
+        url: "/network",
+        icon: Network,
+      },
+      {
+        title: "MQTT Config",
+        url: "/mqtt",
+        icon: Wifi,
+      },
+      {
+        title: "System Settings",
+        url: "/settings/setting",
+        icon: Cog,
+      },
+      {
+        title: "System Info",
+        url: "/info",
+        icon: InfoIcon,
       },
     ],
   },
@@ -222,10 +236,12 @@ export function AppSidebar() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userPhotoUrl, setUserPhotoUrl] = useState<string>(avatarIcon);
+  const [isScrollVisible, setIsScrollVisible] = useState(false);
+  const sidebarContentRef = useRef<HTMLDivElement>(null);
 
   // Get user photo URL
   const getUserPhotoUrl = (user: any) => {
-    if (user?.photoPath && user.photoPath !== '/images/avatar-user.png') {
+    if (user?.photoPath && user.photoPath !== "/images/avatar-user.png") {
       const { apiBaseUrl } = getAppConfig();
       return `${apiBaseUrl}${user.photoPath}`;
     }
@@ -236,21 +252,22 @@ export function AppSidebar() {
   const fetchUserPhoto = async (userId: number) => {
     try {
       const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/userphoto/${userId}/photo/path`, {
+      const response = await fetch(`${apiBaseUrl}/api/users/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
-      
+
       if (response.ok) {
         const result = await response.json();
-        const photoUrl = result.photoPath && result.photoPath !== '/images/avatar-user.png' 
-          ? `${apiBaseUrl}${result.photoPath}` 
-          : avatarIcon;
+        const photoUrl =
+          result.photoPath && result.photoPath !== "/images/avatar-user.png"
+            ? `${apiBaseUrl}${result.photoPath}`
+            : avatarIcon;
         setUserPhotoUrl(photoUrl);
       }
     } catch (error) {
-      console.error('Error fetching user photo:', error);
+      console.error("Error fetching user photo:", error);
       setUserPhotoUrl(avatarIcon);
     }
   };
@@ -258,9 +275,24 @@ export function AppSidebar() {
   useEffect(() => {
     const user = getCurrentUserFromToken();
     setCurrentUser(user);
-    
+
     if (user?.id) {
       fetchUserPhoto(Number(user.id));
+    }
+
+    // Setup scroll visibility detection
+    const handleMouseEnter = () => setIsScrollVisible(true);
+    const handleMouseLeave = () => setIsScrollVisible(false);
+
+    const contentElement = sidebarContentRef.current;
+    if (contentElement) {
+      contentElement.addEventListener("mouseenter", handleMouseEnter);
+      contentElement.addEventListener("mouseleave", handleMouseLeave);
+
+      return () => {
+        contentElement.removeEventListener("mouseenter", handleMouseEnter);
+        contentElement.removeEventListener("mouseleave", handleMouseLeave);
+      };
     }
   }, []);
 
@@ -303,40 +335,83 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-background">
+      <SidebarContent
+        ref={sidebarContentRef}
+        className={`bg-background overflow-y-auto sidebar-content-transition ${
+          isScrollVisible ? "sidebar-scroll-visible" : "sidebar-scroll-hidden"
+        }`}
+      >
         {navigation.map((group) => {
-          // Hide Access Control group if Developer Mode is not enabled
-          if (group.title === "Access Control" && !isDeveloperMode) {
-            return null;
+          // Hide Security & Access group items if Developer Mode is not enabled for access control
+          if (group.title === "Security & Access" && !isDeveloperMode) {
+            // Filter out access control items if developer mode is not enabled
+            const filteredItems = group.items.filter(
+              (item) => !item.url.includes("/access-control")
+            );
+            if (filteredItems.length === 0) {
+              return null;
+            }
+            // Return group with filtered items
+            group = { ...group, items: filteredItems };
+          }
+
+          // Check if user has access to Security features
+          if (group.title === "Security & Access" && currentUser) {
+            const userRole = getRoleDisplayName(currentUser.role);
+            const hasAccess = userRole === "Admin" || userRole === "Developer";
+            if (!hasAccess) {
+              return null;
+            }
           }
 
           return (
-            <SidebarGroup key={group.title}>
-              <SidebarGroupLabel className="text-sidebar-foreground/80">
-                {group.title}
-                {group.title === "Access Control" && isDeveloperMode && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    <Code className="h-3 w-3 mr-1" />
-                    Dev Mode
-                  </Badge>
-                )}
+            <SidebarGroup key={group.title} className="sidebar-group-animate">
+              <SidebarGroupLabel className="text-sidebar-foreground/80 flex items-center justify-between group cursor-pointer hover:text-sidebar-foreground transition-colors">
+                <div className="flex items-center gap-2">
+                  <span>{group.title}</span>
+                  {group.title === "Security & Access" && isDeveloperMode && (
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      <Code className="h-3 w-3 mr-1" />
+                      Dev
+                    </Badge>
+                  )}
+                  {group.title === "Security & Access" && currentUser && (
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      <Shield className="h-3 w-3 mr-1" />
+                      {getRoleDisplayName(currentUser.role)}
+                    </Badge>
+                  )}
+                </div>
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={pathname === item.url}
-                        className="group flex items-center gap-2 px-3 py-2 rounded-md w-full transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                  {group.items.map((item) => {
+                    // Check individual item role requirements
+                    if (item.requireRole && currentUser) {
+                      const userRole = getRoleDisplayName(currentUser.role);
+                      if (!item.requireRole.includes(userRole)) {
+                        return null;
+                      }
+                    }
+
+                    return (
+                      <SidebarMenuItem
+                        key={item.title}
+                        className="sidebar-menu-item"
                       >
-                        <Link href={item.url}>
-                          <item.icon className="h-4 w-4 text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname === item.url}
+                          className="group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm hover:scale-[1.01] data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-md data-[active=true]:scale-[1.01] data-[active=true]:border-l-3 data-[active=true]:border-primary sidebar-focus-ring"
+                        >
+                          <Link href={item.url}>
+                            <item.icon className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110 transition-all duration-200" />
+                            <span className="truncate">{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -355,7 +430,9 @@ export function AppSidebar() {
                   <div className="px-3 py-2 rounded-md bg-green-50 border border-green-200">
                     <div className="flex items-center gap-2 text-green-700">
                       <Unlock className="h-4 w-4" />
-                      <span className="text-sm font-medium">Developer Mode</span>
+                      <span className="text-sm font-medium">
+                        Developer Mode
+                      </span>
                     </div>
                     <div className="text-xs text-green-600 mt-1">
                       Active • {getFormattedRemainingTime()}
@@ -375,6 +452,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarFooter className="p-4 bg-background border-t border-sidebar-border">
+          {/* JWT Token Information */}
+          {/* <div className="mb-4">
+            <JwtTokenInfo compact={true} />
+          </div> */}
+
           <Dialog>
             <DialogTrigger asChild>
               <div className="flex items-center gap-3 mb-4 px-1 cursor-pointer hover:bg-muted rounded-md p-1 transition hover:shadow-sm">
@@ -391,7 +473,7 @@ export function AppSidebar() {
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
                   <span className="font-semibold text-sm text-sidebar-foreground truncate">
-                    {currentUser?.name || "Loading..."}
+                    {currentUser?.name || "Loading..."}{" "}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-sidebar-foreground/70">

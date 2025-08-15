@@ -10,38 +10,32 @@ import { DashboardCarousel } from "@/components/dashboard-carousel";
 import { DashboardSettingsShortcut } from "@/components/dashboard-settings-shortcut";
 
 // Lazy load heavy components for better performance
-const ContainmentStatusTabs = React.lazy(() => import("@/components/containment-status-tabs"));
-const ContainmentRacks = React.lazy(() => import("@/components/containment-card-racks-tabs"));
-// import { 
-//   SystemStatusWidget, 
-//   ConnectivityWidget, 
-//   AlertSummaryWidget, 
-//   PowerEnergyWidget 
-// } from "@/components/dashboard-widgets";
+const ContainmentStatusTabs = React.lazy(
+  () => import("@/components/containment-status-tabs")
+);
+const ContainmentRacks = React.lazy(
+  () => import("@/components/containment-card-racks-tabs")
+);
+const CCTVMonitoring = React.lazy(
+  () => import("@/components/dashboard-cctv-section")
+);
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ContainmentDashboard() {
-  const appName = process.env.NEXT_PUBLIC_APP_DESC || "IOT Containment Dashboard";
+  const appName =
+    process.env.NEXT_PUBLIC_APP_DESC || "IOT Containment Dashboard";
 
   // Define dashboard components
-  const dashboardComponents = [
-    ContainmentStatusTabs,
-    ContainmentRacks,
-    // SystemStatusWidget,
-    // ConnectivityWidget,
-    // AlertSummaryWidget,
-    // PowerEnergyWidget
-  ];
+  const dashboardComponents =
+    process.env.NODE_ENV === "development"
+      ? [ContainmentStatusTabs, ContainmentRacks, CCTVMonitoring]
+      : [ContainmentStatusTabs, ContainmentRacks, CCTVMonitoring];
 
   // Component names for carousel indicators
-  const componentNames = [
-    "Containment Status Overview",
-    "Rack Management",
-    // "System Performance",
-    // "Connectivity Status", 
-    // "System Alerts",
-    // "Power & Energy"
-  ];
+  const componentNames =
+    process.env.NODE_ENV === "development"
+      ? ["Containment Status Overview", "Rack Management", "CCTV Monitoring"]
+      : ["Containment Status Overview", "Rack Management", "CCTV Monitoring"];
 
   return (
     <SidebarInset>
@@ -59,27 +53,31 @@ export default function ContainmentDashboard() {
       </header>
 
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <Suspense fallback={
-          <div className="w-full min-h-[400px] flex items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-              <div className="space-y-2">
-                <p className="text-lg font-medium">Loading Dashboard</p>
-                <p className="text-sm text-muted-foreground">Preparing your IoT monitoring components...</p>
-              </div>
-              {/* Skeleton loading preview */}
-              <div className="mt-6 space-y-4 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-64 mx-auto"></div>
-                <div className="h-32 bg-gray-100 rounded-lg w-full max-w-4xl mx-auto"></div>
-                <div className="flex justify-center space-x-2">
-                  <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
-                  <div className="h-2 w-6 bg-primary rounded-full"></div>
-                  <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+        <Suspense
+          fallback={
+            <div className="w-full min-h-[400px] flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">Loading Dashboard</p>
+                  <p className="text-sm text-muted-foreground">
+                    Preparing your IoT monitoring components...
+                  </p>
+                </div>
+                {/* Skeleton loading preview */}
+                <div className="mt-6 space-y-4 animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded w-64 mx-auto"></div>
+                  <div className="h-32 bg-gray-100 rounded-lg w-full max-w-4xl mx-auto"></div>
+                  <div className="flex justify-center space-x-2">
+                    <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+                    <div className="h-2 w-6 bg-primary rounded-full"></div>
+                    <div className="h-2 w-2 bg-gray-300 rounded-full"></div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        }>
+          }
+        >
           <DashboardCarousel
             components={dashboardComponents}
             componentNames={componentNames}
@@ -88,7 +86,7 @@ export default function ContainmentDashboard() {
           />
         </Suspense>
       </div>
-      
+
       {/* Settings Shortcut */}
       <DashboardSettingsShortcut />
     </SidebarInset>

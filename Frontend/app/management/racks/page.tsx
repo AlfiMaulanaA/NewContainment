@@ -33,9 +33,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -126,6 +128,7 @@ export default function RackManagementPage({
     name: "",
     containmentId: 0,
     description: "",
+    capacityU: 42,
   });
 
   // Hooks for sorting and filtering
@@ -277,6 +280,7 @@ export default function RackManagementPage({
       name: "",
       containmentId: containmentId || 0,
       description: "",
+      isActive: true,
     });
     setEditingRack(null);
   };
@@ -317,6 +321,7 @@ export default function RackManagementPage({
       name: rack.name,
       containmentId: rack.containmentId,
       description: rack.description || "",
+      isActive: rack.isActive,
     });
     setShowEditDialog(true);
   };
@@ -481,6 +486,9 @@ export default function RackManagementPage({
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Rack</DialogTitle>
+                <DialogDescription>
+                  Create a new rack in the selected containment. Fill in the required information below.
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div>
@@ -536,6 +544,16 @@ export default function RackManagementPage({
                     placeholder="Enter description"
                     rows={3}
                   />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
+                  />
+                  <Label htmlFor="isActive">Active Status</Label>
                 </div>
               </div>
               <DialogFooter>
@@ -908,6 +926,9 @@ export default function RackManagementPage({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Rack: {editingRack?.name}</DialogTitle>
+            <DialogDescription>
+              Update the rack information. Modify the fields below and click Update to save changes.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div>
@@ -964,6 +985,16 @@ export default function RackManagementPage({
                 rows={3}
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="edit-isActive"
+                checked={formData.isActive}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, isActive: checked })
+                }
+              />
+              <Label htmlFor="edit-isActive">Active Status</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
@@ -987,6 +1018,9 @@ export default function RackManagementPage({
                 {selectedRackDevices.devices.length} devices
               </Badge>
             </DialogTitle>
+            <DialogDescription>
+              View all devices installed in this rack. You can manage devices by clicking the Manage Devices button.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="overflow-auto max-h-[60vh]">

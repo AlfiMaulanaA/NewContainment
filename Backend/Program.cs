@@ -66,15 +66,20 @@ builder.Services.AddScoped<Backend.Services.INetworkConfigurationService, Backen
 builder.Services.AddScoped<Backend.Services.IFileService, Backend.Services.FileService>();
 builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.MqttService>();
 builder.Services.AddScoped<Backend.Services.ISystemInfoService, Backend.Services.SystemInfoService>();
-builder.Services.AddScoped<Backend.Services.ICctvService, Backend.Services.CctvService>();
-builder.Services.AddScoped<Backend.Services.ICctvStreamingService, Backend.Services.CctvStreamingService>();
+builder.Services.AddScoped<Backend.Services.ICameraConfigsService, Backend.Services.CameraConfigService>();
 builder.Services.AddScoped<Backend.Services.IDeviceSensorDataService, Backend.Services.DeviceSensorDataService>();
-builder.Services.AddScoped<Backend.Services.SensorDataSimulatorService>();
+builder.Services.AddScoped<Backend.Services.IDeviceActivityService, Backend.Services.DeviceActivityService>();
+builder.Services.AddSingleton<Backend.Services.IpScannerService>();
+builder.Services.AddScoped<Backend.Services.IAccessLogService, Backend.Services.AccessLogService>();
+// builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
+// builder.Services.AddSingleton<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
+
 
 builder.Services.AddHttpClient();
 
 // Add background services
 builder.Services.AddHostedService<Backend.Services.BackupHostedService>();
+builder.Services.AddHostedService<Backend.Services.DeviceActivityHostedService>();
 
 // Add MQTT hosted service only if MQTT is enabled
 var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? builder.Configuration["Mqtt:EnableMqtt"] ?? "true");
@@ -192,6 +197,7 @@ using (var scope = app.Services.CreateScope())
     {
         logger.LogInformation("Seeding initial data...");
         await Backend.Data.SeedData.InitializeAsync(context, authService, scopedLogger);
+        
         logger.LogInformation("Database seeding completed");
     }
     else
@@ -212,6 +218,20 @@ app.UseHttpsRedirection();
 
 // Enable static files for photo uploads
 app.UseStaticFiles();
+
+// Serve uploads directory
+var uploadsPath = Path.Combine(app.Environment.WebRootPath ?? app.Environment.ContentRootPath, "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "users"));
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 app.UseCors("AllowAll");
 

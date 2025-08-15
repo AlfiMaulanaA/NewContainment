@@ -1,30 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Download,
-  BarChart3,
-  Table2,
-  TrendingUp,
-  Thermometer,
-  Droplets,
-  Calendar,
-  Filter,
-  RefreshCw,
-  Activity,
-  Server,
-  Database,
-  Gauge,
-  LineChart,
-  AlertCircle,
-} from "lucide-react";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -33,983 +13,762 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table as UITable,
+  Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SensorCharts } from "@/components/sensor-charts";
-
+import { Badge } from "@/components/ui/badge";
 import {
-  deviceSensorDataApi,
-  racksApi,
-  devicesApi,
-  DeviceSensorData,
-  Rack,
-  Device,
-} from "@/lib/api-service";
+  Search,
+  Download,
+  RefreshCw,
+  BarChart3,
+  Calendar,
+  Filter,
+} from "lucide-react";
+import { deviceSensorDataApi, devicesApi, racksApi, containmentsApi, DeviceSensorData } from "@/lib/api-service";
 import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from "recharts";
 
-interface SensorDataStatistics {
-  totalRecords: number;
-  deviceCount: number;
-  dateRange: {
-    from: string;
-    to: string;
+
+interface SensorDataResponse {
+  data: DeviceSensorData[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalRecords: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
   };
-  avgTemperature: number;
-  avgHumidity: number;
-  minTemperature: number;
-  maxTemperature: number;
-  minHumidity: number;
-  maxHumidity: number;
+  filters: any;
 }
 
-export default function SensorDataReportPage() {
-  const router = useRouter();
-  const [sensorData, setSensorData] = useState<DeviceSensorData[]>([]);
-  const [racks, setRacks] = useState<Rack[]>([]);
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [statistics, setStatistics] = useState<SensorDataStatistics | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
-  const [selectedRackId, setSelectedRackId] = useState<string>("all");
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("all");
-  const [limit, setLimit] = useState<string>("100");
+interface SensorDataSummary {
+  totalRecords: number;
+  activeDevices: number;
+  sensorTypes: { sensorType: string; count: number }[];
+  devicesSummary: {
+    deviceId: number;
+    deviceName: string;
+    latestTimestamp: string;
+    recordCount: number;
+  }[];
+  dateRange: {
+    start?: string;
+    end?: string;
+  };
+  generatedAt: string;
+}
 
-  // Fetch all necessary data
-  const fetchData = async () => {
-    setLoading(true);
+export default function SensorDataReportsPage() {
+  const [sensorData, setSensorData] = useState<DeviceSensorData[]>([]);
+  const [summary, setSummary] = useState<SensorDataSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
+  const [filters, setFilters] = useState({
+    page: 1,
+    pageSize: 50,
+    deviceId: "all",
+    rackId: "all",
+    containmentId: "all",
+    sensorType: "all",
+    startDate: "",
+    endDate: "",
+    searchTerm: "",
+  });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 50,
+    totalRecords: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
+  const [availableSensorTypes, setAvailableSensorTypes] = useState<string[]>(
+    []
+  );
+  const [devices, setDevices] = useState<any[]>([]);
+  const [racks, setRacks] = useState<any[]>([]);
+  const [containments, setContainments] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      loadSensorData();
+    }
+  }, [filters.page, loading]);
+
+  const loadInitialData = async () => {
     try {
-      const [racksResult, devicesResult] = await Promise.all([
-        racksApi.getRacks(),
+      setLoading(true);
+      const [
+        sensorTypesRes,
+        devicesRes,
+        racksRes,
+        containmentsRes,
+        summaryRes,
+      ] = await Promise.all([
+        deviceSensorDataApi.getAvailableSensorTypes(),
         devicesApi.getDevices(),
+        racksApi.getRacks(),
+        containmentsApi.getContainments(),
+        deviceSensorDataApi.getSensorDataSummary(),
       ]);
 
-      if (racksResult.success && racksResult.data) {
-        setRacks(racksResult.data);
-      }
+      if (sensorTypesRes?.data && Array.isArray(sensorTypesRes.data))
+        setAvailableSensorTypes(sensorTypesRes.data || []);
+      if (devicesRes?.data && Array.isArray(devicesRes.data)) setDevices(devicesRes.data || []);
+      if (racksRes?.data && Array.isArray(racksRes.data)) setRacks(racksRes.data || []);
+      if (containmentsRes?.data && Array.isArray(containmentsRes.data)) setContainments(containmentsRes.data || []);
+      if (summaryRes?.data) setSummary(summaryRes.data);
 
-      if (devicesResult.success && devicesResult.data) {
-        // Filter only sensor devices
-        const sensorDevices = devicesResult.data.filter(
-          (d) => d.type?.toLowerCase() === "sensor"
-        );
-        setDevices(sensorDevices);
-      }
-
-      await fetchSensorData();
     } catch (error: any) {
-      console.error("Error fetching data:", error);
-      toast.error("Failed to load report data");
+      console.error("Error loading initial data:", error);
+      toast.error("Failed to load data: " + (error.message || "Unknown error"));
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch sensor data based on filters
-  const fetchSensorData = async () => {
+  const loadSensorData = async () => {
     try {
-      let sensorDataResult;
-      const limitNum = parseInt(limit) || 100;
+      setLoadingData(true);
+      const params: any = {
+        page: filters.page,
+        pageSize: filters.pageSize,
+      };
 
-      if (selectedDeviceId !== "all") {
-        sensorDataResult = await deviceSensorDataApi.getSensorDataByDevice(
-          parseInt(selectedDeviceId),
-          limitNum
-        );
-      } else if (selectedRackId !== "all") {
-        sensorDataResult = await deviceSensorDataApi.getSensorDataByRack(
-          parseInt(selectedRackId),
-          limitNum
-        );
-      } else {
-        sensorDataResult = await deviceSensorDataApi.getLatestSensorData(
-          limitNum
-        );
-      }
+      if (filters.deviceId && filters.deviceId !== "all") params.deviceId = parseInt(filters.deviceId);
+      if (filters.rackId && filters.rackId !== "all") params.rackId = parseInt(filters.rackId);
+      if (filters.containmentId && filters.containmentId !== "all")
+        params.containmentId = parseInt(filters.containmentId);
+      if (filters.sensorType && filters.sensorType !== "all") params.sensorType = filters.sensorType;
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
 
-      if (
-        sensorDataResult &&
-        sensorDataResult.success &&
-        sensorDataResult.data
-      ) {
-        // Handle nested data structure from backend
-        const actualData =
-          (sensorDataResult.data as any).data || sensorDataResult.data;
-        setSensorData(actualData || []);
-        calculateStatistics(actualData || []);
+      const response = await deviceSensorDataApi.getSensorData(params);
+
+      if (response?.data && Array.isArray(response.data)) {
+        setSensorData(response.data || []);
+        // Simple pagination calculation since backend now returns direct data
+        setPagination({
+          currentPage: filters.page,
+          pageSize: filters.pageSize,
+          totalRecords: response.data.length,
+          totalPages: Math.ceil(response.data.length / filters.pageSize),
+          hasNextPage: response.data.length >= filters.pageSize,
+          hasPreviousPage: filters.page > 1,
+        });
       } else {
-        setSensorData([]);
-        setStatistics(null);
-        toast.error(sensorDataResult?.message || "Failed to fetch sensor data");
+        throw new Error("Failed to load sensor data");
       }
     } catch (error: any) {
-      console.error("Error fetching sensor data:", error);
-      toast.error("Failed to fetch sensor data: " + error.message);
+      console.error("Error loading sensor data:", error);
+      toast.error("Failed to load sensor data: " + (error.message || "Unknown error"));
+    } finally {
+      setLoadingData(false);
     }
   };
 
-  // Calculate statistics from sensor data
-  const calculateStatistics = (data: DeviceSensorData[]) => {
-    if (!data.length) {
-      setStatistics(null);
-      return;
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      page: 1, // Reset to first page when filters change
+    }));
+  };
+
+  const applyFilters = () => {
+    loadSensorData();
+    loadSummaryData();
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      page: 1,
+      pageSize: 50,
+      deviceId: "all",
+      rackId: "all",
+      containmentId: "all",
+      sensorType: "all",
+      startDate: "",
+      endDate: "",
+      searchTerm: "",
+    });
+    setTimeout(() => {
+      loadSensorData();
+      loadSummaryData();
+    }, 100);
+  };
+
+  const loadSummaryData = async () => {
+    try {
+      const params: any = {};
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+
+      const response = await deviceSensorDataApi.getSensorDataSummary(params);
+
+      if (response?.data) {
+        setSummary(response.data);
+      }
+    } catch (error: any) {
+      console.error("Error loading summary:", error);
+      toast.error("Failed to load summary: " + (error.message || "Unknown error"));
     }
-
-    const validTempData = data.filter(
-      (d) => d.temperature !== null && d.temperature !== undefined
-    );
-    const validHumData = data.filter(
-      (d) => d.humidity !== null && d.humidity !== undefined
-    );
-
-    const temperatures = validTempData.map((d) =>
-      parseFloat(d.temperature?.toString() || "0")
-    );
-    const humidities = validHumData.map((d) =>
-      parseFloat(d.humidity?.toString() || "0")
-    );
-
-    const stats: SensorDataStatistics = {
-      totalRecords: data.length,
-      deviceCount: new Set(data.map((d) => d.deviceId)).size,
-      dateRange: {
-        from: data[data.length - 1]?.timestamp || "",
-        to: data[0]?.timestamp || "",
-      },
-      avgTemperature:
-        temperatures.length > 0
-          ? temperatures.reduce((a, b) => a + b, 0) / temperatures.length
-          : 0,
-      avgHumidity:
-        humidities.length > 0
-          ? humidities.reduce((a, b) => a + b, 0) / humidities.length
-          : 0,
-      minTemperature: temperatures.length > 0 ? Math.min(...temperatures) : 0,
-      maxTemperature: temperatures.length > 0 ? Math.max(...temperatures) : 0,
-      minHumidity: humidities.length > 0 ? Math.min(...humidities) : 0,
-      maxHumidity: humidities.length > 0 ? Math.max(...humidities) : 0,
-    };
-
-    setStatistics(stats);
   };
 
-  // Filter devices by selected rack
-  const getFilteredDevices = () => {
-    if (selectedRackId === "all") return devices;
-    return devices.filter((d) => d.rackId === parseInt(selectedRackId));
+  const handlePageChange = (page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
   };
 
-  // Export data to CSV
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      return format(parseISO(timestamp), "PPp");
+    } catch {
+      return timestamp;
+    }
+  };
+
+  const parsePayload = (payload: string) => {
+    try {
+      return JSON.parse(payload);
+    } catch {
+      return payload;
+    }
+  };
+
   const exportToCSV = () => {
-    if (!sensorData.length) {
-      toast.error("No data to export");
-      return;
+    try {
+      if (!sensorData || sensorData.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
+
+      const csvData = sensorData.map((item) => ({
+        "Device Name": item.device?.name || "N/A",
+        "Sensor Type": item.sensorType || item.device?.sensorType || "N/A",
+        Containment: item.containment?.name || "N/A",
+        Rack: item.rack?.name || "N/A",
+        Topic: item.topic || "N/A",
+        Timestamp: formatTimestamp(item.timestamp),
+        "Raw Payload": item.rawPayload || "N/A",
+      }));
+
+      const csvString = [
+        Object.keys(csvData[0] || {}).join(","),
+        ...csvData.map((row) =>
+          Object.values(row)
+            .map((field) =>
+              typeof field === "string" && field.includes(",")
+                ? `"${field.replace(/"/g, '""')}"`
+                : field
+            )
+            .join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sensor-data-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Exported ${sensorData.length} records to CSV`);
+    } catch (error: any) {
+      console.error("Error exporting CSV:", error);
+      toast.error("Failed to export CSV: " + (error.message || "Unknown error"));
     }
-
-    const headers = [
-      "Device ID",
-      "Device Name",
-      "Rack",
-      "Temperature (°C)",
-      "Humidity (%)",
-      "Timestamp",
-      "Received At",
-    ];
-    const rows = sensorData.map((d) => [
-      d.deviceId,
-      d.device?.name || "Unknown",
-      d.rack?.name || "Unknown",
-      d.temperature?.toString() || "",
-      d.humidity?.toString() || "",
-      new Date(d.timestamp).toLocaleString(),
-      new Date(d.receivedAt).toLocaleString(),
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) => row.join(","))
-      .join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sensor_data_report_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
   };
 
-  // Get temperature color
-  const getTemperatureColor = (temp: number) => {
-    if (temp < 20) return "text-blue-600";
-    if (temp < 25) return "text-green-600";
-    if (temp < 30) return "text-yellow-600";
-    if (temp < 35) return "text-orange-600";
-    return "text-red-600";
-  };
-
-  // Get humidity color
-  const getHumidityColor = (hum: number) => {
-    if (hum < 30) return "text-red-600";
-    if (hum < 40) return "text-orange-600";
-    if (hum < 60) return "text-green-600";
-    if (hum < 70) return "text-yellow-600";
-    return "text-blue-600";
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (racks.length > 0 || devices.length > 0) {
-      fetchSensorData();
-    }
-  }, [selectedRackId, selectedDeviceId, limit]);
-
-  // Reset device filter when rack filter changes
-  useEffect(() => {
-    setSelectedDeviceId("all");
-  }, [selectedRackId]);
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Sensor Data Analytics</h1>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {statistics && (
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Database className="h-4 w-4" />
-                {statistics.totalRecords} records
-              </span>
-              <span className="flex items-center gap-1">
-                <Activity className="h-4 w-4" />
-                {statistics.deviceCount} sensors
-              </span>
-            </div>
-          )}
-          <Button
-            onClick={() => fetchData()}
-            disabled={loading}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-            />
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Sensor Data Reports</h1>
+        <div className="flex gap-2">
+          <Button onClick={applyFilters} variant="outline" disabled={loadingData}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loadingData ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={exportToCSV} disabled={!sensorData.length} size="sm">
+          <Button onClick={exportToCSV} variant="outline" disabled={sensorData.length === 0}>
             <Download className="h-4 w-4 mr-2" />
-            Export
+            Export CSV
           </Button>
         </div>
-      </header>
+      </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Data Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Server className="h-4 w-4" />
-                  Rack Selection
-                </label>
-                <Select
-                  value={selectedRackId}
-                  onValueChange={setSelectedRackId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Rack" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      All Racks ({racks.length})
-                    </SelectItem>
-                    {racks.map((rack) => (
-                      <SelectItem key={rack.id} value={rack.id.toString()}>
-                        {rack.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Sensor Device
-                </label>
-                <Select
-                  value={selectedDeviceId}
-                  onValueChange={setSelectedDeviceId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Device" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      All Devices ({getFilteredDevices().length})
-                    </SelectItem>
-                    {getFilteredDevices().map((device) => (
-                      <SelectItem key={device.id} value={device.id.toString()}>
-                        {device.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  Record Limit
-                </label>
-                <Select value={limit} onValueChange={setLimit}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="50">50 records</SelectItem>
-                    <SelectItem value="100">100 records</SelectItem>
-                    <SelectItem value="500">500 records</SelectItem>
-                    <SelectItem value="1000">1000 records</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="data" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="data">Data Table</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="charts">Charts</TabsTrigger>
+        </TabsList>
 
-        {/* Statistics Cards */}
-        {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Records
-                </CardTitle>
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {statistics.totalRecords.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  data points collected
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Avg Temperature
-                </CardTitle>
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Thermometer className="h-4 w-4 text-orange-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
-                  {statistics.avgTemperature.toFixed(1)}°C
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  environmental monitoring
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Avg Humidity
-                </CardTitle>
-                <div className="p-2 bg-cyan-100 rounded-lg">
-                  <Droplets className="h-4 w-4 text-cyan-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-cyan-600">
-                  {statistics.avgHumidity.toFixed(1)}%
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  moisture control
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Sensors
-                </CardTitle>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Activity className="h-4 w-4 text-green-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {statistics.deviceCount}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  monitoring devices
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Analysis Summary */}
-        {statistics && (
+        <TabsContent value="data" className="space-y-6">
+          {/* Filters */}
           <Card>
             <CardHeader>
-              <CardTitle>Analysis Summary</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filters
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
-                  <h4 className="font-semibold mb-2">Temperature Analysis</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Minimum:</span>
-                      <span
-                        className={getTemperatureColor(
-                          statistics.minTemperature
-                        )}
-                      >
-                        {statistics.minTemperature.toFixed(1)}°C
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Maximum:</span>
-                      <span
-                        className={getTemperatureColor(
-                          statistics.maxTemperature
-                        )}
-                      >
-                        {statistics.maxTemperature.toFixed(1)}°C
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Average:</span>
-                      <span
-                        className={getTemperatureColor(
-                          statistics.avgTemperature
-                        )}
-                      >
-                        {statistics.avgTemperature.toFixed(1)}°C
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Range:</span>
-                      <span>
-                        {(
-                          statistics.maxTemperature - statistics.minTemperature
-                        ).toFixed(1)}
-                        °C
-                      </span>
-                    </div>
-                  </div>
+                  <Label htmlFor="deviceId">Device</Label>
+                  <Select
+                    value={filters.deviceId}
+                    onValueChange={(value) =>
+                      handleFilterChange("deviceId", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All devices" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All devices</SelectItem>
+                      {Array.isArray(devices) && devices.map((device) => (
+                        <SelectItem
+                          key={device.id}
+                          value={device.id.toString()}
+                        >
+                          {device.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div>
-                  <h4 className="font-semibold mb-2">Humidity Analysis</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Minimum:</span>
-                      <span
-                        className={getHumidityColor(statistics.minHumidity)}
-                      >
-                        {statistics.minHumidity.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Maximum:</span>
-                      <span
-                        className={getHumidityColor(statistics.maxHumidity)}
-                      >
-                        {statistics.maxHumidity.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Average:</span>
-                      <span
-                        className={getHumidityColor(statistics.avgHumidity)}
-                      >
-                        {statistics.avgHumidity.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Range:</span>
-                      <span>
-                        {(
-                          statistics.maxHumidity - statistics.minHumidity
-                        ).toFixed(1)}
-                        %
-                      </span>
-                    </div>
-                  </div>
+                  <Label htmlFor="sensorType">Sensor Type</Label>
+                  <Select
+                    value={filters.sensorType}
+                    onValueChange={(value) =>
+                      handleFilterChange("sensorType", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All types</SelectItem>
+                      {Array.isArray(availableSensorTypes) && availableSensorTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="containmentId">Containment</Label>
+                  <Select
+                    value={filters.containmentId}
+                    onValueChange={(value) =>
+                      handleFilterChange("containmentId", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All containments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All containments</SelectItem>
+                      {Array.isArray(containments) && containments.map((containment) => (
+                        <SelectItem
+                          key={containment.id}
+                          value={containment.id.toString()}
+                        >
+                          {containment.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="rackId">Rack</Label>
+                  <Select
+                    value={filters.rackId}
+                    onValueChange={(value) =>
+                      handleFilterChange("rackId", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All racks" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All racks</SelectItem>
+                      {Array.isArray(racks) && racks.map((rack) => (
+                        <SelectItem key={rack.id} value={rack.id.toString()}>
+                          {rack.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input
+                    id="startDate"
+                    type="datetime-local"
+                    value={filters.startDate}
+                    onChange={(e) =>
+                      handleFilterChange("startDate", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="endDate">End Date</Label>
+                  <Input
+                    id="endDate"
+                    type="datetime-local"
+                    value={filters.endDate}
+                    onChange={(e) =>
+                      handleFilterChange("endDate", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-end gap-2 col-span-full md:col-span-1 lg:col-span-2">
+                  <Button onClick={applyFilters} className="flex-1" disabled={loadingData}>
+                    {loadingData ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Apply Filters
+                  </Button>
+                  <Button
+                    onClick={clearFilters}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={loadingData}
+                  >
+                    Clear
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Main Content Tabs */}
-        <Card>
-          <Tabs defaultValue="table" className="w-full">
-            <div className="border-b">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="table" className="flex items-center gap-2">
-                  <Table2 className="h-4 w-4" />
-                  Data Table
-                </TabsTrigger>
-                <TabsTrigger value="charts" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Charts
-                </TabsTrigger>
-                <TabsTrigger
-                  value="analysis"
-                  className="flex items-center gap-2"
-                >
-                  <TrendingUp className="h-4 w-4" />
-                  Analysis
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="table" className="mt-0">
-              <CardHeader className="border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Table2 className="h-5 w-5" />
-                    Sensor Data Records
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{sensorData.length} records</Badge>
-                    <Button
-                      onClick={exportToCSV}
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-1"
-                      disabled={!sensorData.length}
-                    >
-                      <Download className="h-4 w-4" />
-                      Export CSV
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                    <p className="text-sm text-muted-foreground">
-                      Loading sensor data...
-                    </p>
-                  </div>
-                ) : sensorData.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <UITable className="w-full">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Device</TableHead>
-                          <TableHead>Rack Location</TableHead>
-                          <TableHead>Temperature</TableHead>
-                          <TableHead>Humidity</TableHead>
-                          <TableHead>Timestamp</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {sensorData.map((data, index) => (
-                          <TableRow
-                            key={`${data.deviceId}-${data.timestamp}-${index}`}
-                          >
-                            <TableCell>
+          {/* Data Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Sensor Data ({pagination.totalRecords} records)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Device</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Topic</TableHead>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sensorData.length > 0 ? (
+                      sensorData.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div>
                               <div className="font-medium">
-                                {data.device?.name || `Device ${data.deviceId}`}
+                                {item.device?.name || "Unknown Device"}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                ID: {data.deviceId}
+                              <div className="text-sm text-muted-foreground">
+                                ID: {item.deviceId}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-medium">
-                                {data.rack?.name || `Rack ${data.rackId}`}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <span
-                                className={`font-medium ${getTemperatureColor(
-                                  parseFloat(
-                                    data.temperature?.toString() || "0"
-                                  )
-                                )}`}
-                              >
-                                {data.temperature?.toFixed(1) || "N/A"}°C
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <span
-                                className={`font-medium ${getHumidityColor(
-                                  parseFloat(data.humidity?.toString() || "0")
-                                )}`}
-                              >
-                                {data.humidity?.toFixed(1) || "N/A"}%
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                <div className="font-medium">
-                                  {new Date(
-                                    data.timestamp
-                                  ).toLocaleDateString()}
-                                </div>
-                                <div className="text-muted-foreground">
-                                  {new Date(
-                                    data.timestamp
-                                  ).toLocaleTimeString()}
-                                </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {item.sensorType ||
+                                item.device?.sensorType ||
+                                "Unknown"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{item.containment?.name || "Unknown"}</div>
+                              <div className="text-muted-foreground">
+                                {item.rack?.name || "Unknown"}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="default"
-                                className="bg-green-100 text-green-700"
-                              >
-                                Active
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </UITable>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                      <BarChart3 className="h-12 w-12 text-gray-400" />
-                    </div>
-                    <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      No Sensor Data Found
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      {selectedRackId !== "all" || selectedDeviceId !== "all"
-                        ? "Try adjusting your filters or check if devices are generating data."
-                        : "No sensor data available. Check if sensors are connected and sending data."}
-                    </p>
-                    <Button onClick={() => fetchData()} variant="outline">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh Data
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </TabsContent>
-
-            <TabsContent value="charts">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <SensorCharts
-                  data={sensorData}
-                  title="Sensor Data Visualization"
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="analysis">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2" />
-                    Advanced Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                  ) : sensorData.length > 0 ? (
-                    <div className="space-y-6">
-                      {/* Data Quality Analysis */}
-                      <div>
-                        <h4 className="font-semibold mb-4">
-                          Data Quality Assessment
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="text-center">
-                                <p className="text-2xl font-bold text-green-600">
-                                  {(
-                                    (sensorData.filter(
-                                      (d) =>
-                                        d.temperature !== null &&
-                                        d.humidity !== null
-                                    ).length /
-                                      sensorData.length) *
-                                    100
-                                  ).toFixed(1)}
-                                  %
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  Data Completeness
-                                </p>
-                              </div>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="text-center">
-                                <p className="text-2xl font-bold text-blue-600">
-                                  {
-                                    new Set(sensorData.map((d) => d.deviceId))
-                                      .size
-                                  }
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  Active Sensors
-                                </p>
-                              </div>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="text-center">
-                                <p className="text-2xl font-bold text-purple-600">
-                                  {statistics
-                                    ? Math.round(
-                                        (new Date(
-                                          statistics.dateRange.to
-                                        ).getTime() -
-                                          new Date(
-                                            statistics.dateRange.from
-                                          ).getTime()) /
-                                          (1000 * 60 * 60)
-                                      )
-                                    : 0}
-                                  h
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  Monitoring Duration
-                                </p>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-
-                      {/* Environmental Conditions Assessment */}
-                      <div>
-                        <h4 className="font-semibold mb-4">
-                          Environmental Conditions Assessment
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h5 className="font-medium mb-2">
-                              Temperature Status
-                            </h5>
-                            {statistics && (
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span>Overall Status:</span>
-                                  <Badge
-                                    variant={
-                                      statistics.avgTemperature >= 20 &&
-                                      statistics.avgTemperature <= 25
-                                        ? "default"
-                                        : statistics.avgTemperature <= 30
-                                        ? "secondary"
-                                        : "destructive"
-                                    }
-                                  >
-                                    {statistics.avgTemperature >= 20 &&
-                                    statistics.avgTemperature <= 25
-                                      ? "Optimal"
-                                      : statistics.avgTemperature <= 30
-                                      ? "Acceptable"
-                                      : "Concerning"}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Recommended range: 20-25°C for optimal
-                                  equipment performance
-                                </div>
-                                {statistics.maxTemperature > 35 && (
-                                  <div className="text-sm text-red-600">
-                                    High temperature detected (
-                                    {statistics.maxTemperature.toFixed(1)}°C) -
-                                    Consider cooling
-                                  </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-2 py-1 rounded max-w-32 truncate block">
+                              {item.topic || "N/A"}
+                            </code>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {formatTimestamp(item.timestamp)}
+                          </TableCell>
+                          <TableCell>
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                View Payload
+                              </summary>
+                              <pre className="mt-2 p-2 bg-gray-100 rounded max-w-xs overflow-auto whitespace-pre-wrap">
+                                {JSON.stringify(
+                                  parsePayload(item.rawPayload),
+                                  null,
+                                  2
                                 )}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <h5 className="font-medium mb-2">
-                              Humidity Status
-                            </h5>
-                            {statistics && (
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span>Overall Status:</span>
-                                  <Badge
-                                    variant={
-                                      statistics.avgHumidity >= 45 &&
-                                      statistics.avgHumidity <= 55
-                                        ? "default"
-                                        : statistics.avgHumidity <= 65
-                                        ? "secondary"
-                                        : "destructive"
-                                    }
-                                  >
-                                    {statistics.avgHumidity >= 45 &&
-                                    statistics.avgHumidity <= 55
-                                      ? "Optimal"
-                                      : statistics.avgHumidity <= 65
-                                      ? "Acceptable"
-                                      : "Concerning"}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Recommended range: 45-55% for data center
-                                  environments
-                                </div>
-                                {(statistics.maxHumidity > 70 ||
-                                  statistics.minHumidity < 30) && (
-                                  <div className="text-sm text-red-600">
-                                    Humidity out of range - Risk of equipment
-                                    damage
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Recommendations */}
-                      <div>
-                        <h4 className="font-semibold mb-4">Recommendations</h4>
-                        <div className="space-y-3">
-                          {statistics && statistics.avgTemperature > 30 && (
-                            <Card>
-                              <CardContent className="p-4">
-                                <div className="flex items-start space-x-3">
-                                  <Thermometer className="h-5 w-5 text-red-500 mt-0.5" />
-                                  <div>
-                                    <p className="font-medium">
-                                      High Temperature Alert
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      Average temperature is{" "}
-                                      {statistics.avgTemperature.toFixed(1)}°C.
-                                      Consider improving cooling systems or
-                                      airflow.
-                                    </p>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
+                              </pre>
+                            </details>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          {loadingData ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                              Loading sensor data...
+                            </div>
+                          ) : (
+                            "No sensor data found"
                           )}
-                          {statistics &&
-                            (statistics.avgHumidity > 65 ||
-                              statistics.avgHumidity < 40) && (
-                              <Card>
-                                <CardContent className="p-4">
-                                  <div className="flex items-start space-x-3">
-                                    <Droplets className="h-5 w-5 text-blue-500 mt-0.5" />
-                                    <div>
-                                      <p className="font-medium">
-                                        Humidity Warning
-                                      </p>
-                                      <p className="text-sm text-muted-foreground">
-                                        Humidity level is{" "}
-                                        {statistics.avgHumidity.toFixed(1)}%.{" "}
-                                        {statistics.avgHumidity > 65
-                                          ? "Consider dehumidification"
-                                          : "Consider humidification"}{" "}
-                                        to prevent equipment issues.
-                                      </p>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            )}
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="flex items-start space-x-3">
-                                <Calendar className="h-5 w-5 text-green-500 mt-0.5" />
-                                <div>
-                                  <p className="font-medium">
-                                    Monitoring Status
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    System is actively monitoring{" "}
-                                    {
-                                      new Set(sensorData.map((d) => d.deviceId))
-                                        .size
-                                    }{" "}
-                                    sensors across{" "}
-                                    {
-                                      new Set(sensorData.map((d) => d.rackId))
-                                        .size
-                                    }{" "}
-                                    racks. Last reading:{" "}
-                                    {sensorData[0]
-                                      ? new Date(
-                                          sensorData[0].timestamp
-                                        ).toLocaleString()
-                                      : "N/A"}
-                                  </p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="mt-6">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() =>
+                            handlePageChange(pagination.currentPage - 1)
+                          }
+                          className={
+                            !pagination.hasPreviousPage
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+
+                      {Array.from(
+                        { length: Math.min(5, pagination.totalPages) },
+                        (_, i) => {
+                          const page = i + 1;
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => handlePageChange(page)}
+                                isActive={page === pagination.currentPage}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        }
+                      )}
+
+                      {pagination.totalPages > 5 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            handlePageChange(pagination.currentPage + 1)
+                          }
+                          className={
+                            !pagination.hasNextPage
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="summary" className="space-y-6">
+          {summary && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-2xl font-bold">
+                      {summary?.totalRecords?.toLocaleString() ?? '0'}
+                    </div>
+                    <p className="text-muted-foreground">Total Records</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-2xl font-bold">
+                      {summary?.activeDevices ?? '0'}
+                    </div>
+                    <p className="text-muted-foreground">Active Devices</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-2xl font-bold">
+                      {summary?.sensorTypes?.length ?? '0'}
+                    </div>
+                    <p className="text-muted-foreground">Sensor Types</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-2xl font-bold">
+                      {summary?.devicesSummary?.length ?? '0'}
+                    </div>
+                    <p className="text-muted-foreground">Reporting Devices</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Sensor Types Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {summary?.sensorTypes && summary.sensorTypes.length > 0 ? (
+                        summary.sensorTypes.map((type) => (
+                          <div
+                            key={type.sensorType}
+                            className="flex items-center justify-between"
+                          >
+                            <Badge variant="outline">{type.sensorType || "Unknown"}</Badge>
+                            <span className="font-medium">
+                              {type.count?.toLocaleString() || 0}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-muted-foreground py-4">
+                          No sensor types available
                         </div>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-xl font-medium">
-                        No Data for Analysis
-                      </p>
-                      <p className="text-sm">
-                        Please ensure sensors are connected and sending data
-                      </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Device Activity Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-64 overflow-auto">
+                      {summary?.devicesSummary && summary.devicesSummary.length > 0 ? (
+                        summary.devicesSummary.map((device) => (
+                          <div
+                            key={device.deviceId}
+                            className="flex items-center justify-between p-2 border rounded"
+                          >
+                            <div>
+                              <div className="font-medium">
+                                {device.deviceName || "Unknown Device"}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Last: {formatTimestamp(device.latestTimestamp)}
+                              </div>
+                            </div>
+                            <Badge>{device.recordCount?.toLocaleString() || 0}</Badge>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-muted-foreground py-4">
+                          No device activity data available
+                        </div>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </Card>
-      </div>
-    </SidebarInset>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="charts" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Data Visualization
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Select a device and date range to view sensor data charts.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

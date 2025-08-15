@@ -24,5 +24,10 @@ namespace Backend.Services
         Task<List<NetworkInterfaceStatus>> GetNetworkInterfaceStatusAsync();
         Task<bool> ValidateNetworkConfigurationAsync(NetworkConfigurationRequest request);
         Task<bool> TestConnectivityAsync(string ipAddress);
+        
+        // Advanced operations
+        Task<bool> RevertInterfaceToDhcpAsync(Backend.Enums.NetworkInterfaceType interfaceType, int userId);
+        Task<bool> ClearAllStaticConfigurationsAsync(int userId);
+        Task<List<NetworkConfiguration>> ParseNetworkInterfacesFileAsync();
     }
 }

@@ -21,394 +21,400 @@ namespace Backend.Data
         public DbSet<EmergencyReport> EmergencyReports { get; set; }
         public DbSet<MqttConfiguration> MqttConfigurations { get; set; }
         public DbSet<NetworkConfiguration> NetworkConfigurations { get; set; }
-        public DbSet<CctvCamera> CctvCameras { get; set; }
+        public DbSet<CameraConfig> CameraConfigs { get; set; }
         public DbSet<DeviceSensorData> DeviceSensorData { get; set; }
+        public DbSet<AccessLog> AccessLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<User>(entity =>
             {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.PhoneNumber).HasMaxLength(20);
-                entity.Property(e => e.Role).IsRequired().HasDefaultValue(UserRole.User).HasSentinel(UserRole.None);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                
-                entity.HasIndex(e => e.Email).IsUnique();
-            });
+                  base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Containment>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Type).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.Location).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired();
+                  modelBuilder.Entity<User>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+                        entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+                        entity.Property(e => e.Role).IsRequired().HasDefaultValue(UserRole.User).HasSentinel(UserRole.None);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
 
-                // Foreign key relationships
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        entity.HasIndex(e => e.Email).IsUnique();
+                  });
 
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+                  modelBuilder.Entity<Containment>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Type).IsRequired();
+                        entity.Property(e => e.Description).HasMaxLength(500);
+                        entity.Property(e => e.Location).IsRequired().HasMaxLength(255);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedBy).IsRequired();
 
-            modelBuilder.Entity<Rack>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.ContainmentId).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired();
+                        // Foreign key relationships
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Foreign key relationships
-                entity.HasOne(e => e.Containment)
-                      .WithMany(c => c.Racks)
-                      .HasForeignKey(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+                  });
 
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                  modelBuilder.Entity<Rack>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.ContainmentId).IsRequired();
+                        entity.Property(e => e.Description).HasMaxLength(500);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedBy).IsRequired();
 
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+                        // Foreign key relationships
+                        entity.HasOne(e => e.Containment)
+                        .WithMany(c => c.Racks)
+                        .HasForeignKey(e => e.ContainmentId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Device>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.RackId).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.SerialNumber).HasMaxLength(100);
-                entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Active");
-                entity.Property(e => e.Topic).HasMaxLength(100);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired();
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Foreign key relationships
-                entity.HasOne(e => e.Rack)
-                      .WithMany(r => r.Devices)
-                      .HasForeignKey(e => e.RackId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+                  });
 
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                  modelBuilder.Entity<Device>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
+                        entity.Property(e => e.RackId).IsRequired();
+                        entity.Property(e => e.Description).HasMaxLength(500);
+                        entity.Property(e => e.SerialNumber).HasMaxLength(100);
+                        entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Active");
+                        entity.Property(e => e.Topic).HasMaxLength(100);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedBy).IsRequired();
 
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
+                        // Foreign key relationships
+                        entity.HasOne(e => e.Rack)
+                        .WithMany(r => r.Devices)
+                        .HasForeignKey(e => e.RackId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Maintenance>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.StartTask).IsRequired();
-                entity.Property(e => e.EndTask).IsRequired();
-                entity.Property(e => e.AssignTo).IsRequired();
-                entity.Property(e => e.TargetType).IsRequired();
-                entity.Property(e => e.TargetId).IsRequired();
-                entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Scheduled");
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired();
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Foreign key relationships
-                entity.HasOne(e => e.AssignedToUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.AssignTo)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+                  });
 
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                  modelBuilder.Entity<Maintenance>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                        entity.Property(e => e.Description).HasMaxLength(1000);
+                        entity.Property(e => e.StartTask).IsRequired();
+                        entity.Property(e => e.EndTask).IsRequired();
+                        entity.Property(e => e.AssignTo).IsRequired();
+                        entity.Property(e => e.TargetType).IsRequired();
+                        entity.Property(e => e.TargetId).IsRequired();
+                        entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Scheduled");
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedBy).IsRequired();
 
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        // Foreign key relationships
+                        entity.HasOne(e => e.AssignedToUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.AssignTo)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Polymorphic relationships (configured manually)
-                entity.HasOne(e => e.TargetDevice)
-                      .WithMany()
-                      .HasForeignKey(e => e.TargetId)
-                      .HasPrincipalKey(d => d.Id)
-                      .OnDelete(DeleteBehavior.Restrict)
-                      .IsRequired(false);
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.TargetRack)
-                      .WithMany()
-                      .HasForeignKey(e => e.TargetId)
-                      .HasPrincipalKey(r => r.Id)
-                      .OnDelete(DeleteBehavior.Restrict)
-                      .IsRequired(false);
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.TargetContainment)
-                      .WithMany()
-                      .HasForeignKey(e => e.TargetId)
-                      .HasPrincipalKey(c => c.Id)
-                      .OnDelete(DeleteBehavior.Restrict)
-                      .IsRequired(false);
-            });
+                        // Polymorphic relationships (configured manually)
+                        entity.HasOne(e => e.TargetDevice)
+                        .WithMany()
+                        .HasForeignKey(e => e.TargetId)
+                        .HasPrincipalKey(d => d.Id)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired(false);
 
-            modelBuilder.Entity<ActivityReport>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
-                entity.Property(e => e.Timestamp).IsRequired();
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Trigger).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.AdditionalData).HasMaxLength(500);
+                        entity.HasOne(e => e.TargetRack)
+                        .WithMany()
+                        .HasForeignKey(e => e.TargetId)
+                        .HasPrincipalKey(r => r.Id)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired(false);
 
-                // Foreign key relationship
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.SetNull)
-                      .IsRequired(false);
+                        entity.HasOne(e => e.TargetContainment)
+                        .WithMany()
+                        .HasForeignKey(e => e.TargetId)
+                        .HasPrincipalKey(c => c.Id)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired(false);
+                  });
 
-                // Index for better query performance
-                entity.HasIndex(e => e.Timestamp);
-                entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.Trigger);
-            });
+                  modelBuilder.Entity<ActivityReport>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
+                        entity.Property(e => e.Timestamp).IsRequired();
+                        entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+                        entity.Property(e => e.Trigger).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.AdditionalData).HasMaxLength(500);
 
-            modelBuilder.Entity<ContainmentStatus>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.ContainmentId).IsRequired();
-                entity.Property(e => e.MqttTimestamp).IsRequired();
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.RawPayload).HasColumnType("TEXT");
+                        // Foreign key relationship
+                        entity.HasOne(e => e.User)
+                        .WithMany()
+                        .HasForeignKey(e => e.UserId)
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired(false);
 
-                // Foreign key relationship - One Containment to One Status
-                entity.HasOne(e => e.Containment)
-                      .WithOne()  // One-to-One relationship instead of One-to-Many
-                      .HasForeignKey<ContainmentStatus>(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                        // Index for better query performance
+                        entity.HasIndex(e => e.Timestamp);
+                        entity.HasIndex(e => e.Status);
+                        entity.HasIndex(e => e.Trigger);
+                  });
 
-                // Unique index to ensure one status per containment
-                entity.HasIndex(e => e.ContainmentId).IsUnique();
-                entity.HasIndex(e => e.MqttTimestamp);
-                entity.HasIndex(e => e.CreatedAt);
-            });
+                  modelBuilder.Entity<ContainmentStatus>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.ContainmentId).IsRequired();
+                        entity.Property(e => e.MqttTimestamp).IsRequired();
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.RawPayload).HasColumnType("TEXT");
 
-            modelBuilder.Entity<ContainmentControl>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.ContainmentId).IsRequired();
-                entity.Property(e => e.Command).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.ExecutedAt).IsRequired();
-                entity.Property(e => e.ExecutedBy).IsRequired();
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
-                entity.Property(e => e.ErrorMessage).HasMaxLength(255);
+                        // Foreign key relationship - One Containment to One Status
+                        entity.HasOne(e => e.Containment)
+                        .WithOne()  // One-to-One relationship instead of One-to-Many
+                        .HasForeignKey<ContainmentStatus>(e => e.ContainmentId)
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                // Foreign key relationships
-                entity.HasOne(e => e.Containment)
-                      .WithMany()
-                      .HasForeignKey(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        // Unique index to ensure one status per containment
+                        entity.HasIndex(e => e.ContainmentId).IsUnique();
+                        entity.HasIndex(e => e.MqttTimestamp);
+                        entity.HasIndex(e => e.CreatedAt);
+                  });
 
-                entity.HasOne(e => e.ExecutedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.ExecutedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                  modelBuilder.Entity<ContainmentControl>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.ContainmentId).IsRequired();
+                        entity.Property(e => e.Command).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Description).HasMaxLength(500);
+                        entity.Property(e => e.ExecutedAt).IsRequired();
+                        entity.Property(e => e.ExecutedBy).IsRequired();
+                        entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+                        entity.Property(e => e.ErrorMessage).HasMaxLength(255);
 
-                // Indexes for performance
-                entity.HasIndex(e => e.ContainmentId);
-                entity.HasIndex(e => e.ExecutedAt);
-                entity.HasIndex(e => e.Status);
-            });
+                        // Foreign key relationships
+                        entity.HasOne(e => e.Containment)
+                        .WithMany()
+                        .HasForeignKey(e => e.ContainmentId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<EmergencyReport>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.EmergencyType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Status).IsRequired();
-                entity.Property(e => e.StartTime).IsRequired();
-                entity.Property(e => e.EndTime);
-                entity.Property(e => e.Duration);
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.Notes).HasMaxLength(1000);
-                entity.Property(e => e.RawMqttPayload).HasMaxLength(2000);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.HasOne(e => e.ExecutedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.ExecutedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Indexes for performance
-                entity.HasIndex(e => e.EmergencyType);
-                entity.HasIndex(e => e.StartTime);
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => new { e.EmergencyType, e.IsActive });
-            });
+                        // Indexes for performance
+                        entity.HasIndex(e => e.ContainmentId);
+                        entity.HasIndex(e => e.ExecutedAt);
+                        entity.HasIndex(e => e.Status);
+                  });
 
-            modelBuilder.Entity<MqttConfiguration>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.IsEnabled).IsRequired();
-                entity.Property(e => e.UseEnvironmentConfig).IsRequired();
-                entity.Property(e => e.BrokerHost).HasMaxLength(255);
-                entity.Property(e => e.BrokerPort);
-                entity.Property(e => e.Username).HasMaxLength(100);
-                entity.Property(e => e.Password).HasMaxLength(255);
-                entity.Property(e => e.ClientId).HasMaxLength(100);
-                entity.Property(e => e.UseSsl).IsRequired();
-                entity.Property(e => e.KeepAliveInterval).IsRequired();
-                entity.Property(e => e.ReconnectDelay).IsRequired();
-                entity.Property(e => e.TopicPrefix).HasMaxLength(1000);
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired();
+                  modelBuilder.Entity<EmergencyReport>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.EmergencyType).IsRequired().HasMaxLength(50);
+                        entity.Property(e => e.Status).IsRequired();
+                        entity.Property(e => e.StartTime).IsRequired();
+                        entity.Property(e => e.EndTime);
+                        entity.Property(e => e.Duration);
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.Notes).HasMaxLength(1000);
+                        entity.Property(e => e.RawMqttPayload).HasMaxLength(2000);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
 
-                // Foreign key relationships
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        // Indexes for performance
+                        entity.HasIndex(e => e.EmergencyType);
+                        entity.HasIndex(e => e.StartTime);
+                        entity.HasIndex(e => e.IsActive);
+                        entity.HasIndex(e => new { e.EmergencyType, e.IsActive });
+                  });
 
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                  modelBuilder.Entity<MqttConfiguration>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.IsEnabled).IsRequired();
+                        entity.Property(e => e.UseEnvironmentConfig).IsRequired();
+                        entity.Property(e => e.BrokerHost).HasMaxLength(255);
+                        entity.Property(e => e.BrokerPort);
+                        entity.Property(e => e.Username).HasMaxLength(100);
+                        entity.Property(e => e.Password).HasMaxLength(255);
+                        entity.Property(e => e.ClientId).HasMaxLength(100);
+                        entity.Property(e => e.UseSsl).IsRequired();
+                        entity.Property(e => e.KeepAliveInterval).IsRequired();
+                        entity.Property(e => e.ReconnectDelay).IsRequired();
+                        entity.Property(e => e.TopicPrefix).HasMaxLength(1000);
+                        entity.Property(e => e.Description).HasMaxLength(500);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedBy).IsRequired();
 
-                // Indexes for performance
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.UseEnvironmentConfig);
-                entity.HasIndex(e => e.IsEnabled);
-            });
+                        // Foreign key relationships
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<NetworkConfiguration>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.InterfaceType).IsRequired();
-                entity.Property(e => e.ConfigMethod).IsRequired();
-                entity.Property(e => e.IpAddress).HasMaxLength(15);
-                entity.Property(e => e.SubnetMask).HasMaxLength(15);
-                entity.Property(e => e.Gateway).HasMaxLength(15);
-                entity.Property(e => e.PrimaryDns).HasMaxLength(15);
-                entity.Property(e => e.SecondaryDns).HasMaxLength(15);
-                entity.Property(e => e.Metric).HasMaxLength(6);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedBy).IsRequired();
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Foreign key relationships
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        // Indexes for performance
+                        entity.HasIndex(e => e.IsActive);
+                        entity.HasIndex(e => e.UseEnvironmentConfig);
+                        entity.HasIndex(e => e.IsEnabled);
+                  });
 
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
+                  modelBuilder.Entity<NetworkConfiguration>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.InterfaceType).IsRequired();
+                        entity.Property(e => e.ConfigMethod).IsRequired();
+                        entity.Property(e => e.IpAddress).HasMaxLength(15);
+                        entity.Property(e => e.SubnetMask).HasMaxLength(15);
+                        entity.Property(e => e.Gateway).HasMaxLength(15);
+                        entity.Property(e => e.PrimaryDns).HasMaxLength(15);
+                        entity.Property(e => e.SecondaryDns).HasMaxLength(15);
+                        entity.Property(e => e.Metric).HasMaxLength(6);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedBy).IsRequired();
 
-                // Indexes for performance
-                entity.HasIndex(e => e.InterfaceType).IsUnique();
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.ConfigMethod);
-            });
+                        // Foreign key relationships
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<CctvCamera>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Ip).IsRequired().HasMaxLength(45);
-                entity.Property(e => e.Port).IsRequired();
-                entity.Property(e => e.Username).HasMaxLength(100);
-                entity.Property(e => e.Password).HasMaxLength(100);
-                entity.Property(e => e.StreamUrl).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Foreign key relationship
-                entity.HasOne(e => e.Containment)
-                      .WithMany()
-                      .HasForeignKey(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.SetNull)
-                      .IsRequired(false);
+                        // Indexes for performance
+                        entity.HasIndex(e => e.InterfaceType).IsUnique();
+                        entity.HasIndex(e => e.IsActive);
+                        entity.HasIndex(e => e.ConfigMethod);
+                  });
+                  modelBuilder.Entity<CameraConfig>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.IpAddress).IsRequired().HasMaxLength(45);
+                        entity.Property(e => e.Port).IsRequired();
+                        entity.Property(e => e.ApiKey).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.IsActive).IsRequired();
 
-                // Indexes for performance
-                entity.HasIndex(e => e.Name);
-                entity.HasIndex(e => e.Ip);
-                entity.HasIndex(e => e.ContainmentId);
-            });
+                        // Indexes for performance
+                        entity.HasIndex(e => e.Name);
+                        entity.HasIndex(e => e.IpAddress);
+                        entity.HasIndex(e => e.IsActive);
+                  });
 
-            modelBuilder.Entity<DeviceSensorData>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.DeviceId).IsRequired();
-                entity.Property(e => e.RackId).IsRequired();
-                entity.Property(e => e.ContainmentId).IsRequired();
-                entity.Property(e => e.Topic).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Temperature).HasColumnType("decimal(5,2)");
-                entity.Property(e => e.Humidity).HasColumnType("decimal(5,2)");
-                entity.Property(e => e.Timestamp).IsRequired();
-                entity.Property(e => e.ReceivedAt).IsRequired();
-                entity.Property(e => e.RawPayload).HasMaxLength(1000);
+                  modelBuilder.Entity<DeviceSensorData>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.DeviceId).IsRequired();
+                        entity.Property(e => e.RackId).IsRequired();
+                        entity.Property(e => e.ContainmentId).IsRequired();
+                        entity.Property(e => e.Topic).IsRequired().HasMaxLength(200);
+                        entity.Property(e => e.Timestamp).IsRequired();
+                        entity.Property(e => e.ReceivedAt).IsRequired();
+                        entity.Property(e => e.RawPayload).IsRequired();
 
-                // Foreign key relationships
-                entity.HasOne(e => e.Device)
-                      .WithMany()
-                      .HasForeignKey(e => e.DeviceId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                        // Foreign key relationships
+                        entity.HasOne(e => e.Device)
+                        .WithMany()
+                        .HasForeignKey(e => e.DeviceId)
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.Rack)
-                      .WithMany()
-                      .HasForeignKey(e => e.RackId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        entity.HasOne(e => e.Rack)
+                        .WithMany()
+                        .HasForeignKey(e => e.RackId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.Containment)
-                      .WithMany()
-                      .HasForeignKey(e => e.ContainmentId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                        entity.HasOne(e => e.Containment)
+                        .WithMany()
+                        .HasForeignKey(e => e.ContainmentId)
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                // Indexes for performance
-                entity.HasIndex(e => e.DeviceId);
-                entity.HasIndex(e => e.RackId);
-                entity.HasIndex(e => e.ContainmentId);
-                entity.HasIndex(e => e.Topic);
-                entity.HasIndex(e => e.Timestamp);
-                entity.HasIndex(e => e.ReceivedAt);
-                entity.HasIndex(e => new { e.DeviceId, e.Timestamp });
-                entity.HasIndex(e => new { e.ContainmentId, e.Timestamp });
-            });
+                        // Indexes for performance
+                        entity.HasIndex(e => e.DeviceId);
+                        entity.HasIndex(e => e.RackId);
+                        entity.HasIndex(e => e.ContainmentId);
+                        entity.HasIndex(e => e.Topic);
+                        entity.HasIndex(e => e.Timestamp);
+                        entity.HasIndex(e => e.ReceivedAt);
+                        entity.HasIndex(e => new { e.DeviceId, e.Timestamp });
+                        entity.HasIndex(e => new { e.ContainmentId, e.Timestamp });
+                  });
 
-            // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing
-        }
+                  modelBuilder.Entity<AccessLog>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.User).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Via).IsRequired();
+                        entity.Property(e => e.Trigger).IsRequired().HasMaxLength(200);
+                        entity.Property(e => e.Timestamp).IsRequired();
+                        entity.Property(e => e.IsSuccess).IsRequired().HasDefaultValue(true);
+
+                        // Add indexes for common queries
+                        entity.HasIndex(e => e.Via);
+                        entity.HasIndex(e => e.Timestamp);
+                        entity.HasIndex(e => new { e.Via, e.Timestamp });
+                        entity.HasIndex(e => e.User);
+                  });
+
+                  // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing
+            }
     }
 }

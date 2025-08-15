@@ -31,7 +31,7 @@ namespace Backend.Services
             _saveIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_SAVE_INTERVAL") ?? 
                                            _configuration["SensorData:SaveInterval"] ?? "60");
             _minIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_MIN_INTERVAL") ?? 
-                                          _configuration["SensorData:MinInterval"] ?? "10");
+                                          _configuration["SensorData:MinInterval"] ?? "60");
             
             _logger.LogInformation("Sensor data save interval: {SaveInterval}s, min interval: {MinInterval}s", 
                 _saveIntervalSeconds, _minIntervalSeconds);
@@ -199,12 +199,12 @@ namespace Backend.Services
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
 
-                // Get only devices with type "Sensor" that are active
+                // Get all devices with type "Sensor" (case insensitive)
                 var sensorDevices = await dbContext.Devices
-                    .Where(d => d.IsActive && d.Type.ToLower() == "sensor")
+                    .Where(d => d.Type.ToLower() == "sensor")
                     .ToListAsync();
 
-                _logger.LogInformation("Found {Count} active sensor devices to subscribe", sensorDevices.Count);
+                _logger.LogInformation("Found {Count} sensor devices to subscribe", sensorDevices.Count);
 
                 foreach (var device in sensorDevices)
                 {
@@ -240,30 +240,38 @@ namespace Backend.Services
                     _logger.LogWarning("Could not extract device ID from topic: {Topic}", topic);
                     return;
                 }
+                
+                _logger.LogDebug("Processing sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
 
-                // Check if batch saving is enabled
+                // Check if batch saving is enabled (when save interval is different from min interval)
                 if (_batchSaveTimer != null && _saveIntervalSeconds > _minIntervalSeconds)
                 {
+                    _logger.LogDebug("Using batch saving for device {DeviceId} (Save: {SaveInterval}s > Min: {MinInterval}s)", 
+                        deviceId, _saveIntervalSeconds, _minIntervalSeconds);
                     // Use buffer for batch saving
                     if (ShouldBufferData(deviceId.Value))
                     {
                         _dataBuffer[deviceId.Value] = (topic, payload, DateTime.UtcNow);
                         _logger.LogTrace("Buffered sensor data for device {DeviceId} - will save in next batch", deviceId);
-                        return;
                     }
+                    return;
                 }
                 else
                 {
+                    _logger.LogDebug("Using immediate saving for device {DeviceId} (Save: {SaveInterval}s <= Min: {MinInterval}s)", 
+                        deviceId, _saveIntervalSeconds, _minIntervalSeconds);
                     // Use immediate saving with min interval throttling
                     if (!ShouldSaveData(deviceId.Value))
                     {
-                        _logger.LogTrace("Skipping data save for device {DeviceId} due to interval throttling", deviceId);
+                        _logger.LogDebug("Skipping data save for device {DeviceId} due to {MinInterval}s interval throttling", 
+                            deviceId, _minIntervalSeconds);
                         return;
                     }
+                    
+                    _logger.LogDebug("Saving sensor data immediately for device {DeviceId}", deviceId);
+                    // Process and store sensor data immediately
+                    await SaveSensorDataAsync(deviceId.Value, topic, payload);
                 }
-
-                // Process and store sensor data immediately
-                await SaveSensorDataAsync(deviceId.Value, topic, payload);
                 
                 _logger.LogInformation("Successfully stored sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
             }
@@ -284,7 +292,7 @@ namespace Backend.Services
             var timeSinceLastSave = DateTime.UtcNow - _lastSaveTime[deviceId];
             var shouldSave = timeSinceLastSave.TotalSeconds >= _minIntervalSeconds;
             
-            _logger.LogTrace("Device {DeviceId}: Time since last save: {TimeSinceLastSave}s, Min interval: {MinInterval}s, Should save: {ShouldSave}", 
+            _logger.LogDebug("Device {DeviceId}: Time since last save: {TimeSinceLastSave:F1}s, Min interval: {MinInterval}s, Should save: {ShouldSave}", 
                 deviceId, timeSinceLastSave.TotalSeconds, _minIntervalSeconds, shouldSave);
                 
             return shouldSave;
@@ -308,10 +316,16 @@ namespace Backend.Services
             using var scope = _serviceProvider.CreateScope();
             var sensorDataService = scope.ServiceProvider.GetRequiredService<IDeviceSensorDataService>();
             
+            _logger.LogDebug("Saving sensor data to database for device {DeviceId} at {Timestamp}", 
+                deviceId, DateTime.UtcNow.ToString("HH:mm:ss.fff"));
+            
             await sensorDataService.ParseAndStoreSensorDataAsync(deviceId, topic, payload);
             
             // Update last save time
             _lastSaveTime[deviceId] = DateTime.UtcNow;
+            
+            _logger.LogDebug("Successfully saved sensor data for device {DeviceId}, next save allowed after {NextSaveTime}", 
+                deviceId, DateTime.UtcNow.AddSeconds(_minIntervalSeconds).ToString("HH:mm:ss"));
         }
 
         private async void BatchSaveCallback(object? state)
@@ -378,7 +392,7 @@ namespace Backend.Services
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
                 
-                var devices = dbContext.Devices.Where(d => d.IsActive).ToList();
+                var devices = dbContext.Devices.ToList();
                 foreach (var device in devices)
                 {
                     // First try exact topic match

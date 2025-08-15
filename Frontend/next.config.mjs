@@ -1,8 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: true,
-  output: 'export', // Enable static export
-  distDir: 'out', // Output directory for static files
+  // Only enable static export for production builds to fix hot-reload issues in development
+  ...(process.env.NODE_ENV === 'production' && {
+    output: 'export', // Enable static export for production only
+    distDir: 'out', // Output directory for static files
+  }),
   eslint: {
     ignoreDuringBuilds: true,
   },

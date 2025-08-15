@@ -192,11 +192,18 @@ namespace Backend.Services
                 // CPU Usage using PerformanceCounter
                 try
                 {
-                    using var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-                    cpuCounter.NextValue(); // First call returns 0
-                    await Task.Delay(1000); // Wait 1 second for accurate reading
-                    var cpuUsage = cpuCounter.NextValue();
-                    info.CpuUsage = Math.Round(Math.Max(0, Math.Min(100, cpuUsage)), 2);
+                    if (OperatingSystem.IsWindows())
+                    {
+                        using var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                        cpuCounter.NextValue(); // First call returns 0
+                        await Task.Delay(1000); // Wait 1 second for accurate reading
+                        var cpuUsage = cpuCounter.NextValue();
+                        info.CpuUsage = Math.Round(Math.Max(0, Math.Min(100, cpuUsage)), 2);
+                    }
+                    else
+                    {
+                        info.CpuUsage = 0; // Default value for non-Windows platforms
+                    }
                 }
                 catch (Exception ex)
                 {

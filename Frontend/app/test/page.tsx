@@ -1,30 +1,27 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { useEffect, useState } from "react";
+import { MqttClient, IClientOptions } from "mqtt";
 import {
+  Download,
+  BarChart3,
+  Table2,
+  TrendingUp,
+  Filter,
+  RefreshCw,
+  Activity,
+  Server,
+  Database,
+  Thermometer,
+  Droplets,
+  Gauge,
   LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Thermometer, Activity, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+} from "lucide-react";
+
+// Menggunakan impor komponen dari file lokal Anda
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -33,435 +30,286 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-  deviceSensorDataApi,
-  DeviceSensorData,
-  SensorStatistics,
-  SensorHistoryPoint,
-} from "@/lib/api-service";
-import { toast } from "sonner";
-import { useSearchFilter } from "@/hooks/use-search-filter";
+  Table as UITable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
-const ITEMS_PER_PAGE = 10;
+const App = () => {
+  const [client, setClient] = useState<MqttClient | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
+  const [mode, setMode] = useState<string>("reading sensor");
+  const [commandInput, setCommandInput] = useState<string>("");
+  const [dataInput, setDataInput] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("control");
 
-export default function SensorDataPage() {
-  const [sensorData, setSensorData] = useState<DeviceSensorData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedDevice, setSelectedDevice] = useState<number | null>(null);
-  const [statistics, setStatistics] = useState<SensorStatistics | null>(null);
-  const [temperatureHistory, setTemperatureHistory] = useState<
-    SensorHistoryPoint[]
-  >([]);
-  const [humidityHistory, setHumidityHistory] = useState<SensorHistoryPoint[]>(
-    []
-  );
-  const [historyLoading, setHistoryLoading] = useState(false);
-
-  // Menggunakan useSearchFilter dengan nilai default array kosong
-  const { searchQuery, setSearchQuery, filteredData } = useSearchFilter(
-    sensorData,
-    ["topic"]
-  );
-
-  // Pagination logic: Langsung gunakan filteredData
-  const safeFilteredData = Array.isArray(filteredData) ? filteredData : [];
-  const totalPages = Math.ceil(safeFilteredData.length / ITEMS_PER_PAGE);
-  const paginatedData = safeFilteredData.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-  // ... (kode lainnya)
-
-  const loadSensorData = async () => {
-    setLoading(true);
-    try {
-      const result = await deviceSensorDataApi.getLatestSensorData(100);
-
-      // ✅ PERBAIKAN UTAMA DI SINI
-      // Memastikan result.data ada dan merupakan array
-      if (result.success && Array.isArray(result.data)) {
-        setSensorData(result.data);
-      } else {
-        // Jika data tidak valid, atur state ke array kosong
-        setSensorData([]);
-        toast.error(result.message || "Failed to load sensor data.");
-      }
-    } catch (error: any) {
-      setSensorData([]); // Pastikan state tetap array jika ada error
-      toast.error(error.message || "Error loading sensor data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ... (kode lainnya)
-
-  const loadSensorHistory = async (deviceId: number) => {
-    setHistoryLoading(true);
-    setStatistics(null);
-    setTemperatureHistory([]);
-    setHumidityHistory([]);
-
-    try {
-      const statsResult = await deviceSensorDataApi.getSensorStatistics(
-        deviceId
-      );
-      if (statsResult.success && statsResult.data) {
-        setStatistics(statsResult.data);
-      }
-
-      const tempResult = await deviceSensorDataApi.getTemperatureHistory(
-        deviceId,
-        24
-      );
-      if (tempResult.success && tempResult.data) {
-        setTemperatureHistory(tempResult.data);
-      }
-
-      const humidityResult = await deviceSensorDataApi.getHumidityHistory(
-        deviceId,
-        24
-      );
-      if (humidityResult.success && humidityResult.data) {
-        setHumidityHistory(humidityResult.data);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Error loading sensor history.");
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
+  // Topik untuk komunikasi MQTT
+  const COMMAND_TOPIC: string = "IOT/Containment/Sensor/Config";
+  const RESPONSE_TOPIC: string = "IOT/Containment/Sensor/Config/Data";
 
   useEffect(() => {
-    loadSensorData();
+    let newClient: MqttClient | null = null;
+
+    const connectToMqtt = async () => {
+      try {
+        const mqtt = (await import("mqtt")).default;
+        const options: IClientOptions = {
+          protocol: "ws",
+        };
+        newClient = mqtt.connect("ws://192.168.0.138:9000", options);
+        setClient(newClient);
+
+        newClient.on("connect", () => {
+          console.log("Connected to MQTT Broker!");
+          setIsConnected(true);
+          if (newClient) {
+            newClient.subscribe(RESPONSE_TOPIC, (err) => {
+              if (err) {
+                console.error("Subscription error:", err);
+              }
+            });
+          }
+        });
+
+        newClient.on("message", (topic: string, message: Buffer) => {
+          try {
+            const payload = JSON.parse(message.toString());
+            setReceivedMessages((prevMessages) => [payload, ...prevMessages]); // Pesan terbaru di atas
+            console.log(`Message received from topic ${topic}:`, payload);
+          } catch (e) {
+            console.error("Failed to parse message:", e);
+          }
+        });
+
+        newClient.on("error", (err) => {
+          console.error("Connection error:", err);
+        });
+
+        newClient.on("close", () => {
+          console.log("Connection to MQTT broker closed");
+          setIsConnected(false);
+        });
+      } catch (err) {
+        console.error("Failed to connect to MQTT:", err);
+      }
+    };
+
+    connectToMqtt();
+
+    return () => {
+      if (newClient) {
+        newClient.end();
+      }
+    };
   }, []);
 
-  useEffect(() => {
-    if (selectedDevice) {
-      loadSensorHistory(selectedDevice);
+  const publishCommand = (command: string, data: Record<string, any> = {}) => {
+    if (client && isConnected) {
+      const payload: string = JSON.stringify({ command, data });
+      client.publish(COMMAND_TOPIC, payload, (err) => {
+        if (err) {
+          console.error("Failed to publish message:", err);
+        } else {
+          console.log(`Command published: ${payload}`);
+        }
+      });
+    } else {
+      console.warn("Client is not connected. Cannot publish message.");
     }
-  }, [selectedDevice]);
-
-  const activeTopics = useMemo(() => {
-    const topics = new Set<string>();
-    sensorData.forEach((item) => topics.add(item.topic));
-    return Array.from(topics);
-  }, [sensorData]);
-
-  const handleDeviceChange = (value: string) => {
-    const newDeviceId = value ? parseInt(value) : null;
-    setSelectedDevice(newDeviceId);
-    setCurrentPage(1);
   };
 
-  return (
-    <SidebarInset>
-      <header className="flex h-16 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Thermometer className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Sensor Data Monitoring</h1>
+  const handleManualCommand = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data: Record<string, any> = dataInput ? JSON.parse(dataInput) : {};
+      publishCommand(commandInput, data);
+      setCommandInput("");
+      setDataInput("");
+    } catch (error) {
+      console.error("Failed to parse data JSON:", error);
+      console.error("Error: Data JSON tidak valid.");
+    }
+  };
+
+  const renderConnectionStatus = () => (
+    <div className="flex items-center gap-2">
+      <div
+        className={`w-3 h-3 rounded-full ${
+          isConnected ? "bg-green-500" : "bg-red-500"
+        }`}
+      />
+      <span
+        className={`font-bold ${
+          isConnected ? "text-green-600" : "text-red-600"
+        }`}
+      >
+        {isConnected ? "Terhubung" : "Tidak Terhubung"}
+      </span>
+    </div>
+  );
+
+  const renderControlPanel = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Mode</CardTitle>
+          <Badge
+            className={`w-fit mt-2 ${
+              mode === "reading sensor"
+                ? "bg-indigo-500 text-white"
+                : "bg-gray-500 text-white"
+            }`}
+          >
+            <Database className="mr-2 h-4 w-4" />
+            <span className="capitalize">{mode}</span>
+          </Badge>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          <Button
+            onClick={() => {
+              publishCommand("change mode to reading sensor");
+              setMode("reading sensor");
+            }}
+            disabled={!isConnected}
+            className={`w-full ${
+              mode === "reading sensor"
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            <TrendingUp className="mr-2 h-4 w-4" />
+            Reading Sensor
+          </Button>
+          <Button
+            onClick={() => {
+              publishCommand("change mode to scan");
+              setMode("scan address");
+            }}
+            disabled={!isConnected}
+            className={`w-full ${
+              mode === "scan address"
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            <Filter className="mr-2 h-4 w-4" />
+            Scan Address
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Manual Commands</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleManualCommand} className="space-y-3">
+            <input
+              type="text"
+              placeholder="Enter command (e.g., get sensor list)"
+              value={commandInput}
+              onChange={(e) => setCommandInput(e.target.value)}
+              className="w-full p-2 rounded-md border"
+            />
+            <textarea
+              placeholder="Enter data JSON (optional)"
+              value={dataInput}
+              onChange={(e) => setDataInput(e.target.value)}
+              rows={3}
+              className="w-full p-2 rounded-md border"
+            />
+            <Button
+              type="submit"
+              disabled={!isConnected || !commandInput}
+              className="w-full bg-indigo-500 text-white hover:bg-indigo-600"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Send Command
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderDataDisplay = () => (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Received Responses</CardTitle>
+        <Button className="w-fit" onClick={() => setReceivedMessages([])}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Clear Log
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="max-h-96 overflow-y-auto">
+          {receivedMessages.length > 0 ? (
+            <ul className="space-y-2">
+              {receivedMessages.map((msg, index: number) => (
+                <li
+                  key={index}
+                  className="bg-gray-50 p-3 rounded-md shadow-sm text-sm break-words"
+                >
+                  <strong className="text-blue-600">Command:</strong>{" "}
+                  {msg.command || "N/A"}
+                  <br />
+                  <strong className="text-green-600">Result:</strong>{" "}
+                  {msg.result || "N/A"}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-center text-gray-500 py-10">
+              No messages received yet.
+            </div>
+          )}
         </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-8 font-sans">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white rounded-lg shadow-md mb-6">
+        <BarChart3 className="h-5 w-5 text-gray-700" />
+        <h1 className="text-lg font-semibold text-gray-900">
+          IoT Sensor Dashboard
+        </h1>
+        <div className="ml-auto">{renderConnectionStatus()}</div>
       </header>
 
-      {/* Konten Komponen lainnya */}
-      <div className="p-4 grid gap-4 lg:grid-cols-3 xl:grid-cols-4">
-        <Card className="lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Sensor Statistics
-            </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statistics && !historyLoading ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold">Temperature</h3>
-                  <p className="text-2xl font-bold">
-                    Min: {statistics.temperature.min?.toFixed(2) ?? "-"}°C
-                  </p>
-                  <p className="text-2xl font-bold">
-                    Max: {statistics.temperature.max?.toFixed(2) ?? "-"}°C
-                  </p>
-                  <p className="text-2xl font-bold">
-                    Avg: {statistics.temperature.avg?.toFixed(2) ?? "-"}°C
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">Humidity</h3>
-                  <p className="text-2xl font-bold">
-                    Min: {statistics.humidity.min?.toFixed(2) ?? "-"}%
-                  </p>
-                  <p className="text-2xl font-bold">
-                    Max: {statistics.humidity.max?.toFixed(2) ?? "-"}%
-                  </p>
-                  <p className="text-2xl font-bold">
-                    Avg: {statistics.humidity.avg?.toFixed(2) ?? "-"}%
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-muted-foreground">
-                <p>Select a device to view statistics.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2 xl:col-span-3">
-          <CardHeader>
-            <CardTitle>Temperature History (24h)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {historyLoading ? (
-              <div className="flex justify-center items-center h-[300px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : temperatureHistory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={temperatureHistory}
-                  margin={{ top: 5, right: 20, left: -20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timestamp"
-                    tickFormatter={(timestamp) =>
-                      new Date(timestamp).toLocaleTimeString()
-                    }
-                  />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value: number) => `${value?.toFixed(2)}°C`}
-                    labelFormatter={(label) => new Date(label).toLocaleString()}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="temperature"
-                    stroke="#8884d8"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-muted-foreground h-[300px] flex items-center justify-center">
-                <p>No temperature data available for the selected device.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2 xl:col-span-3">
-          <CardHeader>
-            <CardTitle>Humidity History (24h)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {historyLoading ? (
-              <div className="flex justify-center items-center h-[300px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : humidityHistory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={humidityHistory}
-                  margin={{ top: 5, right: 20, left: -20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="timestamp"
-                    tickFormatter={(timestamp) =>
-                      new Date(timestamp).toLocaleTimeString()
-                    }
-                  />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value: number) => `${value?.toFixed(2)}%`}
-                    labelFormatter={(label) => new Date(label).toLocaleString()}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="humidity"
-                    stroke="#82ca9d"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-muted-foreground h-[300px] flex items-center justify-center">
-                <p>No humidity data available for the selected device.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="flex flex-1 flex-col gap-4">
+        <Tabs defaultValue="control" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger
+              value="control"
+              onClick={() => setActiveTab("control")}
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Control Panel
+            </TabsTrigger>
+            <TabsTrigger value="data" onClick={() => setActiveTab("data")}>
+              <Table2 className="mr-2 h-4 w-4" />
+              Data Log
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="control" className="mt-6">
+            {renderControlPanel()}
+          </TabsContent>
+          <TabsContent value="data" className="mt-6">
+            {renderDataDisplay()}
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <div className="p-4">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Sensor Data History</CardTitle>
-              <div className="flex items-center space-x-2">
-                <div className="w-48">
-                  <Select
-                    onValueChange={handleDeviceChange}
-                    value={selectedDevice?.toString() ?? ""}
-                    disabled={activeTopics.length === 0}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a Topic..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeTopics.map((topic) => {
-                        const item = sensorData.find(
-                          (item) => item.topic === topic
-                        );
-                        return (
-                          <SelectItem
-                            key={topic}
-                            value={item?.deviceId.toString() ?? topic}
-                          >
-                            {topic}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 h-4 w-4 transform -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search topics..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-8 w-64"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Device ID</TableHead>
-                      <TableHead>Containment ID</TableHead>
-                      <TableHead>Temperature (°C)</TableHead>
-                      <TableHead>Humidity (%)</TableHead>
-                      <TableHead>Timestamp</TableHead>
-                      <TableHead>Received At</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedData.length > 0 ? (
-                      paginatedData.map((data) => (
-                        <TableRow key={data.id}>
-                          <TableCell className="font-medium">
-                            {data.topic}
-                          </TableCell>
-                          <TableCell>{data.deviceId}</TableCell>
-                          <TableCell>{data.containmentId}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                data.temperature && data.temperature > 30
-                                  ? "bg-red-500 hover:bg-red-500"
-                                  : "bg-green-500 hover:bg-green-500"
-                              }
-                            >
-                              {data.temperature?.toFixed(2) ?? "-"}°C
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge>{data.humidity?.toFixed(2) ?? "-"}%</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(data.timestamp).toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(data.receivedAt).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          {searchQuery
-                            ? "No sensor data found matching your search."
-                            : "No sensor data available."}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-4">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() =>
-                              setCurrentPage((p) => Math.max(p - 1, 1))
-                            }
-                            className={
-                              currentPage === 1
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-                        {Array.from({ length: totalPages }, (_, i) => (
-                          <PaginationItem key={i}>
-                            <PaginationLink
-                              isActive={currentPage === i + 1}
-                              onClick={() => setCurrentPage(i + 1)}
-                              className="cursor-pointer"
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() =>
-                              setCurrentPage((p) => Math.min(p + 1, totalPages))
-                            }
-                            className={
-                              currentPage === totalPages
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </SidebarInset>
+    </div>
   );
-}
+};
+
+export default App;

@@ -89,10 +89,13 @@ const IPConfiguration: React.FC<IPConfigurationProps> = ({ isLoading: parentLoad
       setIsLoading(true);
       const response = await networkConfigurationApi.getAllConfigurations();
       if (response.success && response.data) {
-        setConfigurations(response.data);
+        setConfigurations(Array.isArray(response.data) ? response.data : []);
+      } else {
+        setConfigurations([]);
       }
     } catch (error) {
       console.error('Failed to fetch configurations:', error);
+      setConfigurations([]);
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -111,10 +114,13 @@ const IPConfiguration: React.FC<IPConfigurationProps> = ({ isLoading: parentLoad
     try {
       const response = await networkConfigurationApi.getInterfaceStatus();
       if (response.success && response.data) {
-        setNetworkStatus(response.data);
+        setNetworkStatus(Array.isArray(response.data) ? response.data : []);
+      } else {
+        setNetworkStatus([]);
       }
     } catch (error) {
       console.error('Failed to fetch network status:', error);
+      setNetworkStatus([]);
     }
   };
 
@@ -347,7 +353,7 @@ const IPConfiguration: React.FC<IPConfigurationProps> = ({ isLoading: parentLoad
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {configurations.map((config) => (
+                    {(configurations || []).map((config) => (
                       <TableRow key={config.id}>
                         <TableCell className="font-medium">{config.interfaceType}</TableCell>
                         <TableCell>
@@ -403,7 +409,7 @@ const IPConfiguration: React.FC<IPConfigurationProps> = ({ isLoading: parentLoad
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {networkStatus.map((status, index) => (
+                    {(networkStatus || []).map((status, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{status.interfaceName}</TableCell>
                         <TableCell>{getStatusBadge(status)}</TableCell>

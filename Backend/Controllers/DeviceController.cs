@@ -67,8 +67,9 @@ namespace Backend.Controllers
                 RackId = request.RackId,
                 Description = request.Description,
                 SerialNumber = request.SerialNumber,
-                Status = request.Status ?? "Active",
-                Topic = request.Topic
+                Topic = request.Topic,
+                SensorType = request.SensorType,
+                UCapacity = request.UCapacity
             };
 
             var createdDevice = await _deviceService.CreateDeviceAsync(device, userId);
@@ -96,8 +97,9 @@ namespace Backend.Controllers
                 RackId = request.RackId,
                 Description = request.Description,
                 SerialNumber = request.SerialNumber,
-                Status = request.Status ?? "Active",
-                Topic = request.Topic
+                Topic = request.Topic,
+                SensorType = request.SensorType,
+                UCapacity = request.UCapacity
             };
 
             var updatedDevice = await _deviceService.UpdateDeviceAsync(id, device, userId);
@@ -153,11 +155,13 @@ namespace Backend.Controllers
         [StringLength(100)]
         public string? SerialNumber { get; set; }
         
-        [StringLength(50)]
-        public string? Status { get; set; } = "Active";
-        
         [StringLength(100)]
         public string? Topic { get; set; }
+        
+        [StringLength(50)]
+        public string? SensorType { get; set; }
+        
+        public int? UCapacity { get; set; }
     }
 
     public class UpdateDeviceRequest
@@ -179,10 +183,12 @@ namespace Backend.Controllers
         [StringLength(100)]
         public string? SerialNumber { get; set; }
         
-        [StringLength(50)]
-        public string? Status { get; set; } = "Active";
-        
         [StringLength(100)]
         public string? Topic { get; set; }
+        
+        [StringLength(50)]
+        public string? SensorType { get; set; }
+        
+        public int? UCapacity { get; set; }
     }
 }

@@ -3,7 +3,19 @@
 import { useEffect, useState } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Users, Plus, Edit, Trash2, ArrowUpDown, UserCheck, UserX, Search, Upload, Camera, X } from "lucide-react";
+import {
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  ArrowUpDown,
+  UserCheck,
+  UserX,
+  Search,
+  Upload,
+  Camera,
+  X,
+} from "lucide-react";
 import { User as UserIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,11 +30,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -52,7 +64,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { usersApi, userPhotoApi, User, UserRole, CreateUserRequest, UpdateUserRequest } from "@/lib/api-service";
+import {
+  usersApi,
+  userPhotoApi,
+  User,
+  UserRole,
+  CreateUserRequest,
+  UpdateUserRequest,
+} from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { getRoleDisplayName, getRoleColor } from "@/lib/auth-utils";
@@ -73,7 +92,9 @@ export default function UserManagementPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState<CreateUserRequest | UpdateUserRequest>({
+  const [formData, setFormData] = useState<
+    CreateUserRequest | UpdateUserRequest
+  >({
     name: "",
     email: "",
     phoneNumber: "",
@@ -81,12 +102,12 @@ export default function UserManagementPage() {
   });
 
   // Hooks for sorting and filtering
-  const { sorted, sortField, sortDirection, handleSort } = useSortableTable(users);
-  const { searchQuery, setSearchQuery, filteredData } = useSearchFilter(sorted, [
-    "name",
-    "email",
-    "phoneNumber",
-  ]);
+  const { sorted, sortField, sortDirection, handleSort } =
+    useSortableTable(users);
+  const { searchQuery, setSearchQuery, filteredData } = useSearchFilter(
+    sorted,
+    ["name", "email", "phoneNumber"]
+  );
 
   // Pagination logic
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
@@ -97,11 +118,17 @@ export default function UserManagementPage() {
 
   // Stats calculations
   const totalUsers = users.length;
-  const activeUsers = users.filter(user => user.isActive).length;
+  const activeUsers = users.filter((user) => user.isActive).length;
   const inactiveUsers = totalUsers - activeUsers;
-  const adminUsers = users.filter(user => user.role === UserRole.Admin).length;
-  const developerUsers = users.filter(user => user.role === UserRole.Developer).length;
-  const regularUsers = users.filter(user => user.role === UserRole.User).length;
+  const adminUsers = users.filter(
+    (user) => user.role === UserRole.Admin
+  ).length;
+  const developerUsers = users.filter(
+    (user) => user.role === UserRole.Developer
+  ).length;
+  const regularUsers = users.filter(
+    (user) => user.role === UserRole.User
+  ).length;
 
   // Load users
   const loadUsers = async () => {
@@ -174,10 +201,13 @@ export default function UserManagementPage() {
   // Handle update user
   const handleUpdateUser = async () => {
     if (!editingUser) return;
-    
+
     setActionLoading(true);
     try {
-      const result = await usersApi.updateUser(editingUser.id, formData as UpdateUserRequest);
+      const result = await usersApi.updateUser(
+        editingUser.id,
+        formData as UpdateUserRequest
+      );
       if (result.success) {
         toast.success("User updated successfully");
         setShowEditDialog(false);
@@ -216,21 +246,28 @@ export default function UserManagementPage() {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type and size
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+      ];
       const maxSize = 5 * 1024 * 1024; // 5MB
 
       if (!allowedTypes.includes(file.type)) {
-        toast.error('Invalid file type. Please upload JPG, PNG, or GIF files only.');
+        toast.error(
+          "Invalid file type. Please upload JPG, PNG, or GIF files only."
+        );
         return;
       }
 
       if (file.size > maxSize) {
-        toast.error('File size too large. Please upload files under 5MB.');
+        toast.error("File size too large. Please upload files under 5MB.");
         return;
       }
 
       setSelectedFile(file);
-      
+
       // Create preview URL
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -247,17 +284,17 @@ export default function UserManagementPage() {
     setUploadingPhoto(true);
     try {
       const result = await userPhotoApi.uploadPhoto(userId, selectedFile);
-      
+
       if (result.success) {
-        toast.success(result.message || 'Photo uploaded successfully');
+        toast.success(result.message || "Photo uploaded successfully");
         setSelectedFile(null);
         setPreviewUrl(null);
         loadUsers(); // Reload users to get updated photo path
       } else {
-        toast.error(result.message || 'Failed to upload photo');
+        toast.error(result.message || "Failed to upload photo");
       }
     } catch (error: any) {
-      toast.error('Error uploading photo: ' + error.message);
+      toast.error("Error uploading photo: " + error.message);
     } finally {
       setUploadingPhoto(false);
     }
@@ -268,15 +305,15 @@ export default function UserManagementPage() {
     setUploadingPhoto(true);
     try {
       const result = await userPhotoApi.deletePhoto(userId);
-      
+
       if (result.success) {
-        toast.success(result.message || 'Photo deleted successfully');
+        toast.success(result.message || "Photo deleted successfully");
         loadUsers(); // Reload users to get updated photo path
       } else {
-        toast.error(result.message || 'Failed to delete photo');
+        toast.error(result.message || "Failed to delete photo");
       }
     } catch (error: any) {
-      toast.error('Error deleting photo: ' + error.message);
+      toast.error("Error deleting photo: " + error.message);
     } finally {
       setUploadingPhoto(false);
     }
@@ -287,23 +324,29 @@ export default function UserManagementPage() {
     return userPhotoApi.getPhotoUrl(user);
   };
 
-
   // Get role enum from string
   const getRoleEnum = (roleString: string): UserRole => {
     switch (roleString.toLowerCase()) {
-      case 'admin': return UserRole.Admin;
-      case 'developer': return UserRole.Developer;
-      default: return UserRole.User;
+      case "admin":
+        return UserRole.Admin;
+      case "developer":
+        return UserRole.Developer;
+      default:
+        return UserRole.User;
     }
   };
 
   // Get role string from enum
   const getRoleString = (role: UserRole): string => {
     switch (role) {
-      case UserRole.Admin: return 'admin';
-      case UserRole.Developer: return 'developer';
-      case UserRole.User: return 'user';
-      default: return 'user';
+      case UserRole.Admin:
+        return "admin";
+      case UserRole.Developer:
+        return "developer";
+      case UserRole.User:
+        return "user";
+      default:
+        return "user";
     }
   };
 
@@ -334,7 +377,9 @@ export default function UserManagementPage() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="Enter full name"
                   />
                 </div>
@@ -344,7 +389,9 @@ export default function UserManagementPage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     placeholder="Enter email address"
                   />
                 </div>
@@ -354,7 +401,9 @@ export default function UserManagementPage() {
                     id="phoneNumber"
                     type="tel"
                     value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phoneNumber: e.target.value })
+                    }
                     placeholder="Enter phone number"
                   />
                 </div>
@@ -362,21 +411,35 @@ export default function UserManagementPage() {
                   <Label htmlFor="role">Role</Label>
                   <Select
                     value={formData.role.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, role: parseInt(value) as UserRole })}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        role: parseInt(value) as UserRole,
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={UserRole.User.toString()}>User</SelectItem>
-                      <SelectItem value={UserRole.Developer.toString()}>Developer</SelectItem>
-                      <SelectItem value={UserRole.Admin.toString()}>Admin</SelectItem>
+                      <SelectItem value={UserRole.User.toString()}>
+                        User
+                      </SelectItem>
+                      <SelectItem value={UserRole.Developer.toString()}>
+                        Developer
+                      </SelectItem>
+                      <SelectItem value={UserRole.Admin.toString()}>
+                        Admin
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateDialog(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleCreateUser} disabled={actionLoading}>
@@ -394,12 +457,14 @@ export default function UserManagementPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <div className="p-2 bg-gray-100 rounded-lg">
-            <Users className="h-4 w-4 text-gray-600" />
+              <Users className="h-4 w-4 text-gray-600" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">All registered users</p>
+            <p className="text-xs text-muted-foreground">
+              All registered users
+            </p>
           </CardContent>
         </Card>
 
@@ -407,24 +472,30 @@ export default function UserManagementPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
             <div className="p-2 bg-green-100 rounded-lg">
-            <UserCheck className="h-4 w-4 text-green-600" />
+              <UserCheck className="h-4 w-4 text-green-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {activeUsers}
+            </div>
             <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Users</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Inactive Users
+            </CardTitle>
             <div className="p-2 bg-red-100 rounded-lg">
-            <UserX className="h-4 w-4 text-red-600" />
+              <UserX className="h-4 w-4 text-red-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{inactiveUsers}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {inactiveUsers}
+            </div>
             <p className="text-xs text-muted-foreground">Inactive users</p>
           </CardContent>
         </Card>
@@ -479,20 +550,20 @@ export default function UserManagementPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>#</TableHead>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("name")}
                     >
                       Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("email")}
                     >
                       Email <ArrowUpDown className="inline ml-1 h-4 w-4" />
                     </TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead 
+                    <TableHead
                       className="cursor-pointer"
                       onClick={() => handleSort("role")}
                     >
@@ -507,7 +578,9 @@ export default function UserManagementPage() {
                   {paginatedUsers.length > 0 ? (
                     paginatedUsers.map((user, index) => (
                       <TableRow key={user.id}>
-                        <TableCell>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                        <TableCell>
+                          {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                        </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             <img
@@ -516,26 +589,32 @@ export default function UserManagementPage() {
                               className="w-8 h-8 rounded-full object-cover border"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.src = '/images/avatar-user.png';
+                                target.src = "/images/avatar-user.png";
                               }}
                             />
                             {user.name}
                           </div>
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.phoneNumber || '-'}</TableCell>
+                        <TableCell>{user.phoneNumber || "-"}</TableCell>
                         <TableCell>
-                          <Badge className={getRoleColor(getRoleString(user.role))}>
+                          <Badge
+                            className={getRoleColor(getRoleString(user.role))}
+                          >
                             {getRoleDisplayName(getRoleString(user.role))}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={user.isActive ? "default" : "secondary"}
+                          >
                             {user.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button
@@ -555,7 +634,8 @@ export default function UserManagementPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete User</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "{user.name}"? This action cannot be undone.
+                                  Are you sure you want to delete "{user.name}"?
+                                  This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -574,8 +654,13 @@ export default function UserManagementPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                        {searchQuery ? "No users found matching your search." : "No users found."}
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        {searchQuery
+                          ? "No users found matching your search."
+                          : "No users found."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -589,8 +674,14 @@ export default function UserManagementPage() {
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={() =>
+                            setCurrentPage((p) => Math.max(p - 1, 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                       {Array.from({ length: totalPages }, (_, i) => (
@@ -606,8 +697,14 @@ export default function UserManagementPage() {
                       ))}
                       <PaginationItem>
                         <PaginationNext
-                          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          onClick={() =>
+                            setCurrentPage((p) => Math.min(p + 1, totalPages))
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -623,55 +720,14 @@ export default function UserManagementPage() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User: {editingUser?.name}</DialogTitle>
+            <DialogTitle>
+              Edit User:{" "}
+              <span className="text-muted-foreground">
+                [ {editingUser?.name} ]
+              </span>
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div>
-              <Label htmlFor="edit-name">Full Name</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter full name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Enter email address"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-phoneNumber">Phone Number (Optional)</Label>
-              <Input
-                id="edit-phoneNumber"
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                placeholder="Enter phone number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-role">Role</Label>
-              <Select
-                value={formData.role.toString()}
-                onValueChange={(value) => setFormData({ ...formData, role: parseInt(value) as UserRole })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={UserRole.User.toString()}>User</SelectItem>
-                  <SelectItem value={UserRole.Developer.toString()}>Developer</SelectItem>
-                  <SelectItem value={UserRole.Admin.toString()}>Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
             {/* Photo Upload Section */}
             <div className="space-y-4">
               <Label>Profile Photo</Label>
@@ -690,7 +746,7 @@ export default function UserManagementPage() {
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = '/images/avatar-user.png';
+                        target.src = "/images/avatar-user.png";
                       }}
                     />
                   ) : (
@@ -710,7 +766,9 @@ export default function UserManagementPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => document.getElementById('photo-upload')?.click()}
+                      onClick={() =>
+                        document.getElementById("photo-upload")?.click()
+                      }
                       disabled={uploadingPhoto}
                     >
                       <Camera className="w-4 h-4 mr-2" />
@@ -720,7 +778,9 @@ export default function UserManagementPage() {
                       <Button
                         type="button"
                         size="sm"
-                        onClick={() => editingUser && handlePhotoUpload(editingUser.id)}
+                        onClick={() =>
+                          editingUser && handlePhotoUpload(editingUser.id)
+                        }
                         disabled={uploadingPhoto}
                       >
                         {uploadingPhoto ? (
@@ -736,22 +796,25 @@ export default function UserManagementPage() {
                         )}
                       </Button>
                     )}
-                    {editingUser && editingUser.photoPath && editingUser.photoPath !== '/images/avatar-user.png' && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handlePhotoDelete(editingUser.id)}
-                        disabled={uploadingPhoto}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Remove
-                      </Button>
-                    )}
+                    {editingUser &&
+                      editingUser.photoPath &&
+                      editingUser.photoPath !== "/images/avatar-user.png" && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handlePhotoDelete(editingUser.id)}
+                          disabled={uploadingPhoto}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Remove
+                        </Button>
+                      )}
                   </div>
                   {selectedFile && (
                     <p className="text-sm text-muted-foreground">
-                      Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                      Selected: {selectedFile.name} (
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
@@ -759,6 +822,66 @@ export default function UserManagementPage() {
                   </p>
                 </div>
               </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="Enter full name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder="Enter email address"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-phoneNumber">Phone Number (Optional)</Label>
+              <Input
+                id="edit-phoneNumber"
+                type="tel"
+                value={formData.phoneNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, phoneNumber: e.target.value })
+                }
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                value={formData.role.toString()}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    role: parseInt(value) as UserRole,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.User.toString()}>User</SelectItem>
+                  <SelectItem value={UserRole.Developer.toString()}>
+                    Developer
+                  </SelectItem>
+                  <SelectItem value={UserRole.Admin.toString()}>
+                    Admin
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -771,7 +894,6 @@ export default function UserManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </SidebarInset>
   );
 }

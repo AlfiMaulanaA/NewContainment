@@ -116,7 +116,7 @@ namespace Backend.Services
             // Get all devices with their rack and containment information
             var devices = await dbContext.Devices
                 .Include(d => d.Rack)
-                .ThenInclude(r => r.Containment)
+                .ThenInclude(r => r!.Containment)
                 .Where(d => d.IsActive)
                 .ToListAsync(cancellationToken);
 

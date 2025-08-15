@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Backend.Models;
 using Backend.Data;
+using Backend.Enums;
 using System.Text.Json;
 
 namespace Backend.Services
@@ -9,16 +10,19 @@ namespace Backend.Services
     {
         private readonly AppDbContext _context;
         private readonly IMqttService _mqttService;
+        private readonly IAccessLogService _accessLogService;
         private readonly ILogger<ContainmentControlService> _logger;
         private const string CONTROL_TOPIC = "IOT/Containment/Control";
 
         public ContainmentControlService(
             AppDbContext context,
             IMqttService mqttService,
+            IAccessLogService accessLogService,
             ILogger<ContainmentControlService> logger)
         {
             _context = context;
             _mqttService = mqttService;
+            _accessLogService = accessLogService;
             _logger = logger;
         }
 
@@ -99,6 +103,28 @@ namespace Backend.Services
                         // Update status to sent
                         controlRecord.Status = "Sent";
                         successCount++;
+
+                        // Log access for software-based control
+                        try
+                        {
+                            var user = await _context.Users.FindAsync(userId);
+                            var userName = user?.Name ?? $"User {userId}";
+                            var containmentName = targetContainments.FirstOrDefault(c => c.Id == controlRecord.ContainmentId)?.Name ?? $"Containment {controlRecord.ContainmentId}";
+                            var trigger = $"{GetToggleDescription(request.ControlType, request.IsEnabled)} - {containmentName}";
+                            var additionalData = JsonSerializer.Serialize(new 
+                            { 
+                                ContainmentId = controlRecord.ContainmentId,
+                                Command = controlRecord.Command,
+                                ControlType = request.ControlType,
+                                IsEnabled = request.IsEnabled 
+                            });
+
+                            await _accessLogService.LogSoftwareAccessAsync(userName, trigger, additionalData);
+                        }
+                        catch (Exception logEx)
+                        {
+                            _logger.LogWarning(logEx, "Failed to create access log for containment control");
+                        }
 
                         _logger.LogInformation($"Toggle command {request.ControlType}={request.IsEnabled} sent successfully for ContainmentId: {controlRecord.ContainmentId}");
                     }

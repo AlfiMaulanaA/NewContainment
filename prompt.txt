@@ -1,11 +1,6 @@
 
-1. Buatkan fungsi untuk subscribe semua topic dari data device berdasarkan deviceId, rackId, containmentId buatkan fiturnya dibackend.
-2. parse data dari topic dengan payload seperti ini
-{ “temp” : 26.0, “hum”: 50,0, "Timestamp": "2023-10-12 16:41:41}
-3. Kirim datanya lewat api ke frontend
-3. Simpan data yang sudah diparse jika deviceType tersebut sensor, dan save dengan interval setiap 1 menit dengan stuktur.
-
-apakah kamu paham dengan yang saya minta? intinya saya hanya minta anda subscribe semua topic yang terdapat dari setiap data device dengan device type "Sensor"
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
 
 4. show new data realtime to frontend per each racks kalau type device adalah sensor change from dmmy to real data
 5. Bisa setting berapa lama waktu save
@@ -18,94 +13,57 @@ apakah kamu paham dengan yang saya minta? intinya saya hanya minta anda subscrib
 4. Buat fitur untuk authorize role untuk menu menu tertentu
 5. Access Control
 6. Color Range Indicator, buat sebuah fungsi untuk menentukan warna dari suatu perbandingan parameter
-7. CCTV models 
-- controller
-- CRUD + Streaming
-8. remember me dan forget password di login page
-9. Reset Database
-10. Backup database
-11. Enable Disable Seed Data
+7. kenapa project frontend saya sering glith css style nya?
+8. Developer Mode apakah fiturnya sudah aktif
 
-hot-reloader-client.js:210 ./app/management/cctv/page.tsx
-Attempted import error: 'containmentApi' is not exported from '@/lib/api-service' (imported as 'containmentApi').
 
-Import trace for requested module:
-./app/management/cctv/page.tsx
 
-dan perbaiki UI untuk menampilkan cameranya agar lebih baik dam lebih bagus, untuk cctv sudah ada yg online dan memang sudah bisa dicek diaplikai lain. Akan tetapi untuk  di monitoring dia hanya menampilkan streamUrl dll. bukan menampilkan stream view dari kameranya.
+Overview
+- Racks Sensor Data
+- Matikan debug
 
-Successfully installed cmake-4.0.3
-Collecting dlib
-  Downloading dlib-20.0.0.tar.gz (3.3 MB)
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 330.1 kB/s  0:00:09
-  Installing build dependencies ... done
-  Getting requirements to build wheel ... done
-  Preparing metadata (pyproject.toml) ... done
-Building wheels for collected packages: dlib
-  Building wheel for dlib (pyproject.toml) ... error
-  error: subprocess-exited-with-error
+Control Panel
+- Simpan Ke Log Control
 
-  × Building wheel for dlib (pyproject.toml) did not run successfully.
-  │ exit code: 1
-  ╰─> [47 lines of output]
-      running bdist_wheel
-      running build
-      running build_ext
-      Traceback (most recent call last):
-        File "<frozen runpy>", line 198, in _run_module_as_main
-        File "<frozen runpy>", line 88, in _run_code
-        File "D:\Alfi\RnD\DEVELOPMENT\NewContainment\FaceRecognitionService\venv\Scripts\cmake.exe\__main__.py", line 2, in <module>
-          from cmake import cmake
-      ModuleNotFoundError: No module named 'cmake'
+camera
 
-      ================================================================================
-      ================================================================================
-      ================================================================================
+Sensor Data
+- sort table dan pagnation
 
-                         CMake is not installed on your system!
+Emrgency Logs
+- Delete All Logs
+- Time remaining gunkanaN waktu UTC+7
 
-          Or it is possible some broken copy of cmake is installed on your system.
-          It is unfortunately very common for python package managers to include
-          broken copies of cmake.  So if the error above this refers to some file
-          path to a cmake file inside a python or anaconda or miniconda path then you
-          should delete that broken copy of cmake from your computer.
+Maintenance Reports
 
-          Instead, please get an official copy of cmake from one of these known good
-          sources of an official cmake:
-              - cmake.org (this is how windows users should get cmake)
-              - apt install cmake (for Ubuntu or Debian based systems)
-              - yum install cmake (for Redhat or CenOS based systems)
+Networks
+- Analisa dan perbaiki
 
-          On a linux machine you can run `which cmake` to see what cmake you are
-          actually using.  If it tells you it's some cmake from any kind of python
-          packager delete it and install an official cmake.
+MQTT
 
-          More generally, cmake is not installed if when you open a terminal window
-          and type
-             cmake --version
-          you get an error.  So you can use that as a very basic test to see if you
-          have cmake installed.  That is, if cmake --version doesn't run from the
-          same terminal window from which you are reading this error message, then
-          you have not installed cmake.  Windows users should take note that they
-          need to tell the cmake installer to add cmake to their PATH.  Since you
-          can't run commands that are not in your PATH.  This is how the PATH works
-          on Linux as well, but failing to add cmake to the PATH is a particularly
-          common problem on windows and rarely a problem on Linux.
+System settings
 
-      ================================================================================
-      ================================================================================
-      ================================================================================
-      [end of output]
+System Info
 
-  note: This error originates from a subprocess, and is likely not a problem with pip.
-  ERROR: Failed building wheel for dlib
-Failed to build dlib
-error: failed-wheel-build-for-install
+Developer Mode
+- Data menu developer Mode tidak muncul
 
-× Failed to build installable wheels for some pyproject.toml based projects
-╰─> dlib
-Collecting face-recognition
-  Using cached face_recognition-1.3.0-py2.py3-none-any.whl.metadata (21 kB)
-Collecting face-recognition-models>=0.3.0 (from face-recognition)
-  Downloading face_recognition_models-0.3.0.tar.gz (100.1 MB)
 
+analisa mendalam untuk fungsi network dengan fungsi menulis sebuah configurasi IP Static ETH0 dan atau ETH1 ke file /etc/network/interfaces, modifikasi fungsinya agar pada UI bisa manage Ip seperti biasa.
+1. CRUD configurasi ETH0 & ETH1
+2. untuk write configurasi ke database kita perlu klik tombol action Config to interfaces
+3. Jika ingin kembali DHCP/hapus configurasi sttaic IP ETH0 & ETH1 pun gunakan tombol action
+4. Buatkan juga sebuah fungsi untuk read configurasidari file /etc/network/interfaces itu saat ini bagaimana
+5. Analisa, modifikasi, dan buatkan fungsi fungsinya tersebut dibackend dan difrontend
+
+error remove photo when update user
+
+buatkan fitur untuk deteksi ada berapa user yg login ke software ini, dan kapan terakhir dia login
+
+buat untuk control/containment pada fitur Front Door Always Open dan Back Door Always Open pada togglenya tetap true sebelum dibuat disable.
+Hapuskan system configuration, tapi munculkan status limit switch front & back door dan lighting dan emergency status dari containmentStatus dihalaman control/containment.
+Dan untuk ceiling saat open itu dikebawah dan saat close dia keatas.
+
+terlalu banyak file config mqtt di frontend, bisa buat lebih sedikit praktis? dan yang tidak digunakan tidak usah digunakan
+
+Buatkan seed data untuk NetwrokConfiguration untuk 2 data 1 ETH0 192.168.1.100 dan 2 ETH1 192.168.0.200

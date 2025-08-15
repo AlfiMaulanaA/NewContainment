@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Net;
+using NetworkInterfaceType = Backend.Enums.NetworkInterfaceType;
 
 namespace Backend.Services
 {
@@ -261,7 +262,8 @@ namespace Backend.Services
                 {
                     "sudo systemctl restart networking",
                     "sudo systemctl restart NetworkManager",
-                    "sudo service networking restart"
+                    "sudo service networking restart",
+                    "sudo reboot"
                 };
 
                 foreach (var command in commands)
@@ -456,6 +458,191 @@ namespace Backend.Services
             {
                 _logger.LogError(ex, $"Failed to test connectivity to {ipAddress}");
                 return false;
+            }
+        }
+
+        public async Task<bool> RevertInterfaceToDhcpAsync(NetworkInterfaceType interfaceType, int userId)
+        {
+            try
+            {
+                // Get existing configuration
+                var existing = await GetConfigurationByInterfaceAsync(interfaceType);
+                
+                if (existing != null)
+                {
+                    // Update to DHCP
+                    var dhcpRequest = new NetworkConfigurationRequest
+                    {
+                        InterfaceType = interfaceType,
+                        ConfigMethod = NetworkConfigMethod.DHCP,
+                        IpAddress = null,
+                        SubnetMask = null,
+                        Gateway = null,
+                        PrimaryDns = null,
+                        SecondaryDns = null,
+                        Metric = null
+                    };
+                    
+                    await UpdateConfigurationAsync(existing.Id, dhcpRequest, userId);
+                }
+                else
+                {
+                    // Create new DHCP configuration
+                    var dhcpRequest = new NetworkConfigurationRequest
+                    {
+                        InterfaceType = interfaceType,
+                        ConfigMethod = NetworkConfigMethod.DHCP
+                    };
+                    
+                    await CreateConfigurationAsync(dhcpRequest, userId);
+                }
+                
+                _logger.LogInformation($"Interface {interfaceType} reverted to DHCP by user {userId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to revert {interfaceType} to DHCP");
+                return false;
+            }
+        }
+
+        public async Task<bool> ClearAllStaticConfigurationsAsync(int userId)
+        {
+            try
+            {
+                var configurations = await GetAllConfigurationsAsync();
+                
+                foreach (var config in configurations.Where(c => c.ConfigMethod == NetworkConfigMethod.Static))
+                {
+                    await RevertInterfaceToDhcpAsync(config.InterfaceType, userId);
+                }
+                
+                _logger.LogInformation($"All static configurations cleared by user {userId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to clear all static configurations");
+                return false;
+            }
+        }
+
+        public async Task<List<NetworkConfiguration>> ParseNetworkInterfacesFileAsync()
+        {
+            try
+            {
+                var configurations = new List<NetworkConfiguration>();
+                var content = await ReadNetworkInterfacesFileAsync();
+                
+                if (string.IsNullOrEmpty(content))
+                    return configurations;
+
+                var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                NetworkConfiguration? currentConfig = null;
+                
+                foreach (var line in lines)
+                {
+                    var trimmedLine = line.Trim();
+                    
+                    // Skip comments and empty lines
+                    if (trimmedLine.StartsWith("#") || string.IsNullOrEmpty(trimmedLine))
+                        continue;
+                    
+                    // Parse interface declarations
+                    if (trimmedLine.StartsWith("iface "))
+                    {
+                        var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 4)
+                        {
+                            var interfaceName = parts[1];
+                            var configType = parts[3]; // dhcp or static
+                            
+                            // Determine interface type
+                            if (interfaceName.Equals("eth0", StringComparison.OrdinalIgnoreCase))
+                            {
+                                currentConfig = new NetworkConfiguration
+                                {
+                                    InterfaceType = NetworkInterfaceType.ETH0,
+                                    ConfigMethod = configType.Equals("dhcp", StringComparison.OrdinalIgnoreCase) 
+                                        ? NetworkConfigMethod.DHCP 
+                                        : NetworkConfigMethod.Static,
+                                    IsActive = true,
+                                    CreatedAt = DateTime.UtcNow,
+                                    UpdatedAt = DateTime.UtcNow
+                                };
+                            }
+                            else if (interfaceName.Equals("eth1", StringComparison.OrdinalIgnoreCase))
+                            {
+                                currentConfig = new NetworkConfiguration
+                                {
+                                    InterfaceType = NetworkInterfaceType.ETH1,
+                                    ConfigMethod = configType.Equals("dhcp", StringComparison.OrdinalIgnoreCase) 
+                                        ? NetworkConfigMethod.DHCP 
+                                        : NetworkConfigMethod.Static,
+                                    IsActive = true,
+                                    CreatedAt = DateTime.UtcNow,
+                                    UpdatedAt = DateTime.UtcNow
+                                };
+                            }
+                        }
+                    }
+                    // Parse configuration properties for static interfaces
+                    else if (currentConfig != null && currentConfig.ConfigMethod == NetworkConfigMethod.Static)
+                    {
+                        if (trimmedLine.StartsWith("address "))
+                        {
+                            currentConfig.IpAddress = trimmedLine.Replace("address ", "").Trim();
+                        }
+                        else if (trimmedLine.StartsWith("netmask "))
+                        {
+                            currentConfig.SubnetMask = trimmedLine.Replace("netmask ", "").Trim();
+                        }
+                        else if (trimmedLine.StartsWith("gateway "))
+                        {
+                            currentConfig.Gateway = trimmedLine.Replace("gateway ", "").Trim();
+                        }
+                        else if (trimmedLine.StartsWith("dns-nameservers "))
+                        {
+                            var dnsServers = trimmedLine.Replace("dns-nameservers ", "").Trim().Split(' ');
+                            if (dnsServers.Length > 0)
+                                currentConfig.PrimaryDns = dnsServers[0];
+                            if (dnsServers.Length > 1)
+                                currentConfig.SecondaryDns = dnsServers[1];
+                        }
+                        else if (trimmedLine.StartsWith("metric "))
+                        {
+                            currentConfig.Metric = trimmedLine.Replace("metric ", "").Trim();
+                        }
+                    }
+                    
+                    // If we hit another interface or the end, save current config
+                    if (currentConfig != null && (trimmedLine.StartsWith("iface ") || trimmedLine.StartsWith("auto ")))
+                    {
+                        if (currentConfig.InterfaceType != default && 
+                            !configurations.Any(c => c.InterfaceType == currentConfig.InterfaceType))
+                        {
+                            configurations.Add(currentConfig);
+                        }
+                        
+                        currentConfig = null;
+                    }
+                }
+                
+                // Add the last configuration if it exists
+                if (currentConfig != null && currentConfig.InterfaceType != default && 
+                    !configurations.Any(c => c.InterfaceType == currentConfig.InterfaceType))
+                {
+                    configurations.Add(currentConfig);
+                }
+                
+                _logger.LogInformation($"Parsed {configurations.Count} configurations from interfaces file");
+                return configurations;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse network interfaces file");
+                return new List<NetworkConfiguration>();
             }
         }
 

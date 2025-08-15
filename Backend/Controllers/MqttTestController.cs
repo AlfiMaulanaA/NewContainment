@@ -155,6 +155,7 @@ namespace Backend.Controllers
                 await _mqttService.SubscribeAsync(topic, async (receivedTopic, receivedPayload) =>
                 {
                     _logger.LogInformation("Received test message from topic {Topic}: {Payload}", receivedTopic, receivedPayload);
+                    await Task.CompletedTask;
                 });
 
                 return Ok(new
@@ -209,6 +210,7 @@ namespace Backend.Controllers
                 {
                     receivedPayload = payload;
                     messageReceived = true;
+                    await Task.CompletedTask;
                 });
 
                 // Give subscription time to register

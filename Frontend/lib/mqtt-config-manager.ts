@@ -1,4 +1,4 @@
-import { mqttConfigurationApi, MqttConfiguration } from './api-service';
+import { mqttConfigurationApi, MqttConfiguration } from "./api-service";
 
 interface MQTTConnectionConfig {
   brokerHost: string;
@@ -11,13 +11,15 @@ interface MQTTConnectionConfig {
   reconnectDelay: number;
   topicPrefix: string;
   isEnabled: boolean;
-  source: 'environment' | 'database';
+  source: "environment" | "database";
 }
 
 class MQTTConfigManager {
   private static instance: MQTTConfigManager;
   private currentConfig: MQTTConnectionConfig | null = null;
-  private configListeners: Array<(config: MQTTConnectionConfig | null) => void> = [];
+  private configListeners: Array<
+    (config: MQTTConnectionConfig | null) => void
+  > = [];
 
   private constructor() {}
 
@@ -37,39 +39,44 @@ class MQTTConfigManager {
   async getEffectiveConfiguration(): Promise<MQTTConnectionConfig> {
     try {
       // Try to get active configuration from database
-      const activeConfigRes = await mqttConfigurationApi.getActiveConfiguration();
-      
+      const activeConfigRes =
+        await mqttConfigurationApi.getActiveConfiguration();
+
       if (activeConfigRes.success && activeConfigRes.data) {
         const dbConfig = activeConfigRes.data;
-        
+
         // If database config exists and is enabled and NOT using environment config
         if (dbConfig.isEnabled && !dbConfig.useEnvironmentConfig) {
           this.currentConfig = {
-            brokerHost: dbConfig.brokerHost || this.getEnvironmentConfig().brokerHost,
-            brokerPort: dbConfig.brokerPort || this.getEnvironmentConfig().brokerPort,
+            brokerHost:
+              dbConfig.brokerHost || this.getEnvironmentConfig().brokerHost,
+            brokerPort: Number(9000) || this.getEnvironmentConfig().brokerPort,
             username: dbConfig.username || this.getEnvironmentConfig().username,
             password: dbConfig.password || this.getEnvironmentConfig().password,
             clientId: dbConfig.clientId || this.getEnvironmentConfig().clientId,
             useSsl: dbConfig.useSsl,
             keepAliveInterval: dbConfig.keepAliveInterval,
             reconnectDelay: dbConfig.reconnectDelay,
-            topicPrefix: dbConfig.topicPrefix || this.getEnvironmentConfig().topicPrefix,
+            topicPrefix:
+              dbConfig.topicPrefix || this.getEnvironmentConfig().topicPrefix,
             isEnabled: dbConfig.isEnabled,
-            source: 'database'
+            source: "database",
           };
-          
+
           this.notifyListeners();
           return this.currentConfig;
         }
       }
-      
+
       // Fallback to environment configuration
       this.currentConfig = this.getEnvironmentConfig();
       this.notifyListeners();
       return this.currentConfig;
-      
     } catch (error) {
-      console.warn('Failed to fetch database MQTT config, using environment:', error);
+      console.warn(
+        "Failed to fetch database MQTT config, using environment:",
+        error
+      );
       this.currentConfig = this.getEnvironmentConfig();
       this.notifyListeners();
       return this.currentConfig;
@@ -81,12 +88,12 @@ class MQTTConfigManager {
    */
   private getEnvironmentConfig(): MQTTConnectionConfig {
     // Debug environment variables in development
-    if (process.env.NODE_ENV === 'development') {
-      import('./mqtt-debug').then(({ debugMQTTConfig }) => debugMQTTConfig());
+    if (process.env.NODE_ENV === "development") {
+      import("./mqtt-debug").then(({ debugMQTTConfig }) => debugMQTTConfig());
     }
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isBrowser = typeof window !== 'undefined';
-    
+    const isProduction = process.env.NODE_ENV === "production";
+    const isBrowser = typeof window !== "undefined";
+
     let brokerUrl: string;
     let brokerHost: string;
     let brokerPort: number;
@@ -96,18 +103,22 @@ class MQTTConfigManager {
       // Production browser - dynamic detection
       const hostname = window.location.hostname;
       const protocol = window.location.protocol;
-      const isHttps = protocol === 'https:';
-      
+      const isHttps = protocol === "https:";
+
       // Check if we have explicit MQTT broker config
       const envBrokerHost = process.env.NEXT_PUBLIC_MQTT_BROKER_HOST;
       const envBrokerPort = process.env.NEXT_PUBLIC_MQTT_BROKER_PORT;
       const envUseSsl = process.env.NEXT_PUBLIC_MQTT_USE_SSL;
-      
+
       if (envBrokerHost) {
         brokerHost = envBrokerHost;
         // Use WebSocket bridge ports, not direct MQTT ports
-        brokerPort = envBrokerPort ? parseInt(envBrokerPort) : (isHttps ? 9001 : 9000);
-        useSsl = envUseSsl ? envUseSsl.toLowerCase() === 'true' : isHttps;
+        brokerPort = envBrokerPort
+          ? parseInt(envBrokerPort)
+          : isHttps
+          ? 9001
+          : 9000;
+        useSsl = envUseSsl ? envUseSsl.toLowerCase() === "true" : isHttps;
       } else {
         // Dynamic detection based on current page - use WebSocket bridge ports
         brokerHost = hostname;
@@ -122,35 +133,51 @@ class MQTTConfigManager {
         try {
           const url = new URL(brokerUrl);
           brokerHost = url.hostname;
-          brokerPort = parseInt(url.port) || (url.protocol === 'wss:' ? 9001 : 9000);
-          useSsl = url.protocol === 'wss:';
+          brokerPort =
+            parseInt(url.port) || (url.protocol === "wss:" ? 9001 : 9000);
+          useSsl = url.protocol === "wss:";
         } catch (error) {
-          console.warn('Failed to parse NEXT_PUBLIC_MQTT_BROKER_URL:', brokerUrl);
+          console.warn(
+            "Failed to parse NEXT_PUBLIC_MQTT_BROKER_URL:",
+            brokerUrl
+          );
           // Fallback to individual settings
-          brokerHost = process.env.NEXT_PUBLIC_MQTT_BROKER_HOST || 'localhost';
-          brokerPort = parseInt(process.env.NEXT_PUBLIC_MQTT_BROKER_PORT || '9000');
-          useSsl = process.env.NEXT_PUBLIC_MQTT_USE_SSL?.toLowerCase() === 'true';
+          brokerHost = process.env.NEXT_PUBLIC_MQTT_BROKER_HOST || "localhost";
+          brokerPort = parseInt(
+            process.env.NEXT_PUBLIC_MQTT_BROKER_PORT || "9000"
+          );
+          useSsl =
+            process.env.NEXT_PUBLIC_MQTT_USE_SSL?.toLowerCase() === "true";
         }
       } else {
         // Use individual settings
-        brokerHost = process.env.NEXT_PUBLIC_MQTT_BROKER_HOST || 'localhost';
-        brokerPort = parseInt(process.env.NEXT_PUBLIC_MQTT_BROKER_PORT || '9000');
-        useSsl = process.env.NEXT_PUBLIC_MQTT_USE_SSL?.toLowerCase() === 'true';
+        brokerHost = process.env.NEXT_PUBLIC_MQTT_BROKER_HOST || "localhost";
+        brokerPort = parseInt(
+          process.env.NEXT_PUBLIC_MQTT_BROKER_PORT || "9000"
+        );
+        useSsl = process.env.NEXT_PUBLIC_MQTT_USE_SSL?.toLowerCase() === "true";
       }
     }
 
     return {
       brokerHost,
       brokerPort,
-      username: process.env.NEXT_PUBLIC_MQTT_USERNAME || '',
-      password: process.env.NEXT_PUBLIC_MQTT_PASSWORD || '',
-      clientId: process.env.NEXT_PUBLIC_MQTT_CLIENT_ID || `containment_web_${Math.random().toString(16).substr(2, 8)}`,
+      username: process.env.NEXT_PUBLIC_MQTT_USERNAME || "",
+      password: process.env.NEXT_PUBLIC_MQTT_PASSWORD || "",
+      clientId:
+        process.env.NEXT_PUBLIC_MQTT_CLIENT_ID ||
+        `containment_web_${Math.random().toString(16).substr(2, 8)}`,
       useSsl,
-      keepAliveInterval: parseInt(process.env.NEXT_PUBLIC_MQTT_KEEP_ALIVE || '60'),
-      reconnectDelay: parseInt(process.env.NEXT_PUBLIC_MQTT_RECONNECT_DELAY || '5'),
-      topicPrefix: process.env.NEXT_PUBLIC_MQTT_TOPIC_PREFIX || 'containment',
-      isEnabled: process.env.NEXT_PUBLIC_MQTT_ENABLED?.toLowerCase() !== 'false',
-      source: 'environment'
+      keepAliveInterval: parseInt(
+        process.env.NEXT_PUBLIC_MQTT_KEEP_ALIVE || "60"
+      ),
+      reconnectDelay: parseInt(
+        process.env.NEXT_PUBLIC_MQTT_RECONNECT_DELAY || "5"
+      ),
+      topicPrefix: process.env.NEXT_PUBLIC_MQTT_TOPIC_PREFIX || "containment",
+      isEnabled:
+        process.env.NEXT_PUBLIC_MQTT_ENABLED?.toLowerCase() !== "false",
+      source: "environment",
     };
   }
 
@@ -171,9 +198,11 @@ class MQTTConfigManager {
   /**
    * Listen for configuration changes
    */
-  onConfigurationChange(listener: (config: MQTTConnectionConfig | null) => void) {
+  onConfigurationChange(
+    listener: (config: MQTTConnectionConfig | null) => void
+  ) {
     this.configListeners.push(listener);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.configListeners.indexOf(listener);
@@ -184,11 +213,11 @@ class MQTTConfigManager {
   }
 
   private notifyListeners() {
-    this.configListeners.forEach(listener => {
+    this.configListeners.forEach((listener) => {
       try {
         listener(this.currentConfig);
       } catch (error) {
-        console.error('Error in MQTT config listener:', error);
+        console.error("Error in MQTT config listener:", error);
       }
     });
   }
@@ -199,14 +228,15 @@ class MQTTConfigManager {
   getConnectionUrl(config?: MQTTConnectionConfig): string {
     const cfg = config || this.currentConfig;
     if (!cfg) {
-      throw new Error('No MQTT configuration available');
+      throw new Error("No MQTT configuration available");
     }
 
-    const protocol = cfg.useSsl ? 'wss' : 'ws';
-    
+    const protocol = cfg.useSsl ? "wss" : "ws";
+
     // Check if using WebSocket bridge ports (9000/9001) or direct MQTT ports (1883/8883)
-    const isWebSocketBridge = cfg.brokerPort === 9000 || cfg.brokerPort === 9001;
-    
+    const isWebSocketBridge =
+      cfg.brokerPort === 9000 || cfg.brokerPort === 9001;
+
     if (isWebSocketBridge) {
       // WebSocket bridge - use /mqtt path
       return `${protocol}://${cfg.brokerHost}:${cfg.brokerPort}/mqtt`;
@@ -222,7 +252,7 @@ class MQTTConfigManager {
   getConnectionOptions(config?: MQTTConnectionConfig): any {
     const cfg = config || this.currentConfig;
     if (!cfg) {
-      throw new Error('No MQTT configuration available');
+      throw new Error("No MQTT configuration available");
     }
 
     return {
@@ -248,18 +278,18 @@ class MQTTConfigManager {
    * Get configuration status for debugging
    */
   async getConfigurationStatus(): Promise<{
-    source: 'environment' | 'database';
+    source: "environment" | "database";
     isEnabled: boolean;
     brokerEndpoint: string;
     hasCredentials: boolean;
   }> {
     const config = await this.getEffectiveConfiguration();
-    
+
     return {
       source: config.source,
       isEnabled: config.isEnabled,
       brokerEndpoint: `${config.brokerHost}:${config.brokerPort}`,
-      hasCredentials: !!(config.username && config.password)
+      hasCredentials: !!(config.username && config.password),
     };
   }
 }
@@ -268,7 +298,7 @@ class MQTTConfigManager {
 export function useMQTTConfig() {
   const [config, setConfig] = React.useState<MQTTConnectionConfig | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  
+
   const manager = MQTTConfigManager.getInstance();
 
   React.useEffect(() => {
@@ -281,7 +311,7 @@ export function useMQTTConfig() {
           setConfig(effectiveConfig);
         }
       } catch (error) {
-        console.error('Failed to load MQTT config:', error);
+        console.error("Failed to load MQTT config:", error);
         if (mounted) {
           setConfig(null);
         }
@@ -313,7 +343,7 @@ export function useMQTTConfig() {
       const newConfig = await manager.refreshConfiguration();
       setConfig(newConfig);
     } catch (error) {
-      console.error('Failed to refresh MQTT config:', error);
+      console.error("Failed to refresh MQTT config:", error);
     } finally {
       setIsLoading(false);
     }
@@ -324,11 +354,11 @@ export function useMQTTConfig() {
     isLoading,
     refreshConfig,
     isEnabled: config?.isEnabled || false,
-    source: config?.source || 'environment'
+    source: config?.source || "environment",
   };
 }
 
 export default MQTTConfigManager;
 
 // Import React for the hook
-import React from 'react';
+import React from "react";

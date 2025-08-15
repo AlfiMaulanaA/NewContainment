@@ -68,28 +68,28 @@ namespace Backend.Services
             }
         }
 
-        public async Task<bool> DeleteUserPhotoAsync(string photoPath)
+        public Task<bool> DeleteUserPhotoAsync(string photoPath)
         {
             try
             {
                 if (string.IsNullOrEmpty(photoPath) || photoPath == GetDefaultPhotoPath())
                 {
-                    return true;
+                    return Task.FromResult(true);
                 }
 
                 var fullPath = Path.Combine(_environment.WebRootPath, photoPath.TrimStart('/'));
                 if (File.Exists(fullPath))
                 {
                     File.Delete(fullPath);
-                    return true;
+                    return Task.FromResult(true);
                 }
 
-                return false;
+                return Task.FromResult(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error deleting user photo: {ex.Message}");
-                return false;
+                return Task.FromResult(false);
             }
         }
 

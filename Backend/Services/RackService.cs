@@ -17,8 +17,12 @@ namespace Backend.Services
         {
             return await _context.Racks
                 .Include(r => r.Containment)
+                    .ThenInclude(c => c!.CreatedByUser)
+                .Include(r => r.Containment)
+                    .ThenInclude(c => c!.UpdatedByUser)
                 .Include(r => r.CreatedByUser)
                 .Include(r => r.UpdatedByUser)
+                .Include(r => r.Devices)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
         }
@@ -27,8 +31,12 @@ namespace Backend.Services
         {
             return await _context.Racks
                 .Include(r => r.Containment)
+                    .ThenInclude(c => c!.CreatedByUser)
+                .Include(r => r.Containment)
+                    .ThenInclude(c => c!.UpdatedByUser)
                 .Include(r => r.CreatedByUser)
                 .Include(r => r.UpdatedByUser)
+                .Include(r => r.Devices)
                 .Where(r => r.ContainmentId == containmentId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
@@ -38,9 +46,13 @@ namespace Backend.Services
         {
             return await _context.Racks
                 .Include(r => r.Containment)
+                    .ThenInclude(c => c!.CreatedByUser)
+                .Include(r => r.Containment)
+                    .ThenInclude(c => c!.UpdatedByUser)
                 .Include(r => r.CreatedByUser)
                 .Include(r => r.UpdatedByUser)
-                .FirstOrDefaultAsync(r => r.Id == id && r.IsActive);
+                .Include(r => r.Devices)
+                .FirstOrDefaultAsync(r => r.Id == id);
         }
 
         public async Task<Rack> CreateRackAsync(Rack rack, int userId)
@@ -59,7 +71,7 @@ namespace Backend.Services
         public async Task<Rack?> UpdateRackAsync(int id, Rack rack, int userId)
         {
             var existingRack = await _context.Racks.FindAsync(id);
-            if (existingRack == null || !existingRack.IsActive)
+            if (existingRack == null)
             {
                 return null;
             }
@@ -67,8 +79,10 @@ namespace Backend.Services
             existingRack.Name = rack.Name;
             existingRack.ContainmentId = rack.ContainmentId;
             existingRack.Description = rack.Description;
+            existingRack.CapacityU = rack.CapacityU;
             existingRack.UpdatedBy = userId;
             existingRack.UpdatedAt = DateTime.UtcNow;
+            existingRack.IsActive = true; // Reactivate if updating
 
             await _context.SaveChangesAsync();
 
@@ -77,17 +91,50 @@ namespace Backend.Services
 
         public async Task<bool> DeleteRackAsync(int id)
         {
-            var rack = await _context.Racks.FindAsync(id);
-            if (rack == null || !rack.IsActive)
+            var rack = await _context.Racks
+                .Include(r => r.Devices)
+                .FirstOrDefaultAsync(r => r.Id == id);
+            if (rack == null)
             {
                 return false;
             }
 
-            rack.IsActive = false;
-            rack.UpdatedAt = DateTime.UtcNow;
+            // First delete all devices in this rack
+            foreach (var device in rack.Devices)
+            {
+                _context.Devices.Remove(device);
+            }
+
+            // Then delete the rack
+            _context.Racks.Remove(rack);
             
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<int> DeleteRacksByContainmentIdAsync(int containmentId)
+        {
+            var racks = await _context.Racks
+                .Include(r => r.Devices)
+                .Where(r => r.ContainmentId == containmentId)
+                .ToListAsync();
+
+            var deletedCount = racks.Count;
+            
+            foreach (var rack in racks)
+            {
+                // First delete all devices in this rack
+                foreach (var device in rack.Devices)
+                {
+                    _context.Devices.Remove(device);
+                }
+                
+                // Then remove the rack
+                _context.Racks.Remove(rack);
+            }
+
+            await _context.SaveChangesAsync();
+            return deletedCount;
         }
     }
 }

@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -108,6 +109,7 @@ export default function ContainmentManagementPage() {
     type: ContainmentType.HotAisleContainment,
     description: "",
     location: "",
+    isActive: true,
   });
 
   // Hooks for sorting and filtering
@@ -211,6 +213,7 @@ export default function ContainmentManagementPage() {
       type: ContainmentType.HotAisleContainment,
       description: "",
       location: "",
+      isActive: true,
     });
     setEditingContainment(null);
   };
@@ -245,6 +248,7 @@ export default function ContainmentManagementPage() {
       type: containment.type,
       description: containment.description || "",
       location: containment.location,
+      isActive: containment.isActive ?? true,
     });
     setShowEditDialog(true);
   };
@@ -439,6 +443,16 @@ export default function ContainmentManagementPage() {
                     placeholder="Enter description"
                     rows={3}
                   />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive ?? false}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
+                  />
+                  <Label htmlFor="isActive">Active Status</Label>
                 </div>
               </div>
               <DialogFooter>
@@ -856,6 +870,16 @@ export default function ContainmentManagementPage() {
                 placeholder="Enter description"
                 rows={3}
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="edit-isActive"
+                checked={formData.isActive ?? false}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, isActive: checked })
+                }
+              />
+              <Label htmlFor="edit-isActive">Active Status</Label>
             </div>
           </div>
           <DialogFooter>

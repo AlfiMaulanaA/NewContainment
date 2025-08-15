@@ -2,6 +2,7 @@ using Backend.Models;
 using Backend.Enums;
 using Backend.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Data
 {
@@ -32,7 +33,7 @@ namespace Backend.Data
                 await SeedMaintenanceAsync(context, users, containments, racks);
 
                 // Seed CCTV Cameras
-                await SeedCctvCamerasAsync(context, containments);
+                await SeedCameraConfigAsync(context);
 
                 // Seed ActivityReports
                 await SeedActivityReportsAsync(context, users);
@@ -43,6 +44,11 @@ namespace Backend.Data
                 // Seed MqttConfiguration
                 await SeedMqttConfigurationAsync(context, users);
 
+                // Seed AccessLog
+                // await SeedAccessLogAsync(context, users);
+
+                // Seed DeviceSensorData  
+                await SeedDeviceSensorDataAsync(context);
 
                 logger.LogInformation("Database seeding completed successfully");
             }
@@ -52,6 +58,8 @@ namespace Backend.Data
                 throw;
             }
         }
+
+        
 
         private static async Task<List<User>> SeedUsersAsync(AppDbContext context, IAuthService authService)
         {
@@ -193,229 +201,158 @@ namespace Backend.Data
 
             return racks;
         }
+private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> racks, List<User> users)
+{
+    if (context.Devices.Any())
+    {
+        return;
+    }
 
-        private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> racks, List<User> users)
+    var adminUser = users.First(u => u.Role == UserRole.Admin);
+    var devUser = users.First(u => u.Role == UserRole.Developer);
+
+    var devices = new List<Device>
+    {
+        // ------------------------------------------------------------------
+        // Sensor Devices for Temperature and Humidity Monitoring
+        // ------------------------------------------------------------------
+        new Device
         {
-            if (context.Devices.Any())
-            {
-                return;
-            }
+            Name = "Temperature & Humidity Sensor 01",
+            Type = "Sensor",
+            RackId = racks[0].Id, // Contoh: Rack A-01
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-001",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/Temperature_01",
+            SensorType = "Temperature",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
+        new Device
+        {
+            Name = "Temperature & Humidity Sensor 02",
+            Type = "Sensor",
+            RackId = racks[1].Id, // Contoh: Rack A-02
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-002",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/Temperature_02",
+            SensorType = "Temperature",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
 
-            var adminUser = users.First(u => u.Role == UserRole.Admin);
-            var devUser = users.First(u => u.Role == UserRole.Developer);
+        // ------------------------------------------------------------------
+        // Sensor Devices for Air Flow Monitoring
+        // ------------------------------------------------------------------
+        new Device
+        {
+            Name = "Air Flow Sensor 01",
+            Type = "Sensor",
+            RackId = racks[2].Id, // Contoh: Rack A-03
+            Description = "Monitors air flow speed and pressure inside the containment aisle.",
+            SerialNumber = "SENS-AF-001",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/AirFlow_01",
+            SensorType = "Air Flow",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
+        new Device
+        {
+            Name = "Air Flow Sensor 02",
+            Type = "Sensor",
+            RackId = racks[3].Id, // Contoh: Rack B-01
+            Description = "Monitors air flow speed and pressure inside the containment aisle.",
+            SerialNumber = "SENS-AF-002",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/AirFlow_02",
+            SensorType = "Air Flow",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
 
-            var devices = new List<Device>
-            {
-                // Devices in Rack A-01 (Web Applications)
-                new Device
-                {
-                    Name = "Web Server 01",
-                    Type = "Server",
-                    RackId = racks[0].Id,
-                    Description = "Primary web application server",
-                    SerialNumber = "SRV-WEB-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Web Server 02",
-                    Type = "Server",
-                    RackId = racks[0].Id,
-                    Description = "Secondary web application server",
-                    SerialNumber = "SRV-WEB-002",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "UPS Unit A01",
-                    Type = "UPS",
-                    RackId = racks[0].Id,
-                    Description = "Uninterruptible power supply for rack A-01",
-                    SerialNumber = "UPS-A01-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
+        // ------------------------------------------------------------------
+        // Sensor Devices for Dust Monitoring
+        // ------------------------------------------------------------------
+        new Device
+        {
+            Name = "Dust Sensor 01",
+            Type = "Sensor",
+            RackId = racks[0].Id, // Contoh: Rack A-01
+            Description = "Measures dust particle levels (PM2.5, PM10) in the air.",
+            SerialNumber = "SENS-DS-001",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/Dust_01",
+            SensorType = "Dust Sensor",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
+        new Device
+        {
+            Name = "Dust Sensor 02",
+            Type = "Sensor",
+            RackId = racks[1].Id, // Contoh: Rack A-02
+            Description = "Measures dust particle levels (PM2.5, PM10) in the air.",
+            SerialNumber = "SENS-DS-002",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/Dust_02",
+            SensorType = "Dust Sensor",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
 
-                // Devices in Rack A-02 (Database)
-                new Device
-                {
-                    Name = "Database Server 01",
-                    Type = "Server",
-                    RackId = racks[1].Id,
-                    Description = "Primary MySQL database server",
-                    SerialNumber = "SRV-DB-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Database Server 02",
-                    Type = "Server",
-                    RackId = racks[1].Id,
-                    Description = "Secondary database server for replication",
-                    SerialNumber = "SRV-DB-002",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-
-                // Devices in Rack A-03 (Storage)
-                new Device
-                {
-                    Name = "Storage Array 01",
-                    Type = "Storage",
-                    RackId = racks[2].Id,
-                    Description = "High-capacity storage array",
-                    SerialNumber = "STO-ARR-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = devUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Backup Server",
-                    Type = "Server",
-                    RackId = racks[2].Id,
-                    Description = "Automated backup and recovery server",
-                    SerialNumber = "SRV-BAK-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = devUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-
-                // Devices in Rack A-04 (Network)
-                new Device
-                {
-                    Name = "Core Switch 01",
-                    Type = "Switch",
-                    RackId = racks[3].Id,
-                    Description = "48-port gigabit core network switch",
-                    SerialNumber = "SW-CORE-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = devUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Router 01",
-                    Type = "Router",
-                    RackId = racks[3].Id,
-                    Description = "Main internet gateway router",
-                    SerialNumber = "RTR-MAIN-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = devUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Firewall 01",
-                    Type = "Firewall",
-                    RackId = racks[3].Id,
-                    Description = "Network security firewall appliance",
-                    SerialNumber = "FW-SEC-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_1",
-                    CreatedBy = devUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-
-                // Sensor Devices for Temperature and Humidity Monitoring
-                new Device
-                {
-                    Name = "Temperature Sensor Rack A-01",
-                    Type = "Sensor",
-                    RackId = racks[0].Id, // Rack A-01 (Web Applications)
-                    Description = "Temperature and humidity sensor for web application rack",
-                    SerialNumber = "SENS-TH-001",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_A01",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Temperature Sensor Rack A-02",
-                    Type = "Sensor",
-                    RackId = racks[1].Id, // Rack A-02 (Database)
-                    Description = "Temperature and humidity sensor for database rack",
-                    SerialNumber = "SENS-TH-002",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_A02",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Temperature Sensor Rack A-03",
-                    Type = "Sensor",
-                    RackId = racks[2].Id, // Rack A-03 (Storage)
-                    Description = "Temperature and humidity sensor for storage rack",
-                    SerialNumber = "SENS-TH-003",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_A03",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new Device
-                {
-                    Name = "Temperature Sensor Rack B-01",
-                    Type = "Sensor",
-                    RackId = racks[3].Id, // Rack B-01 (Network)
-                    Description = "Temperature and humidity sensor for network rack",
-                    SerialNumber = "SENS-TH-004",
-                    Status = "Active",
-                    Topic = "IOT/Containment/Sensor_TH/Rack_B01",
-                    CreatedBy = adminUser.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                }
-            };
-
-            context.Devices.AddRange(devices);
-            await context.SaveChangesAsync();
+        // ------------------------------------------------------------------
+        // Sensor Devices for Vibration Monitoring
+        // ------------------------------------------------------------------
+        new Device
+        {
+            Name = "Vibration Sensor 01",
+            Type = "Sensor",
+            RackId = racks[2].Id, // Contoh: Rack A-03
+            Description = "Detects vibrations to monitor rack stability and potential issues.",
+            SerialNumber = "SENS-VB-001",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/Vibration_01",
+            SensorType = "Vibration",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        },
+        new Device
+        {
+            Name = "Vibration Sensor 02",
+            Type = "Sensor",
+            RackId = racks[3].Id, // Contoh: Rack B-01
+            Description = "Detects vibrations to monitor rack stability and potential issues.",
+            SerialNumber = "SENS-VB-002",
+            Status = "Active",
+            Topic = "IOT/Containment/Sensor/Vibration_02",
+            SensorType = "Vibration",
+            CreatedBy = adminUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
         }
+    };
+
+    context.Devices.AddRange(devices);
+    await context.SaveChangesAsync();
+}
 
         private static async Task SeedContainmentStatusAsync(AppDbContext context, List<Containment> containments)
         {
@@ -584,15 +521,15 @@ namespace Backend.Data
             context.ActivityReports.AddRange(activityReports);
             await context.SaveChangesAsync();
         }
-private static async Task SeedEmergencyReportsAsync(AppDbContext context)
-{
-    // Periksa apakah sudah ada data. Jika ada, hentikan proses.
-    if (context.EmergencyReports.Any())
-    {
-        return;
-    }
+        private static async Task SeedEmergencyReportsAsync(AppDbContext context)
+        {
+            // Periksa apakah sudah ada data. Jika ada, hentikan proses.
+            if (context.EmergencyReports.Any())
+            {
+                return;
+            }
 
-    var emergencyReports = new List<EmergencyReport>
+            var emergencyReports = new List<EmergencyReport>
     {
         // 1. Data untuk "Fire Suppression System" - Skenario: Kejadian masa lalu dan sudah selesai
         new EmergencyReport
@@ -632,7 +569,7 @@ private static async Task SeedEmergencyReportsAsync(AppDbContext context)
             StartTime = DateTime.UtcNow.AddMinutes(-15),
             EndTime = null, // EndTime null karena kejadian masih berlangsung
             Duration = null,
-            IsActive = true,
+            IsActive = false,
             Notes = "Smoke detected in data center. Investigating source.",
             RawMqttPayload = "{\"type\":\"smoke_detector\",\"sensor_id\":\"sd_05\",\"status\":\"alert\"}",
             CreatedAt = DateTime.UtcNow.AddMinutes(-15),
@@ -647,7 +584,7 @@ private static async Task SeedEmergencyReportsAsync(AppDbContext context)
             StartTime = DateTime.UtcNow.AddMinutes(-5),
             EndTime = null,
             Duration = null,
-            IsActive = true,
+            IsActive = false,
             Notes = "Emergency button pressed near entrance B. Security dispatched.",
             RawMqttPayload = "{\"type\":\"emergency_button\",\"location\":\"main_entrance\",\"state\":true}",
             CreatedAt = DateTime.UtcNow.AddMinutes(-5),
@@ -655,9 +592,9 @@ private static async Task SeedEmergencyReportsAsync(AppDbContext context)
         }
     };
 
-    context.EmergencyReports.AddRange(emergencyReports);
-    await context.SaveChangesAsync();
-}
+            context.EmergencyReports.AddRange(emergencyReports);
+            await context.SaveChangesAsync();
+        }
 
         private static async Task SeedMqttConfigurationAsync(AppDbContext context, List<User> users)
         {
@@ -674,7 +611,7 @@ private static async Task SeedEmergencyReportsAsync(AppDbContext context)
                 {
                     IsEnabled = true,
                     UseEnvironmentConfig = false,
-                    BrokerHost = "localhost",
+                    BrokerHost = "192.168.0.138",
                     BrokerPort = 1883,
                     Username = "",
                     Password = "",
@@ -715,56 +652,245 @@ private static async Task SeedEmergencyReportsAsync(AppDbContext context)
             context.MqttConfigurations.AddRange(mqttConfigurations);
             await context.SaveChangesAsync();
         }
-
-        private static async Task SeedCctvCamerasAsync(AppDbContext context, List<Containment> containments)
+        
+         private static async Task SeedCameraConfigAsync(AppDbContext context)
         {
-            if (context.CctvCameras.Any())
+            if (context.CameraConfigs.Any())
             {
                 return;
             }
 
-            var cctvCameras = new List<CctvCamera>
+            var cameraConfigs = new List<CameraConfig>
             {
-                new CctvCamera
+                new CameraConfig
                 {
-                    Name = "Camera Pintu Masuk Data Center A",
-                    Ip = "192.168.0.64",
-                    Port = 554,
-                    Username = "admin",
-                    Password = "gspe-intercon",
-                    StreamUrl = "rtsp://admin:gspe-intercon@192.168.0.64:554/Channels/Stream1",
-                    ContainmentId = containments.First().Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                },
-                new CctvCamera
-                {
-                    Name = "Camera Rack A-01",
-                    Ip = "192.168.1.20",
-                    Port = 554,
-                    Username = "admin",
-                    Password = "admin123",
-                    StreamUrl = "rtsp://admin:admin123@192.168.1.20:554/stream1",
-                    ContainmentId = containments.Count > 1 ? containments[1].Id : containments.First().Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                },
-                new CctvCamera
-                {
-                    Name = "Camera Monitoring Umum",
-                    Ip = "192.168.1.30",
+                    Name = "Main Entrance Camera",
+                    IpAddress = "192.168.0.138",
                     Port = 8080,
-                    Username = "user",
-                    Password = "user123",
-                    StreamUrl = "http://user:user123@192.168.1.30:8080/video",
-                    ContainmentId = null, // General monitoring, not tied to specific containment
+                    ApiKey = "WypWkw4hK4xh3YzEvxOIUYTP6cfH2u",
+                    Group = "shinobi1",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 }
             };
 
-            context.CctvCameras.AddRange(cctvCameras);
+            context.CameraConfigs.AddRange(cameraConfigs);
             await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedAccessLogAsync(AppDbContext context, List<User> users)
+        {
+            if (context.AccessLogs.Any())
+            {
+                return;
+            }
+
+            var random = new Random();
+            var accessLogs = new List<AccessLog>();
+
+            // Sample access data for different access methods
+            var accessMethods = new[]
+            {
+                new { Method = AccessMethod.Password, Trigger = "Login via Password" },
+                new { Method = AccessMethod.Card, Trigger = "Access via Card Reader" },
+                new { Method = AccessMethod.Fingerprint, Trigger = "Fingerprint Authentication" },
+                new { Method = AccessMethod.Software, Trigger = "Open Back Door" },
+                new { Method = AccessMethod.Software, Trigger = "Close Back Door" },
+                new { Method = AccessMethod.Software, Trigger = "Open Front Door" },
+                new { Method = AccessMethod.Software, Trigger = "Close Front Door" },
+                new { Method = AccessMethod.Software, Trigger = "Enable Ceiling" },
+                new { Method = AccessMethod.Software, Trigger = "Disable Ceiling" },
+                new { Method = AccessMethod.Face, Trigger = "Face Recognition Access" },
+                new { Method = AccessMethod.BMS, Trigger = "BMS System Override" }
+            };
+
+            var ipAddresses = new[] { "192.168.1.100", "192.168.1.101", "192.168.1.102", "10.0.0.50", "172.16.0.10" };
+
+            // Generate 50 sample access logs
+            for (int i = 0; i < 50; i++)
+            {
+                var user = users[random.Next(users.Count)];
+                var accessMethod = accessMethods[random.Next(accessMethods.Length)];
+                var timestamp = DateTime.UtcNow.AddDays(-random.Next(30)).AddHours(-random.Next(24)).AddMinutes(-random.Next(60));
+                var isSuccess = random.Next(100) < 95; // 95% success rate
+
+                var additionalData = accessMethod.Method == AccessMethod.Software ? 
+                    $"{{\"ContainmentId\":{random.Next(1, 4)},\"Command\":\"{accessMethod.Trigger.ToLower().Replace(' ', '_')}\",\"ControlType\":\"{GetControlTypeFromTrigger(accessMethod.Trigger)}\",\"IsEnabled\":{(accessMethod.Trigger.Contains("Open") || accessMethod.Trigger.Contains("Enable")).ToString().ToLower()}}}" : 
+                    null;
+
+                accessLogs.Add(new AccessLog
+                {
+                    User = user.Name,
+                    Via = accessMethod.Method,
+                    Trigger = accessMethod.Trigger + (accessMethod.Method == AccessMethod.Software ? $" - Containment {random.Next(1, 4)}" : ""),
+                    Timestamp = timestamp,
+                    AdditionalData = additionalData,
+                    Description = GetAccessDescription(accessMethod.Method),
+                    IsSuccess = isSuccess,
+                    IpAddress = ipAddresses[random.Next(ipAddresses.Length)]
+                });
+            }
+
+            // Add some specific software access logs for testing via=4 filter
+            var softwareAccessLogs = new[]
+            {
+                new AccessLog
+                {
+                    User = "Admin",
+                    Via = AccessMethod.Software,
+                    Trigger = "Open Back Door - Containment 1",
+                    Timestamp = DateTime.UtcNow.AddHours(-2),
+                    AdditionalData = "{\"ContainmentId\":1,\"Command\":\"open_back_door\",\"ControlType\":\"BackDoor\",\"IsEnabled\":true}",
+                    Description = "Software-based containment control",
+                    IsSuccess = true,
+                    IpAddress = "192.168.1.100"
+                },
+                new AccessLog
+                {
+                    User = "John Developer",
+                    Via = AccessMethod.Software,
+                    Trigger = "Close Front Door - Containment 2",
+                    Timestamp = DateTime.UtcNow.AddHours(-1),
+                    AdditionalData = "{\"ContainmentId\":2,\"Command\":\"close_front_door\",\"ControlType\":\"FrontDoor\",\"IsEnabled\":false}",
+                    Description = "Software-based containment control",
+                    IsSuccess = true,
+                    IpAddress = "192.168.1.101"
+                },
+                new AccessLog
+                {
+                    User = "Admin",
+                    Via = AccessMethod.Software,
+                    Trigger = "Enable Ceiling - Containment 1",
+                    Timestamp = DateTime.UtcNow.AddMinutes(-30),
+                    AdditionalData = "{\"ContainmentId\":1,\"Command\":\"enable_ceiling\",\"ControlType\":\"Ceiling\",\"IsEnabled\":true}",
+                    Description = "Software-based containment control",
+                    IsSuccess = true,
+                    IpAddress = "192.168.1.100"
+                }
+            };
+
+            accessLogs.AddRange(softwareAccessLogs);
+
+            context.AccessLogs.AddRange(accessLogs);
+            await context.SaveChangesAsync();
+        }
+
+        private static string GetControlTypeFromTrigger(string trigger)
+        {
+            if (trigger.Contains("Back Door")) return "BackDoor";
+            if (trigger.Contains("Front Door")) return "FrontDoor";
+            if (trigger.Contains("Ceiling")) return "Ceiling";
+            return "Unknown";
+        }
+
+        private static string GetAccessDescription(AccessMethod method)
+        {
+            return method switch
+            {
+                AccessMethod.Password => "Password-based authentication",
+                AccessMethod.Card => "Card reader access",
+                AccessMethod.Fingerprint => "Biometric fingerprint access",
+                AccessMethod.Software => "Software-based containment control",
+                AccessMethod.Face => "Facial recognition access",
+                AccessMethod.BMS => "Building Management System access",
+                _ => "Unknown access method"
+            };
+        }
+
+        private static async Task SeedDeviceSensorDataAsync(AppDbContext context)
+        {
+            if (context.DeviceSensorData.Any())
+            {
+                return;
+            }
+
+            var devices = await context.Devices.Where(d => d.Type.ToLower() == "sensor").ToListAsync();
+            if (!devices.Any()) return;
+
+            var random = new Random();
+            var sensorDataList = new List<DeviceSensorData>();
+
+            // Generate sensor data for the last 7 days
+            var startDate = DateTime.UtcNow.AddDays(-7);
+            var endDate = DateTime.UtcNow;
+
+            foreach (var device in devices)
+            {
+                // Generate data points every 15 minutes for each device
+                for (var date = startDate; date <= endDate; date = date.AddMinutes(15))
+                {
+                    var sensorData = GenerateSensorDataForDevice(device, date, random);
+                    if (sensorData != null)
+                    {
+                        sensorDataList.Add(sensorData);
+                    }
+                }
+            }
+
+            // Add in batches to avoid memory issues
+            const int batchSize = 100;
+            for (int i = 0; i < sensorDataList.Count; i += batchSize)
+            {
+                var batch = sensorDataList.Skip(i).Take(batchSize);
+                context.DeviceSensorData.AddRange(batch);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        private static DeviceSensorData? GenerateSensorDataForDevice(Device device, DateTime timestamp, Random random)
+        {
+            string rawPayload;
+            object parsedData;
+
+            switch (device.SensorType?.ToLower())
+            {
+                case "temperature":
+                    var temp = Math.Round(18 + random.NextDouble() * 12, 1); // 18-30°C
+                    var humidity = Math.Round(40 + random.NextDouble() * 40, 1); // 40-80%
+                    rawPayload = $"{{\"temp\": {temp}, \"hum\": {humidity}, \"timestamp\": \"{timestamp:yyyy-MM-dd HH:mm:ss}\", \"sensor_id\": \"{device.Name.Replace(" ", "_")}\"}}";
+                    parsedData = new { temp, hum = humidity, timestamp = timestamp.ToString("yyyy-MM-dd HH:mm:ss"), sensor_id = device.Name.Replace(" ", "_") };
+                    break;
+
+                case "vibration":
+                    var vibX = Math.Round(random.NextDouble(), 3);
+                    var vibY = Math.Round(random.NextDouble(), 3);
+                    var vibZ = Math.Round(random.NextDouble(), 3);
+                    rawPayload = $"{{\"vibration_x\": {vibX}, \"vibration_y\": {vibY}, \"vibration_z\": {vibZ}, \"timestamp\": \"{timestamp:yyyy-MM-dd HH:mm:ss}\", \"sensor_id\": \"{device.Name.Replace(" ", "_")}\"}}";
+                    parsedData = new { vibration_x = vibX, vibration_y = vibY, vibration_z = vibZ, timestamp = timestamp.ToString("yyyy-MM-dd HH:mm:ss"), sensor_id = device.Name.Replace(" ", "_") };
+                    break;
+
+                case "dust sensor":
+                    var dustLevel = Math.Round(random.NextDouble() * 50, 2); // 0-50 μg/m³
+                    rawPayload = $"{{\"dust_level_ug_m3\": {dustLevel}, \"timestamp\": \"{timestamp:yyyy-MM-dd HH:mm:ss}\", \"sensor_id\": \"{device.Name.Replace(" ", "_")}\"}}";
+                    parsedData = new { dust_level_ug_m3 = dustLevel, timestamp = timestamp.ToString("yyyy-MM-dd HH:mm:ss"), sensor_id = device.Name.Replace(" ", "_") };
+                    break;
+
+                case "air flow":
+                    var flowRate = Math.Round(0.5 + random.NextDouble() * 2, 2); // 0.5-2.5 m/s
+                    var pressure = Math.Round(random.NextDouble() * 100, 2); // 0-100 Pa
+                    rawPayload = $"{{\"air_flow_rate_ms\": {flowRate}, \"pressure_pa\": {pressure}, \"timestamp\": \"{timestamp:yyyy-MM-dd HH:mm:ss}\", \"sensor_id\": \"{device.Name.Replace(" ", "_")}\"}}";
+                    parsedData = new { air_flow_rate_ms = flowRate, pressure_pa = pressure, timestamp = timestamp.ToString("yyyy-MM-dd HH:mm:ss"), sensor_id = device.Name.Replace(" ", "_") };
+                    break;
+
+                default:
+                    // Generic sensor data
+                    var value = Math.Round(random.NextDouble() * 100, 2);
+                    rawPayload = $"{{\"value\": {value}, \"timestamp\": \"{timestamp:yyyy-MM-dd HH:mm:ss}\", \"sensor_id\": \"{device.Name.Replace(" ", "_")}\"}}";
+                    parsedData = new { value, timestamp = timestamp.ToString("yyyy-MM-dd HH:mm:ss"), sensor_id = device.Name.Replace(" ", "_") };
+                    break;
+            }
+
+            return new DeviceSensorData
+            {
+                DeviceId = device.Id,
+                RackId = device.RackId,
+                ContainmentId = device.Rack?.ContainmentId ?? 1,
+                Topic = device.Topic ?? $"IOT/Containment/Sensor/{device.Name.Replace(" ", "_")}",
+                Timestamp = timestamp,
+                ReceivedAt = timestamp.AddSeconds(random.Next(1, 10)), // Slight delay for received time
+                RawPayload = rawPayload,
+                SensorType = device.SensorType ?? "Unknown"
+            };
         }
 
     }

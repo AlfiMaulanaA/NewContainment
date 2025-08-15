@@ -80,6 +80,8 @@ export interface Device {
   serialNumber?: string;
   status?: string;
   topic?: string;
+  sensorType?: string;
+  uCapacity?: number;
   createdAt?: string;
   updatedAt?: string;
   isActive?: boolean;
@@ -375,6 +377,7 @@ export interface CreateContainmentRequest {
   type: ContainmentType;
   description?: string;
   location: string;
+  isActive: boolean;
 }
 
 export interface UpdateContainmentRequest {
@@ -382,6 +385,7 @@ export interface UpdateContainmentRequest {
   type: ContainmentType;
   description?: string;
   location: string;
+  isActive: boolean;
 }
 
 export interface CreateRackRequest {
@@ -404,6 +408,8 @@ export interface CreateDeviceRequest {
   serialNumber?: string;
   status?: string;
   topic?: string;
+  sensorType?: string;
+  uCapacity?: number;
 }
 
 export interface UpdateDeviceRequest {
@@ -414,6 +420,8 @@ export interface UpdateDeviceRequest {
   serialNumber?: string;
   status?: string;
   topic?: string;
+  sensorType?: string;
+  uCapacity?: number;
 }
 
 export interface LoginResponse {
@@ -1485,8 +1493,8 @@ export const maintenanceApi = {
 // Network Configuration types and interfaces
 export interface NetworkConfiguration {
   id: number;
-  interfaceType: "ETH0" | "ETH1";
-  configMethod: "DHCP" | "Static";
+  interfaceType: NetworkInterfaceType;
+  configMethod: NetworkConfigMethod;
   ipAddress?: string;
   subnetMask?: string;
   gateway?: string;
@@ -1502,9 +1510,19 @@ export interface NetworkConfiguration {
   updatedByUser?: User;
 }
 
+export enum NetworkInterfaceType {
+  ETH0 = 1,
+  ETH1 = 2,
+}
+
+export enum NetworkConfigMethod {
+  DHCP = 1,
+  Static = 2,
+}
+
 export interface NetworkConfigurationRequest {
-  interfaceType: "ETH0" | "ETH1";
-  configMethod: "DHCP" | "Static";
+  interfaceType: NetworkInterfaceType;
+  configMethod: NetworkConfigMethod;
   ipAddress?: string;
   subnetMask?: string;
   gateway?: string;
@@ -1514,9 +1532,9 @@ export interface NetworkConfigurationRequest {
 }
 
 export interface NetworkInterfaceStatus {
-  interfaceType: "ETH0" | "ETH1";
+  interfaceType: NetworkInterfaceType;
   interfaceName: string;
-  configMethod: "DHCP" | "Static";
+  configMethod: NetworkConfigMethod;
   currentIpAddress?: string;
   subnetMask?: string;
   gateway?: string;
@@ -1536,12 +1554,60 @@ export interface TestConnectivityRequest {
   ipAddress: string;
 }
 
+// Helper functions for Network enums
+export function getNetworkInterfaceTypeFromString(type: string): NetworkInterfaceType {
+  switch (type.toLowerCase()) {
+    case "eth0":
+      return NetworkInterfaceType.ETH0;
+    case "eth1":
+      return NetworkInterfaceType.ETH1;
+    default:
+      return NetworkInterfaceType.ETH0;
+  }
+}
+
+export function getNetworkInterfaceTypeString(type: NetworkInterfaceType): string {
+  switch (type) {
+    case NetworkInterfaceType.ETH0:
+      return "ETH0";
+    case NetworkInterfaceType.ETH1:
+      return "ETH1";
+    default:
+      return "ETH0";
+  }
+}
+
+export function getNetworkConfigMethodFromString(method: string): NetworkConfigMethod {
+  switch (method.toLowerCase()) {
+    case "dhcp":
+      return NetworkConfigMethod.DHCP;
+    case "static":
+      return NetworkConfigMethod.Static;
+    default:
+      return NetworkConfigMethod.DHCP;
+  }
+}
+
+export function getNetworkConfigMethodString(method: NetworkConfigMethod): string {
+  switch (method) {
+    case NetworkConfigMethod.DHCP:
+      return "DHCP";
+    case NetworkConfigMethod.Static:
+      return "Static";
+    default:
+      return "DHCP";
+  }
+}
+
 // Network Configuration API methods
 export const networkConfigurationApi = {
   async getAllConfigurations(): Promise<ApiResponse<NetworkConfiguration[]>> {
     try {
-      const response = await client.get("/api/network");
-      return response.data;
+      const response = await client.get("/network");
+      return {
+        success: true,
+        data: response.data || [],
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1555,8 +1621,12 @@ export const networkConfigurationApi = {
     id: number
   ): Promise<ApiResponse<NetworkConfiguration>> {
     try {
-      const response = await client.get(`/api/network/${id}`);
-      return response.data;
+      const response = await client.get(`/network/${id}`);
+      return {
+        success: response.success || true,
+        data: response.data,
+        message: response.message,
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1566,13 +1636,15 @@ export const networkConfigurationApi = {
   },
 
   async getConfigurationByInterface(
-    interfaceType: "ETH0" | "ETH1"
+    interfaceType: NetworkInterfaceType
   ): Promise<ApiResponse<NetworkConfiguration>> {
     try {
-      const response = await client.get(
-        `/api/network/interface/${interfaceType}`
-      );
-      return response.data;
+      const response = await client.get(`/network/interface/${interfaceType}`);
+      return {
+        success: response.success || true,
+        data: response.data,
+        message: response.message,
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1585,8 +1657,23 @@ export const networkConfigurationApi = {
     request: NetworkConfigurationRequest
   ): Promise<ApiResponse<NetworkConfiguration>> {
     try {
-      const response = await client.post("/api/network", request);
-      return response.data;
+      // Convert enum values to integers for backend
+      const backendRequest = {
+        ...request,
+        interfaceType: typeof request.interfaceType === 'string' 
+          ? getNetworkInterfaceTypeFromString(request.interfaceType) 
+          : request.interfaceType,
+        configMethod: typeof request.configMethod === 'string'
+          ? getNetworkConfigMethodFromString(request.configMethod)
+          : request.configMethod
+      };
+
+      const response = await client.post("/network", backendRequest);
+      return {
+        success: response.success || true,
+        data: response.data,
+        message: response.message || "Network configuration created successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1600,8 +1687,23 @@ export const networkConfigurationApi = {
     request: NetworkConfigurationRequest
   ): Promise<ApiResponse<NetworkConfiguration>> {
     try {
-      const response = await client.put(`/api/network/${id}`, request);
-      return response.data;
+      // Convert enum values to integers for backend
+      const backendRequest = {
+        ...request,
+        interfaceType: typeof request.interfaceType === 'string' 
+          ? getNetworkInterfaceTypeFromString(request.interfaceType) 
+          : request.interfaceType,
+        configMethod: typeof request.configMethod === 'string'
+          ? getNetworkConfigMethodFromString(request.configMethod)
+          : request.configMethod
+      };
+
+      const response = await client.put(`/network/${id}`, backendRequest);
+      return {
+        success: response.success || true,
+        data: response.data,
+        message: response.message || "Network configuration updated successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1612,8 +1714,11 @@ export const networkConfigurationApi = {
 
   async deleteConfiguration(id: number): Promise<ApiResponse<void>> {
     try {
-      const response = await client.delete(`/api/network/${id}`);
-      return response.data;
+      await client.delete(`/network/${id}`);
+      return {
+        success: true,
+        message: "Network configuration deleted successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1624,8 +1729,12 @@ export const networkConfigurationApi = {
 
   async getInterfacesFile(): Promise<ApiResponse<string>> {
     try {
-      const response = await client.get("/api/network/interfaces-file");
-      return response.data;
+      const response = await client.get("/network/interfaces-file");
+      return {
+        success: response.success || true,
+        data: response.data,
+        message: response.message,
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1638,8 +1747,11 @@ export const networkConfigurationApi = {
     request: ApplyNetworkConfigRequest
   ): Promise<ApiResponse<void>> {
     try {
-      const response = await client.post("/api/network/apply", request);
-      return response.data;
+      await client.post("/network/apply", request);
+      return {
+        success: true,
+        message: "Network configuration applied successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1650,8 +1762,11 @@ export const networkConfigurationApi = {
 
   async restartNetworking(): Promise<ApiResponse<void>> {
     try {
-      const response = await client.post("/api/network/restart");
-      return response.data;
+      await client.post("/network/restart");
+      return {
+        success: true,
+        message: "Networking restarted successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1662,8 +1777,11 @@ export const networkConfigurationApi = {
 
   async backupConfiguration(): Promise<ApiResponse<void>> {
     try {
-      const response = await client.post("/api/network/backup");
-      return response.data;
+      await client.post("/network/backup");
+      return {
+        success: true,
+        message: "Configuration backed up successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1674,8 +1792,11 @@ export const networkConfigurationApi = {
 
   async restoreConfiguration(): Promise<ApiResponse<void>> {
     try {
-      const response = await client.post("/api/network/restore");
-      return response.data;
+      await client.post("/network/restore");
+      return {
+        success: true,
+        message: "Configuration restored successfully",
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1686,8 +1807,12 @@ export const networkConfigurationApi = {
 
   async getInterfaceStatus(): Promise<ApiResponse<NetworkInterfaceStatus[]>> {
     try {
-      const response = await client.get("/api/network/status");
-      return response.data;
+      const response = await client.get("/network/status");
+      return {
+        success: response.success || true,
+        data: response.data || [],
+        message: response.message,
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1701,11 +1826,11 @@ export const networkConfigurationApi = {
     request: TestConnectivityRequest
   ): Promise<ApiResponse<{ ipAddress: string; isReachable: boolean }>> {
     try {
-      const response = await client.post(
-        "/api/network/test-connectivity",
-        request
-      );
-      return response.data;
+      const data = await client.post<{ ipAddress: string; isReachable: boolean }>("/network/test-connectivity", request);
+      return {
+        success: true,
+        data,
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -1718,12 +1843,78 @@ export const networkConfigurationApi = {
     request: NetworkConfigurationRequest
   ): Promise<ApiResponse<{ isValid: boolean }>> {
     try {
-      const response = await client.post("/api/network/validate", request);
-      return response.data;
+      // Convert enum values to integers for backend
+      const backendRequest = {
+        ...request,
+        interfaceType: typeof request.interfaceType === 'string' 
+          ? getNetworkInterfaceTypeFromString(request.interfaceType) 
+          : request.interfaceType,
+        configMethod: typeof request.configMethod === 'string'
+          ? getNetworkConfigMethodFromString(request.configMethod)
+          : request.configMethod
+      };
+
+      const response = await client.post("/network/validate", backendRequest);
+      return {
+        success: response.success || true,
+        data: response.data,
+        message: response.message,
+      };
     } catch (error: any) {
       return {
         success: false,
         message: error.message || "Failed to validate configuration",
+      };
+    }
+  },
+
+  async revertToDhcp(
+    interfaceType: NetworkInterfaceType
+  ): Promise<ApiResponse<void>> {
+    try {
+      await client.post(
+        `/network/revert-to-dhcp/${interfaceType}`
+      );
+      return {
+        success: true,
+        message: `${interfaceType} reverted to DHCP successfully`,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to revert interface to DHCP",
+      };
+    }
+  },
+
+  async parseInterfacesFile(): Promise<ApiResponse<NetworkConfiguration[]>> {
+    try {
+      const response = await client.get("/network/parse-interfaces-file");
+      return {
+        success: response.success || true,
+        data: response.data || [],
+        message: response.message,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to parse interfaces file",
+        data: [],
+      };
+    }
+  },
+
+  async clearAllStaticConfigurations(): Promise<ApiResponse<void>> {
+    try {
+      await client.post("/network/clear-all-static");
+      return {
+        success: true,
+        message: "All interfaces reverted to DHCP successfully",
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to clear static configurations",
       };
     }
   },
@@ -2849,11 +3040,10 @@ export interface DeviceSensorData {
   rackId: number;
   containmentId: number;
   topic: string;
-  temperature?: number;
-  humidity?: number;
   timestamp: string;
   receivedAt: string;
-  rawPayload?: string;
+  rawPayload: string;
+  sensorType?: string;
   device?: Device;
   rack?: Rack;
   containment?: Containment;
@@ -2889,6 +3079,420 @@ export interface ManualSensorDataRequest {
   payload: string;
 }
 
+// Access Log types and interfaces
+export interface AccessLog {
+  id: number;
+  user: string;
+  via: AccessMethod;
+  trigger: string;
+  timestamp: string;
+  additionalData?: string;
+  description?: string;
+  isSuccess: boolean;
+  ipAddress?: string;
+}
+
+export enum AccessMethod {
+  Password = 1,
+  Card = 2,
+  Fingerprint = 3,
+  Software = 4,
+  Face = 5,
+  BMS = 6,
+}
+
+export interface SoftwareAccessRequest {
+  user: string;
+  trigger: string;
+  additionalData?: string;
+}
+
+export interface AccessLogFilter {
+  page?: number;
+  pageSize?: number;
+  via?: AccessMethod;
+  user?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+// Access Log API methods
+export const accessLogService = {
+  async getAccessLogs(
+    filter?: AccessLogFilter
+  ): Promise<ApiResponse<AccessLog[]>> {
+    try {
+      const params = new URLSearchParams();
+      if (filter?.page) params.append("page", String(filter.page));
+      if (filter?.pageSize) params.append("pageSize", String(filter.pageSize));
+      if (filter?.via !== undefined) params.append("via", String(filter.via));
+      if (filter?.user) params.append("user", filter.user);
+      if (filter?.startDate) params.append("startDate", filter.startDate);
+      if (filter?.endDate) params.append("endDate", filter.endDate);
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/accesslog?${queryString}` : "/accesslog";
+
+      const data = await client.get<AccessLog[]>(endpoint);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get access logs",
+      };
+    }
+  },
+
+  async getAccessLog(id: number): Promise<ApiResponse<AccessLog>> {
+    try {
+      const response = await client.get(`/accesslog/${id}`);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get access log",
+      };
+    }
+  },
+
+  async createAccessLog(
+    accessLog: Omit<AccessLog, "id" | "timestamp">
+  ): Promise<ApiResponse<AccessLog>> {
+    try {
+      const response = await client.post("/accesslog", accessLog);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to create access log",
+      };
+    }
+  },
+
+  async logSoftwareAccess(
+    request: SoftwareAccessRequest
+  ): Promise<ApiResponse<AccessLog>> {
+    try {
+      const response = await client.post("/accesslog/software", request);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to log software access",
+      };
+    }
+  },
+
+  async getAccessLogsByVia(
+    via: AccessMethod
+  ): Promise<ApiResponse<AccessLog[]>> {
+    try {
+      const response = await client.get(`/accesslog/via/${via}`);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get access logs by via",
+      };
+    }
+  },
+
+  async getAccessLogSummary(
+    startDate?: string,
+    endDate?: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      const queryString = params.toString();
+      const endpoint = queryString
+        ? `/accesslog/summary?${queryString}`
+        : "/accesslog/summary";
+
+      const data = await client.get(endpoint);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get access log summary",
+      };
+    }
+  },
+};
+
+// Camera Config types and interfaces
+export interface CameraConfig {
+  id: number;
+  name: string;
+  ipAddress: string;
+  port: number;
+  apiKey: string;
+  group: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export interface CreateCameraConfigRequest {
+  name: string;
+  ipAddress: string;
+  port: number;
+  apiKey: string;
+  group: string;
+  isActive: boolean;
+}
+
+export interface UpdateCameraConfigRequest {
+  name: string;
+  ipAddress: string;
+  port: number;
+  apiKey: string;
+  group: string;
+  isActive: boolean;
+}
+
+// Camera Config API methods
+export const cameraConfig = {
+  async getCameraConfigs(): Promise<ApiResponse<CameraConfig[]>> {
+    try {
+      const data = await client.get<CameraConfig[]>("/cameraconfigs");
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get camera configs",
+      };
+    }
+  },
+
+  async getCameras(id: number): Promise<ApiResponse<CameraConfig>> {
+    try {
+      const data = await client.get<CameraConfig>(`/cameraconfigs/${id}`);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get camera config",
+      };
+    }
+  },
+
+  async createCamera(
+    request: CreateCameraConfigRequest
+  ): Promise<ApiResponse<CameraConfig>> {
+    try {
+      const data = await client.post<CameraConfig>("/cameraconfigs", request);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to create camera config",
+      };
+    }
+  },
+
+  async updateCamera(
+    id: number,
+    request: UpdateCameraConfigRequest
+  ): Promise<ApiResponse<CameraConfig>> {
+    try {
+      const data = await client.put<CameraConfig>(
+        `/cameraconfigs/${id}`,
+        request
+      );
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to update camera config",
+      };
+    }
+  },
+
+  async deleteCamera(id: number): Promise<ApiResponse> {
+    try {
+      await client.delete(`/cameraconfigs/${id}`);
+
+      return {
+        success: true,
+        message: "Camera config deleted successfully",
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete camera config",
+      };
+    }
+  },
+};
+
+// IP Scanner types and interfaces
+export interface ScannedDevice {
+  ipAddress: string;
+  macAddress: string;
+  manufacturer: string;
+  openPorts: number[];
+}
+
+// IP Scanner API methods
+export const ipScannerApi = {
+  async scanNetwork(): Promise<ApiResponse<ScannedDevice[]>> {
+    try {
+      const data = await client.get<ScannedDevice[]>("/ipscanner/scan");
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to scan network",
+        data: [],
+      };
+    }
+  },
+};
+
+// Device Activity types and interfaces
+export interface DeviceActivityInfo {
+  deviceId: number;
+  deviceName: string;
+  deviceType: string;
+  rackId: number;
+  rackName: string;
+  containmentId: number;
+  containmentName: string;
+  activityStatus: string;
+  lastDataReceived?: string;
+  minutesSinceLastData?: number;
+  hasRecentData: boolean;
+  topic?: string;
+}
+
+export interface DeviceActivityStatistics {
+  totalDevices: number;
+  onlineDevices: number;
+  offlineDevices: number;
+  warningDevices: number;
+  neverSeenDevices: number;
+  sensorDevices: number;
+  nonSensorDevices: number;
+  devicesWithRecentData: number;
+  lastUpdateTime: string;
+}
+
+// Device Activity API methods
+export const deviceActivityApi = {
+  async getAllDevicesActivity(): Promise<ApiResponse<DeviceActivityInfo[]>> {
+    try {
+      const response = await client.get(`/deviceactivity/all`);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get all devices activity",
+      };
+    }
+  },
+
+  async getDeviceActivity(
+    deviceId: number
+  ): Promise<ApiResponse<DeviceActivityInfo>> {
+    try {
+      const response = await client.get(`/deviceactivity/device/${deviceId}`);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get device activity",
+      };
+    }
+  },
+
+  async isDeviceActive(deviceId: number): Promise<ApiResponse<boolean>> {
+    try {
+      const response = await client.get(
+        `/deviceactivity/device/${deviceId}/active`
+      );
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to check if device is active",
+      };
+    }
+  },
+
+  async updateAllDevicesActivity(): Promise<ApiResponse<string>> {
+    try {
+      const response = await client.post(`/deviceactivity/update-all`);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to update all devices activity",
+      };
+    }
+  },
+
+  async updateSingleDeviceActivity(
+    deviceId: number
+  ): Promise<ApiResponse<string>> {
+    try {
+      const response = await client.post(
+        `/deviceactivity/device/${deviceId}/update`
+      );
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to update device activity",
+      };
+    }
+  },
+
+  async getDeviceActivityStatistics(): Promise<
+    ApiResponse<DeviceActivityStatistics>
+  > {
+    try {
+      const response = await client.get(`/deviceactivity/statistics`);
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get device activity statistics",
+      };
+    }
+  },
+};
+
 // Device Sensor Data API methods
 export const deviceSensorDataApi = {
   async getAllSensorData(
@@ -2908,6 +3512,47 @@ export const deviceSensorDataApi = {
       return {
         success: false,
         message: error.message || "Failed to get sensor data",
+      };
+    }
+  },
+
+  async getSensorData(params: {
+    page?: number;
+    pageSize?: number;
+    deviceId?: number;
+    rackId?: number;
+    containmentId?: number;
+    sensorType?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<DeviceSensorData[]>> {
+    try {
+      const searchParams = new URLSearchParams();
+      
+      // Add all valid parameters
+      if (params.page) searchParams.append("page", String(params.page));
+      if (params.pageSize) searchParams.append("pageSize", String(params.pageSize));
+      if (params.deviceId) searchParams.append("deviceId", String(params.deviceId));
+      if (params.rackId) searchParams.append("rackId", String(params.rackId));
+      if (params.containmentId) searchParams.append("containmentId", String(params.containmentId));
+      if (params.sensorType) searchParams.append("sensorType", params.sensorType);
+      if (params.startDate) searchParams.append("startDate", params.startDate);
+      if (params.endDate) searchParams.append("endDate", params.endDate);
+
+      const queryString = searchParams.toString();
+      const endpoint = queryString ? `/devicesensordata?${queryString}` : "/devicesensordata";
+
+      const data = await client.get<DeviceSensorData[]>(endpoint);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get sensor data",
+        data: [],
       };
     }
   },
@@ -3142,9 +3787,52 @@ export const deviceSensorDataApi = {
       };
     }
   },
-};
 
-// Helper function removed - using existing getAuthToken function
+  async getAvailableSensorTypes(): Promise<ApiResponse<string[]>> {
+    try {
+      const data = await client.get<string[]>("/devicesensordata/sensor-types");
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get available sensor types",
+        data: [],
+      };
+    }
+  },
+
+  async getSensorDataSummary(
+    startDate?: string,
+    endDate?: string
+  ): Promise<ApiResponse<any>> {
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      const queryString = params.toString();
+      const endpoint = queryString 
+        ? `/devicesensordata/summary?${queryString}` 
+        : "/devicesensordata/summary";
+
+      const data = await client.get(endpoint);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get sensor data summary",
+      };
+    }
+  },
+};
 
 // Legacy support - keeping the old api object for backward compatibility
 export const api = {
@@ -3159,5 +3847,9 @@ export const api = {
     return authApi.login({ email, password });
   },
 };
+
+// Export aliases for backward compatibility
+export const accessLogApi = accessLogService;
+export const cameraConfigApi = cameraConfig;
 
 export default api;

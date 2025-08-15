@@ -364,6 +364,76 @@ namespace Backend.Controllers
                 return StatusCode(500, new { success = false, message = "Failed to validate network configuration" });
             }
         }
+
+        /// <summary>
+        /// Revert interface to DHCP
+        /// </summary>
+        [HttpPost("revert-to-dhcp/{interfaceType}")]
+        [Authorize(Roles = "Admin,Developer")]
+        public async Task<IActionResult> RevertToDhcp(NetworkInterfaceType interfaceType)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var success = await _networkService.RevertInterfaceToDhcpAsync(interfaceType, userId);
+                
+                if (success)
+                {
+                    return Ok(new { success = true, message = $"{interfaceType} reverted to DHCP successfully" });
+                }
+
+                return StatusCode(500, new { success = false, message = "Failed to revert to DHCP" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to revert {Interface} to DHCP", interfaceType);
+                return StatusCode(500, new { success = false, message = "Failed to revert interface to DHCP" });
+            }
+        }
+
+        /// <summary>
+        /// Parse current interfaces file and get configurations
+        /// </summary>
+        [HttpGet("parse-interfaces-file")]
+        public async Task<IActionResult> ParseInterfacesFile()
+        {
+            try
+            {
+                var configurations = await _networkService.ParseNetworkInterfacesFileAsync();
+                return Ok(new { success = true, data = configurations });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse network interfaces file");
+                return StatusCode(500, new { success = false, message = "Failed to parse network interfaces file" });
+            }
+        }
+
+        /// <summary>
+        /// Clear all static configurations and revert all to DHCP
+        /// </summary>
+        [HttpPost("clear-all-static")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ClearAllStaticConfigurations()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var success = await _networkService.ClearAllStaticConfigurationsAsync(userId);
+                
+                if (success)
+                {
+                    return Ok(new { success = true, message = "All interfaces reverted to DHCP successfully" });
+                }
+
+                return StatusCode(500, new { success = false, message = "Failed to clear static configurations" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to clear all static configurations");
+                return StatusCode(500, new { success = false, message = "Failed to clear static configurations" });
+            }
+        }
     }
 
     public class TestConnectivityRequest

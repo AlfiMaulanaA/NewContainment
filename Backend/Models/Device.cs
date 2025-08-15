@@ -29,13 +29,20 @@ namespace Backend.Models
         [StringLength(100)]
         public string? Topic { get; set; }
         
+        // Sensor specific fields
+        [StringLength(50)]
+        public string? SensorType { get; set; } // Temperature, Air Flow, Dust Sensor, Vibration, etc.
+        
+        // Non-sensor device fields
+        public int? UCapacity { get; set; } // Rack unit capacity (1U, 2U, 4U, etc.)
+        
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
         public bool IsActive { get; set; } = true;
         
-        public int CreatedBy { get; set; }
+        public int? CreatedBy { get; set; }
         
         public int? UpdatedBy { get; set; }
         

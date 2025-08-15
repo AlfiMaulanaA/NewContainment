@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { CalendarIcon, Settings, Plus, Edit2, Trash2, Eye, Filter, RefreshCw, Wrench, Clock, User, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { getCurrentUserFromToken } from "@/lib/auth-utils";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { 
@@ -66,6 +67,9 @@ export default function MaintenancePage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [targetFilter, setTargetFilter] = useState<MaintenanceTarget | "">("");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [startTime, setStartTime] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>("");
 
   // Form state
   const [formData, setFormData] = useState<CreateMaintenanceRequest>({
@@ -86,6 +90,8 @@ export default function MaintenancePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
+    const user = getCurrentUserFromToken();
+    setCurrentUser(user);
     loadData();
   }, []);
 
@@ -118,8 +124,8 @@ export default function MaintenancePage() {
     const assigneeMatch = !assigneeFilter || assigneeFilter === "all" || maintenance.assignTo.toString() === assigneeFilter;
     
     if (activeTab === "my-tasks") {
-      // TODO: Get current user ID from auth context
-      return statusMatch && targetMatch;
+      const currentUserMatch = currentUser ? maintenance.assignTo.toString() === currentUser.id.toString() : false;
+      return statusMatch && targetMatch && currentUserMatch;
     }
     
     return statusMatch && targetMatch && assigneeMatch;
@@ -137,6 +143,8 @@ export default function MaintenancePage() {
     });
     setStartDate(undefined);
     setEndDate(undefined);
+    setStartTime("");
+    setEndTime("");
   };
 
   const handleCreate = async () => {
@@ -150,10 +158,23 @@ export default function MaintenancePage() {
       return;
     }
 
+    // Combine date and time
+    const startDateTime = new Date(startDate);
+    if (startTime) {
+      const [hours, minutes] = startTime.split(':');
+      startDateTime.setHours(parseInt(hours), parseInt(minutes));
+    }
+    
+    const endDateTime = new Date(endDate);
+    if (endTime) {
+      const [hours, minutes] = endTime.split(':');
+      endDateTime.setHours(parseInt(hours), parseInt(minutes));
+    }
+
     const request: CreateMaintenanceRequest = {
       ...formData,
-      startTask: startDate.toISOString(),
-      endTask: endDate.toISOString()
+      startTask: startDateTime.toISOString(),
+      endTask: endDateTime.toISOString()
     };
 
     const response = await maintenanceApi.createMaintenance(request);
@@ -441,54 +462,72 @@ export default function MaintenancePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Start Date *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !startDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={startDate}
-                          onSelect={setStartDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label>Start Date & Time *</Label>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "flex-1 justify-start text-left font-normal",
+                              !startDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "MMM dd, yyyy") : "Date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="w-32"
+                        placeholder="Time"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>End Date *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(endDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label>End Date & Time *</Label>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "flex-1 justify-start text-left font-normal",
+                              !endDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "MMM dd, yyyy") : "Date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="w-32"
+                        placeholder="Time"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

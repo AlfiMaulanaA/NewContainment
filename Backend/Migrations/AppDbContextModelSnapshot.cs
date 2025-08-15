@@ -17,6 +17,55 @@ namespace Backend.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
 
+            modelBuilder.Entity("Backend.Models.AccessLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdditionalData")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSuccess")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("User")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Via")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("User");
+
+                    b.HasIndex("Via");
+
+                    b.HasIndex("Via", "Timestamp");
+
+                    b.ToTable("AccessLogs");
+                });
+
             modelBuilder.Entity("Backend.Models.ActivityReport", b =>
                 {
                     b.Property<int>("Id")
@@ -61,59 +110,52 @@ namespace Backend.Migrations
                     b.ToTable("ActivityReports");
                 });
 
-            modelBuilder.Entity("Backend.Models.CctvCamera", b =>
+            modelBuilder.Entity("Backend.Models.CameraConfig", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ApiKeys")
+                    b.Property<string>("ApiKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("ContainmentId")
-                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Ip")
+                    b.Property<string>("Group")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Password")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Port")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("StreamUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Username")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("ContainmentId");
+                    b.HasIndex("IpAddress");
 
-                    b.HasIndex("Ip");
+                    b.HasIndex("IsActive");
 
                     b.HasIndex("Name");
 
-                    b.ToTable("CctvCameras");
+                    b.ToTable("CameraConfigs");
                 });
 
             modelBuilder.Entity("Backend.Models.Containment", b =>
@@ -308,6 +350,10 @@ namespace Backend.Migrations
                     b.Property<int>("RackId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SensorType")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("SerialNumber")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -326,6 +372,9 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("UCapacity")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -356,21 +405,19 @@ namespace Backend.Migrations
                     b.Property<int>("DeviceId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal?>("Humidity")
-                        .HasColumnType("decimal(5,2)");
-
                     b.Property<int>("RackId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("RawPayload")
-                        .HasMaxLength(1000)
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("ReceivedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal?>("Temperature")
-                        .HasColumnType("decimal(5,2)");
+                    b.Property<string>("SensorType")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("TEXT");
@@ -678,6 +725,9 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("CapacityU")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ContainmentId")
                         .HasColumnType("INTEGER");
 
@@ -779,16 +829,6 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Backend.Models.CctvCamera", b =>
-                {
-                    b.HasOne("Backend.Models.Containment", "Containment")
-                        .WithMany()
-                        .HasForeignKey("ContainmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Containment");
                 });
 
             modelBuilder.Entity("Backend.Models.Containment", b =>

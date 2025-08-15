@@ -64,7 +64,8 @@ namespace Backend.Controllers
             {
                 Name = request.Name,
                 ContainmentId = request.ContainmentId,
-                Description = request.Description
+                Description = request.Description,
+                CapacityU = request.CapacityU
             };
 
             var createdRack = await _rackService.CreateRackAsync(rack, userId);
@@ -89,7 +90,8 @@ namespace Backend.Controllers
             {
                 Name = request.Name,
                 ContainmentId = request.ContainmentId,
-                Description = request.Description
+                Description = request.Description,
+                CapacityU = request.CapacityU
             };
 
             var updatedRack = await _rackService.UpdateRackAsync(id, rack, userId);
@@ -115,6 +117,13 @@ namespace Backend.Controllers
             return NoContent();
         }
 
+        [HttpDelete("by-containment/{containmentId}")]
+        public async Task<IActionResult> DeleteRacksByContainment(int containmentId)
+        {
+            var result = await _rackService.DeleteRacksByContainmentIdAsync(containmentId);
+            return Ok(new { deletedCount = result });
+        }
+
         private int GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
@@ -137,6 +146,8 @@ namespace Backend.Controllers
         
         [StringLength(500)]
         public string? Description { get; set; }
+        
+        public int CapacityU { get; set; } = 42;
     }
 
     public class UpdateRackRequest
@@ -150,5 +161,7 @@ namespace Backend.Controllers
         
         [StringLength(500)]
         public string? Description { get; set; }
+        
+        public int CapacityU { get; set; } = 42;
     }
 }

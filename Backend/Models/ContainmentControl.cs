@@ -19,7 +19,7 @@ namespace Backend.Models
         
         public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
         
-        public int ExecutedBy { get; set; }
+        public int? ExecutedBy { get; set; }
         
         [StringLength(50)]
         public string Status { get; set; } = "Pending"; // Pending, Sent, Failed

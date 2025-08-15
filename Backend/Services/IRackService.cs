@@ -10,5 +10,6 @@ namespace Backend.Services
         Task<Rack> CreateRackAsync(Rack rack, int userId);
         Task<Rack?> UpdateRackAsync(int id, Rack rack, int userId);
         Task<bool> DeleteRackAsync(int id);
+        Task<int> DeleteRacksByContainmentIdAsync(int containmentId);
     }
 }

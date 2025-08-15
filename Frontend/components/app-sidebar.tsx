@@ -54,6 +54,8 @@ import {
   ChevronDown,
   ChevronRight,
   Video,
+  DoorClosedLocked,
+  FileLock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -116,6 +118,11 @@ const navigation: NavigationGroup[] = [
     title: "Infrastructure",
     items: [
       {
+        title: "Users",
+        url: "/management/users",
+        icon: Users,
+      },
+      {
         title: "Containments",
         url: "/management/containments",
         icon: Server,
@@ -138,17 +145,17 @@ const navigation: NavigationGroup[] = [
     ],
   },
   {
-    title: "Surveillance",
+    title: "Security",
     items: [
       {
-        title: "CCTV Setup",
-        url: "/management/cctv",
+        title: "Camera Setup",
+        url: "/management/camera",
         icon: Video,
       },
       {
-        title: "Live Monitor",
-        url: "/monitoring/cctv",
-        icon: Monitor,
+        title: "Access Control",
+        url: "/access-control",
+        icon: FileLock,
       },
     ],
   },
@@ -159,6 +166,11 @@ const navigation: NavigationGroup[] = [
         title: "Sensor Data",
         url: "/reports/sensor-data",
         icon: BarChart3,
+      },
+      {
+        title: "Access Logs",
+        url: "/reports/access-log",
+        icon: DoorClosedLocked,
       },
       {
         title: "Emergency Logs",

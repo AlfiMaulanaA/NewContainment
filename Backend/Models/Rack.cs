@@ -18,13 +18,16 @@ namespace Backend.Models
         [StringLength(500)]
         public string? Description { get; set; }
 
+        // Rack capacity in U units (1U, 2U, etc.)
+        public int CapacityU { get; set; } = 42; // Default 42U standard rack
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsActive { get; set; } = true;
 
-        public int CreatedBy { get; set; }
+        public int? CreatedBy { get; set; }
 
         public int? UpdatedBy { get; set; }
 

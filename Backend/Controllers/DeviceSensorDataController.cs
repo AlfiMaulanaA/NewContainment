@@ -22,33 +22,30 @@ namespace Backend.Controllers
         }
 
         /// <summary>
-        /// Get all sensor data with pagination
+        /// Get sensor data with advanced filtering and pagination
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetAllSensorData(
+        public async Task<ActionResult<IEnumerable<DeviceSensorData>>> GetSensorData(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int pageSize = 50,
+            [FromQuery] int? deviceId = null,
+            [FromQuery] int? rackId = null,
+            [FromQuery] int? containmentId = null,
+            [FromQuery] string? sensorType = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
         {
             try
             {
-                var allData = await _sensorDataService.GetAllSensorDataAsync();
-                var pagedData = allData.Skip((page - 1) * pageSize).Take(pageSize);
+                var (data, total) = await _sensorDataService.GetSensorDataAsync(
+                    page, pageSize, deviceId, rackId, containmentId, sensorType, startDate, endDate);
 
-                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
-                {
-                    Success = true,
-                    Data = pagedData,
-                    Message = $"Retrieved {pagedData.Count()} sensor data records (page {page})"
-                });
+                return Ok(data);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving all sensor data");
-                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
-                {
-                    Success = false,
-                    Message = "Internal server error"
-                });
+                _logger.LogError(ex, "Error retrieving sensor data");
+                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -241,59 +238,29 @@ namespace Backend.Controllers
         }
 
         /// <summary>
-        /// Get temperature history for a device
+        /// Get data history for a specific key in device sensor data
         /// </summary>
-        [HttpGet("device/{deviceId}/temperature-history")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetTemperatureHistory(
+        [HttpGet("device/{deviceId}/data-history/{dataKey}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetDataHistory(
             int deviceId,
+            string dataKey,
             [FromQuery] int hours = 24)
         {
             try
             {
                 var timeRange = TimeSpan.FromHours(hours);
-                var history = await _sensorDataService.GetTemperatureHistoryAsync(deviceId, timeRange);
+                var history = await _sensorDataService.GetDataHistoryAsync(deviceId, dataKey, timeRange);
                 
                 return Ok(new ApiResponse<IEnumerable<object>>
                 {
                     Success = true,
                     Data = history,
-                    Message = $"Temperature history for device {deviceId} (last {hours} hours)"
+                    Message = $"{dataKey} history for device {deviceId} (last {hours} hours)"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving temperature history for device {DeviceId}", deviceId);
-                return StatusCode(500, new ApiResponse<IEnumerable<object>>
-                {
-                    Success = false,
-                    Message = "Internal server error"
-                });
-            }
-        }
-
-        /// <summary>
-        /// Get humidity history for a device
-        /// </summary>
-        [HttpGet("device/{deviceId}/humidity-history")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetHumidityHistory(
-            int deviceId,
-            [FromQuery] int hours = 24)
-        {
-            try
-            {
-                var timeRange = TimeSpan.FromHours(hours);
-                var history = await _sensorDataService.GetHumidityHistoryAsync(deviceId, timeRange);
-                
-                return Ok(new ApiResponse<IEnumerable<object>>
-                {
-                    Success = true,
-                    Data = history,
-                    Message = $"Humidity history for device {deviceId} (last {hours} hours)"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving humidity history for device {DeviceId}", deviceId);
+                _logger.LogError(ex, "Error retrieving {DataKey} history for device {DeviceId}", dataKey, deviceId);
                 return StatusCode(500, new ApiResponse<IEnumerable<object>>
                 {
                     Success = false,
@@ -357,6 +324,80 @@ namespace Backend.Controllers
         }
 
         /// <summary>
+        /// Get aggregated sensor data for charts
+        /// </summary>
+        [HttpGet("device/{deviceId}/aggregated/{dataKey}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<object>>>> GetAggregatedData(
+            int deviceId,
+            string dataKey,
+            [FromQuery] string interval = "hour",
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var start = startDate ?? DateTime.UtcNow.AddDays(-7);
+                var end = endDate ?? DateTime.UtcNow;
+                
+                var data = await _sensorDataService.GetAggregatedDataAsync(deviceId, dataKey, interval, start, end);
+                
+                return Ok(new ApiResponse<IEnumerable<object>>
+                {
+                    Success = true,
+                    Data = data,
+                    Message = $"Aggregated {dataKey} data for device {deviceId} ({interval} intervals)"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving aggregated data for device {DeviceId}", deviceId);
+                return StatusCode(500, new ApiResponse<IEnumerable<object>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get available sensor types
+        /// </summary>
+        [HttpGet("sensor-types")]
+        public async Task<ActionResult<IEnumerable<string>>> GetAvailableSensorTypes()
+        {
+            try
+            {
+                var sensorTypes = await _sensorDataService.GetAvailableSensorTypesAsync();
+                return Ok(sensorTypes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving sensor types");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get sensor data summary
+        /// </summary>
+        [HttpGet("summary")]
+        public async Task<ActionResult<object>> GetSensorDataSummary(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var summary = await _sensorDataService.GetSensorDataSummaryAsync(startDate, endDate);
+                return Ok(summary);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving sensor data summary");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// Manually parse and store sensor data (for testing)
         /// </summary>
         [HttpPost("device/{deviceId}/parse")]
@@ -402,12 +443,5 @@ namespace Backend.Controllers
     {
         public string Topic { get; set; } = string.Empty;
         public string Payload { get; set; } = string.Empty;
-    }
-
-    public class ApiResponse<T>
-    {
-        public bool Success { get; set; }
-        public T? Data { get; set; }
-        public string Message { get; set; } = string.Empty;
     }
 }

@@ -23,7 +23,7 @@ namespace Backend.Services
                 var sensorDevices = await _context.Devices
                     .Where(d => d.IsActive && d.Type.ToLower() == "sensor")
                     .Include(d => d.Rack)
-                    .ThenInclude(r => r.Containment)
+                    .ThenInclude(r => r!.Containment)
                     .ToListAsync();
 
                 if (!sensorDevices.Any())
@@ -68,17 +68,17 @@ namespace Backend.Services
                                 temperature = Math.Max(15, Math.Min(40, temperature)); // 15-40°C
                                 humidity = Math.Max(30, Math.Min(80, humidity)); // 30-80%
 
+                                var rawPayload = $"{{\"temp\":{temperature:F1},\"hum\":{humidity:F0},\"device_id\":{device.Id},\"timestamp\":\"{timestamp:yyyy-MM-ddTHH:mm:ssZ}\"}}";
+                                
                                 var sensorData = new DeviceSensorData
                                 {
                                     DeviceId = device.Id,
                                     RackId = device.Rack?.Id ?? 0,
                                     ContainmentId = device.Rack?.Containment?.Id ?? 0,
                                     Topic = device.Topic ?? $"IOT/Containment/Sensor_TH/Rack_{device.RackId}",
-                                    Temperature = temperature,
-                                    Humidity = humidity,
                                     Timestamp = timestamp,
                                     ReceivedAt = timestamp.AddSeconds(random.Next(1, 30)), // Small delay for realism
-                                    RawPayload = $"{{\"temp\":{temperature},\"hum\":{humidity},\"timestamp\":\"{timestamp:yyyy-MM-dd HH:mm:ss}\"}}"
+                                    RawPayload = rawPayload
                                 };
 
                                 sensorDataList.Add(sensorData);

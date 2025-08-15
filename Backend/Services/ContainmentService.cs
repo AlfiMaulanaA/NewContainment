@@ -18,7 +18,6 @@ namespace Backend.Services
             return await _context.Containments
                 .Include(c => c.CreatedByUser)
                 .Include(c => c.UpdatedByUser)
-                .Where(c => c.IsActive)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
         }
@@ -28,7 +27,7 @@ namespace Backend.Services
             return await _context.Containments
                 .Include(c => c.CreatedByUser)
                 .Include(c => c.UpdatedByUser)
-                .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
 
         public async Task<Containment> CreateContainmentAsync(Containment containment, int userId)
@@ -47,7 +46,7 @@ namespace Backend.Services
         public async Task<Containment?> UpdateContainmentAsync(int id, Containment containment, int userId)
         {
             var existingContainment = await _context.Containments.FindAsync(id);
-            if (existingContainment == null || !existingContainment.IsActive)
+            if (existingContainment == null)
             {
                 return null;
             }
@@ -66,14 +65,30 @@ namespace Backend.Services
 
         public async Task<bool> DeleteContainmentAsync(int id)
         {
-            var containment = await _context.Containments.FindAsync(id);
-            if (containment == null || !containment.IsActive)
+            var containment = await _context.Containments
+                .Include(c => c.Racks)
+                    .ThenInclude(r => r.Devices)
+                .FirstOrDefaultAsync(c => c.Id == id);
+                
+            if (containment == null)
             {
                 return false;
             }
 
-            containment.IsActive = false;
-            containment.UpdatedAt = DateTime.UtcNow;
+            // Cascade hard delete: remove all related devices first
+            foreach (var rack in containment.Racks)
+            {
+                foreach (var device in rack.Devices)
+                {
+                    _context.Devices.Remove(device);
+                }
+                
+                // Then remove the rack
+                _context.Racks.Remove(rack);
+            }
+
+            // Finally remove the containment
+            _context.Containments.Remove(containment);
             
             await _context.SaveChangesAsync();
             return true;

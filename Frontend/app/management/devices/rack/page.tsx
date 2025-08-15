@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -71,25 +72,16 @@ import {
   Rack,
   CreateDeviceRequest,
   UpdateDeviceRequest,
+  DeviceType,
+  SensorType,
 } from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 10;
-const DEVICE_TYPES = [
-  "Server",
-  "Switch",
-  "Router",
-  "Firewall",
-  "Load Balancer",
-  "Storage",
-  "UPS",
-  "PDU",
-  "KVM",
-  "Sensor",
-  "Other",
-];
+const DEVICE_TYPES = Object.values(DeviceType);
+const SENSOR_TYPES = Object.values(SensorType);
 
 const DEVICE_STATUSES = [
   "Active",
@@ -124,8 +116,9 @@ function RackDevicesContent() {
     rackId: rackId ? parseInt(rackId) : 0,
     description: "",
     serialNumber: "",
-    status: "Active",
     topic: "",
+    sensorType: "",
+    uCapacity: undefined,
   });
 
   // Hooks for sorting and filtering
@@ -199,8 +192,9 @@ function RackDevicesContent() {
       rackId: rackId ? parseInt(rackId) : 0,
       description: "",
       serialNumber: "",
-      status: "Active",
       topic: "",
+      sensorType: "",
+      uCapacity: undefined,
     });
     setEditingDevice(null);
   };
@@ -245,8 +239,9 @@ function RackDevicesContent() {
       rackId: device.rackId,
       description: device.description || "",
       serialNumber: device.serialNumber || "",
-      status: device.status || "Active",
       topic: device.topic || "",
+      sensorType: device.sensorType || "",
+      uCapacity: device.uCapacity,
     });
     setShowEditDialog(true);
   };
@@ -384,6 +379,9 @@ function RackDevicesContent() {
                     <div> Add Device to {rack?.name || rackName}</div>
                   </div>
                 </DialogTitle>
+                <DialogDescription>
+                  Create a new device in this rack. Choose the device type and fill in the required information.
+                </DialogDescription>
               </DialogHeader>
               {/* Mengubah tata letak menjadi 2 kolom */}
               <div className="grid grid-cols-2 gap-4 py-4">
@@ -406,7 +404,12 @@ function RackDevicesContent() {
                   <Select
                     value={formData.type}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, type: value })
+                      setFormData({
+                        ...formData,
+                        type: value,
+                        sensorType: "",
+                        uCapacity: undefined,
+                      })
                     }
                   >
                     <SelectTrigger>
@@ -435,6 +438,64 @@ function RackDevicesContent() {
                   />
                 </div>
 
+                {/* Conditional Fields - Sensor Type or U Capacity */}
+                {formData.type === DeviceType.Sensor && (
+                  <div>
+                    <Label htmlFor="sensorType">Sensor Type *</Label>
+                    <Select
+                      value={formData.sensorType || ""}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, sensorType: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sensor type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SENSOR_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {formData.type && formData.type !== DeviceType.Sensor && (
+                  <div>
+                    <Label htmlFor="uCapacity">U Capacity *</Label>
+                    <Select
+                      value={
+                        formData.uCapacity
+                          ? formData.uCapacity.toString()
+                          : ""
+                      }
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          uCapacity: parseInt(value) || undefined,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select U capacity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1U</SelectItem>
+                        <SelectItem value="2">2U</SelectItem>
+                        <SelectItem value="3">3U</SelectItem>
+                        <SelectItem value="4">4U</SelectItem>
+                        <SelectItem value="5">5U</SelectItem>
+                        <SelectItem value="6">6U</SelectItem>
+                        <SelectItem value="8">8U</SelectItem>
+                        <SelectItem value="10">10U</SelectItem>
+                        <SelectItem value="12">12U</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {/* Baris 2, Kolom 2 */}
                 <div>
                   <Label htmlFor="status">Status</Label>
@@ -457,18 +518,20 @@ function RackDevicesContent() {
                   </Select>
                 </div>
 
-                {/* Field MQTT Topic dan Description akan mengambil lebar penuh (span-2) */}
-                <div className="col-span-2">
-                  <Label htmlFor="topic">MQTT Topic</Label>
-                  <Input
-                    id="topic"
-                    value={formData.topic}
-                    onChange={(e) =>
-                      setFormData({ ...formData, topic: e.target.value })
-                    }
-                    placeholder="Enter MQTT topic"
-                  />
-                </div>
+                {/* Conditional MQTT Topic field - only for sensors */}
+                {formData.type === DeviceType.Sensor && (
+                  <div className="col-span-2">
+                    <Label htmlFor="topic">MQTT Topic</Label>
+                    <Input
+                      id="topic"
+                      value={formData.topic}
+                      onChange={(e) =>
+                        setFormData({ ...formData, topic: e.target.value })
+                      }
+                      placeholder="Enter MQTT topic"
+                    />
+                  </div>
+                )}
                 <div className="col-span-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -660,7 +723,7 @@ function RackDevicesContent() {
                             {device.status || "Unknown"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
+                        <TableCell className="font-mono text-sm max-w-xs truncate">
                           {device.topic || "-"}
                         </TableCell>
                         <TableCell className="max-w-xs truncate">
@@ -775,86 +838,142 @@ function RackDevicesContent() {
 
       {/* Edit Device Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Device: {editingDevice?.name}</DialogTitle>
+            <DialogDescription>
+              Update the device information. Modify the fields below and click Update to save changes.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div>
-              <Label htmlFor="edit-name">Device Name *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                placeholder="Enter device name"
-              />
+            {/* Row 1: Device Name and Type */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-name">Device Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="Enter device name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-type">Device Type *</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      type: value,
+                      sensorType: "",
+                      uCapacity: undefined,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select device type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEVICE_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="edit-type">Device Type *</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select device type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEVICE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Row 2: Conditional Fields - Sensor Type or U Capacity */}
+            <div className="grid grid-cols-2 gap-4">
+              {formData.type === DeviceType.Sensor && (
+                <div>
+                  <Label htmlFor="edit-sensorType">Sensor Type *</Label>
+                  <Select
+                    value={formData.sensorType || ""}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, sensorType: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sensor type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SENSOR_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.type && formData.type !== DeviceType.Sensor && (
+                <div>
+                  <Label htmlFor="edit-uCapacity">U Capacity *</Label>
+                  <Select
+                    value={
+                      formData.uCapacity ? formData.uCapacity.toString() : ""
+                    }
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        uCapacity: parseInt(value) || undefined,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select U capacity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1U</SelectItem>
+                      <SelectItem value="2">2U</SelectItem>
+                      <SelectItem value="3">3U</SelectItem>
+                      <SelectItem value="4">4U</SelectItem>
+                      <SelectItem value="5">5U</SelectItem>
+                      <SelectItem value="6">6U</SelectItem>
+                      <SelectItem value="8">8U</SelectItem>
+                      <SelectItem value="10">10U</SelectItem>
+                      <SelectItem value="12">12U</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="edit-serialNumber">Serial Number</Label>
+                <Input
+                  id="edit-serialNumber"
+                  value={formData.serialNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, serialNumber: e.target.value })
+                  }
+                  placeholder="Enter serial number"
+                />
+              </div>
             </div>
+
+            {/* Row 3: MQTT Topic (only for sensors) */}
+            {formData.type === DeviceType.Sensor && (
+              <div>
+                <Label htmlFor="edit-topic">MQTT Topic</Label>
+                <Input
+                  id="edit-topic"
+                  value={formData.topic}
+                  onChange={(e) =>
+                    setFormData({ ...formData, topic: e.target.value })
+                  }
+                  placeholder="Enter MQTT topic"
+                />
+              </div>
+            )}
+
+            {/* Row 4: Description */}
             <div>
-              <Label htmlFor="edit-serialNumber">Serial Number</Label>
-              <Input
-                id="edit-serialNumber"
-                value={formData.serialNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, serialNumber: e.target.value })
-                }
-                placeholder="Enter serial number"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-status">Status</Label>
-              <Select
-                value={formData.status || "Active"}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, status: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEVICE_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-topic">MQTT Topic</Label>
-              <Input
-                id="edit-topic"
-                value={formData.topic}
-                onChange={(e) =>
-                  setFormData({ ...formData, topic: e.target.value })
-                }
-                placeholder="Enter MQTT topic"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">Description (Optional)</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}

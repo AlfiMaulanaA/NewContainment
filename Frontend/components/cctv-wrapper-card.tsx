@@ -46,16 +46,16 @@ export default function CCTVWrapperCard({
   const getGridClasses = (layout: GridLayout): string => {
     switch (layout) {
       case "1x1":
-        return "w-full"; // Full width for single view
+        return "flex justify-center"; // Center single item, full width
       case "2x2":
-        return "grid grid-cols-1 lg:grid-cols-2 gap-6"; // 2 columns = 50% each
+        return "grid grid-cols-1 xl:grid-cols-2 gap-6"; // 2 columns = 50% each on large screens
       case "3x3":
-        return "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"; // 3 columns = 33.33% each
+        return "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"; // 3 columns = 33.33% each
       case "4x2":
-        return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"; // 4 columns = 25% each
+        return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"; // 4 columns = 25% each
       case "auto":
       default:
-        return "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+        return "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6";
     }
   };
 
@@ -158,7 +158,9 @@ export default function CCTVWrapperCard({
         {/* Fullscreen CCTV Content */}
         <div className="flex-1 p-4 overflow-auto">
           <div className={getGridClasses(currentLayout)}>
-            <ModernCCTVWidget key={refreshKey} layout={currentLayout} />
+            <div className={currentLayout === "1x1" ? "w-full max-w-none" : ""}>
+              <ModernCCTVWidget key={refreshKey} layout={currentLayout} />
+            </div>
           </div>
         </div>
       </div>
@@ -234,7 +236,9 @@ export default function CCTVWrapperCard({
 
       <CardContent className={compact ? "p-4" : "p-6"}>
         <div className={getGridClasses(currentLayout)}>
-          <ModernCCTVWidget key={refreshKey} layout={currentLayout} />
+          <div className={currentLayout === "1x1" ? "w-full max-w-none" : ""}>
+            <ModernCCTVWidget key={refreshKey} layout={currentLayout} />
+          </div>
         </div>
       </CardContent>
     </Card>

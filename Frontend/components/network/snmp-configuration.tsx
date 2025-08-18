@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RefreshCw, Save, Wifi, Loader2 } from "lucide-react";
-import { useMQTT } from "@/lib/mqtt-manager";
+import { useMQTT } from "@/hooks/useMQTT";
 import { CardSkeleton } from "@/components/loading-skeleton";
 
 // MQTT Topics
@@ -103,7 +103,7 @@ const SNMPConfiguration: React.FC<SNMPConfigurationProps> = ({ isLoading: parent
   }), []);
 
   const sendCommandRestartService = useCallback(async (serviceName: string, action: string, confirmMessage?: string): Promise<boolean> => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error("MQTT not connected. Please wait for connection or refresh.");
       return false;
     }
@@ -141,7 +141,7 @@ const SNMPConfiguration: React.FC<SNMPConfigurationProps> = ({ isLoading: parent
   }, [publish, isConnected]);
 
   const getConfig = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.warning("MQTT not connected. Cannot retrieve SNMP settings.");
       setIsLoading(false);
       return;
@@ -160,7 +160,7 @@ const SNMPConfiguration: React.FC<SNMPConfigurationProps> = ({ isLoading: parent
   }, [publish, isConnected]);
 
   const checkStatus = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.warning("MQTT not connected. Cannot check SNMP status.");
       return;
     }
@@ -174,7 +174,7 @@ const SNMPConfiguration: React.FC<SNMPConfigurationProps> = ({ isLoading: parent
   }, [publish, isConnected]);
 
   const writeConfig = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error("MQTT client not connected. Cannot save configuration.");
       return;
     }
@@ -259,9 +259,9 @@ const SNMPConfiguration: React.FC<SNMPConfigurationProps> = ({ isLoading: parent
   useEffect(() => {
     if (parentLoading) return;
 
-    const handleMessage = (topic: string, message: Buffer) => {
+    const handleMessage = (topic: string, message: string) => {
       try {
-        const payload = JSON.parse(message.toString());
+        const payload = JSON.parse(message);
 
         if (topic === SNMP_SETTING_TOPIC_DATA) {
           const updatedFormData: SnmpConfig = {
@@ -332,7 +332,7 @@ const SNMPConfiguration: React.FC<SNMPConfigurationProps> = ({ isLoading: parent
       await subscribe(SERVICE_RESPONSE_TOPIC, handleMessage, "snmp-config");
 
       // Request initial data
-      if (isConnected()) {
+      if (isConnected) {
         getConfig();
         checkStatus();
       }

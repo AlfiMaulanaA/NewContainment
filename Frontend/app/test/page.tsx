@@ -1,315 +1,261 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MqttClient, IClientOptions } from "mqtt";
-import {
-  Download,
-  BarChart3,
-  Table2,
-  TrendingUp,
-  Filter,
-  RefreshCw,
-  Activity,
-  Server,
-  Database,
-  Thermometer,
-  Droplets,
-  Gauge,
-  LineChart,
-} from "lucide-react";
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
+import { Download, Box } from "lucide-react";
 
-// Menggunakan impor komponen dari file lokal Anda
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table as UITable,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
-const App = () => {
-  const [client, setClient] = useState<MqttClient | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
-  const [mode, setMode] = useState<string>("reading sensor");
-  const [commandInput, setCommandInput] = useState<string>("");
-  const [dataInput, setDataInput] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("control");
-
-  // Topik untuk komunikasi MQTT
-  const COMMAND_TOPIC: string = "IOT/Containment/Sensor/Config";
-  const RESPONSE_TOPIC: string = "IOT/Containment/Sensor/Config/Data";
+export default function Rack3DViewer() {
+  // Use a ref to get a reference to the canvas element
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    let newClient: MqttClient | null = null;
+    // Pastikan canvas sudah tersedia sebelum melanjutkan
+    if (!canvasRef.current) return;
 
-    const connectToMqtt = async () => {
-      try {
-        const mqtt = (await import("mqtt")).default;
-        const options: IClientOptions = {
-          protocol: "ws",
-        };
-        newClient = mqtt.connect("ws://192.168.0.138:9000", options);
-        setClient(newClient);
+    // Set up the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      antialias: true,
+      alpha: true, // Make the background transparent
+    });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-        newClient.on("connect", () => {
-          console.log("Connected to MQTT Broker!");
-          setIsConnected(true);
-          if (newClient) {
-            newClient.subscribe(RESPONSE_TOPIC, (err) => {
-              if (err) {
-                console.error("Subscription error:", err);
-              }
-            });
-          }
-        });
+    // Add ambient light for overall scene illumination
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
 
-        newClient.on("message", (topic: string, message: Buffer) => {
-          try {
-            const payload = JSON.parse(message.toString());
-            setReceivedMessages((prevMessages) => [payload, ...prevMessages]); // Pesan terbaru di atas
-            console.log(`Message received from topic ${topic}:`, payload);
-          } catch (e) {
-            console.error("Failed to parse message:", e);
-          }
-        });
+    // Add directional light for shadows and highlights
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    scene.add(directionalLight);
 
-        newClient.on("error", (err) => {
-          console.error("Connection error:", err);
-        });
+    // Group to hold all containment objects so they rotate together
+    const containmentGroup = new THREE.Group();
+    scene.add(containmentGroup);
 
-        newClient.on("close", () => {
-          console.log("Connection to MQTT broker closed");
-          setIsConnected(false);
-        });
-      } catch (err) {
-        console.error("Failed to connect to MQTT:", err);
+    // Create two rows of racks facing each other
+    const numRacks = 4;
+    const rackWidth = 2; // Defined rack width
+    const rackDepth = 1.5; // Defined rack depth
+    const rackSpacing = rackWidth + 0.1; // Make the gap between racks very small
+    const rowSpacing = rackDepth * 2; // Gap between rows is 2x rack depth
+
+    const rackGeometry = new THREE.BoxGeometry(rackWidth, 4, rackDepth);
+    const rackMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2c2c2c, // Dark gray for a sleek look
+      metalness: 0.8,
+      roughness: 0.5,
+    });
+    const slotMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1a, // Even darker for contrast
+      metalness: 0.9,
+      roughness: 0.6,
+    });
+
+    for (let i = 0; i < numRacks; i++) {
+      // First row of racks
+      const rack1 = new THREE.Mesh(rackGeometry, rackMaterial);
+      rack1.position.set(
+        i * rackSpacing - ((numRacks - 1) / 2) * rackSpacing,
+        0,
+        -rowSpacing / 2
+      );
+      containmentGroup.add(rack1);
+      // Add server slots
+      for (let j = 0; j < 5; j++) {
+        const slot = new THREE.Mesh(
+          new THREE.BoxGeometry(rackWidth - 0.2, 0.2, rackDepth - 0.1),
+          slotMaterial
+        );
+        slot.position.y = 1.5 - j * 0.7;
+        rack1.add(slot);
       }
+
+      // Second row of racks
+      const rack2 = new THREE.Mesh(rackGeometry, rackMaterial);
+      rack2.position.set(
+        i * rackSpacing - ((numRacks - 1) / 2) * rackSpacing,
+        0,
+        rowSpacing / 2
+      );
+      rack2.rotation.y = 0; // Rotate to face the same direction as the first row
+      containmentGroup.add(rack2);
+      // Add server slots
+      for (let j = 0; j < 5; j++) {
+        const slot = new THREE.Mesh(
+          new THREE.BoxGeometry(rackWidth - 0.2, 0.2, rackDepth - 0.1),
+          slotMaterial
+        );
+        slot.position.y = 1.5 - j * 0.7;
+        rack2.add(slot);
+      }
+    }
+
+    // Create transparent roof for the corridor
+    const roofGeometry = new THREE.BoxGeometry(
+      (numRacks - 1) * rackSpacing + rackWidth + 0.5,
+      0.1,
+      rowSpacing + 0.5
+    );
+    const roofMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5882fa,
+      transparent: true,
+      opacity: 0.2,
+      roughness: 0.2,
+      metalness: 0.2,
+    });
+    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+    roof.position.y = 2.2;
+    containmentGroup.add(roof);
+
+    // Create front and back sliding doors
+    const doorGeometry = new THREE.BoxGeometry(
+      (numRacks - 1) * rackSpacing + rackWidth + 0.5,
+      4.5,
+      0.1
+    );
+    const doorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5882fa,
+      transparent: true,
+      opacity: 0.2,
+      roughness: 0.2,
+      metalness: 0.2,
+    });
+
+    const frontDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+    frontDoor.position.z = -rowSpacing / 2 - rackDepth / 2 - 0.1;
+    frontDoor.position.y = 0;
+    containmentGroup.add(frontDoor);
+
+    const backDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+    backDoor.position.z = rowSpacing / 2 + rackDepth / 2 + 0.1;
+    backDoor.position.y = 0;
+    containmentGroup.add(backDoor);
+
+    camera.position.z = 10;
+    camera.position.y = 2;
+
+    // Variables for mouse interaction
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    // Function to handle window resizing
+    const handleResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
-    connectToMqtt();
+    // Animation loop to render the scene
+    const animate = () => {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
 
+    // Mouse event listeners for rotation
+    const handleMouseDown = (e: MouseEvent) => {
+      isDragging = true;
+      previousMousePosition.x = e.clientX;
+      previousMousePosition.y = e.clientY;
+    };
+
+    const handleMouseUp = () => {
+      isDragging = false;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !canvasRef.current) return;
+      const deltaX = e.clientX - previousMousePosition.x;
+      const deltaY = e.clientY - previousMousePosition.y;
+
+      containmentGroup.rotation.y += deltaX * 0.005;
+      containmentGroup.rotation.x += deltaY * 0.005;
+
+      previousMousePosition.x = e.clientX;
+      previousMousePosition.y = e.clientY;
+    };
+
+    // Touch event listeners for rotation on mobile
+    const handleTouchStart = (e: TouchEvent) => {
+      isDragging = true;
+      const touch = e.touches[0];
+      previousMousePosition.x = touch.clientX;
+      previousMousePosition.y = touch.clientY;
+    };
+
+    const handleTouchEnd = () => {
+      isDragging = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging || e.touches.length === 0 || !canvasRef.current) return;
+      const touch = e.touches[0];
+
+      const deltaX = touch.clientX - previousMousePosition.x;
+      const deltaY = touch.clientY - previousMousePosition.y;
+
+      containmentGroup.rotation.y += deltaX * 0.005;
+      containmentGroup.rotation.x += deltaY * 0.005;
+
+      previousMousePosition.x = touch.clientX;
+      previousMousePosition.y = touch.clientY;
+    };
+
+    // Add event listeners
+    window.addEventListener("resize", handleResize);
+    canvasRef.current.addEventListener("mousedown", handleMouseDown);
+    canvasRef.current.addEventListener("mouseup", handleMouseUp);
+    canvasRef.current.addEventListener("mousemove", handleMouseMove);
+    canvasRef.current.addEventListener("touchstart", handleTouchStart);
+    canvasRef.current.addEventListener("touchend", handleTouchEnd);
+    canvasRef.current.addEventListener("touchmove", handleTouchMove);
+
+    // Start the animation loop
+    animate();
+    handleResize();
+
+    // Cleanup function to remove event listeners on unmount
     return () => {
-      if (newClient) {
-        newClient.end();
+      if (canvasRef.current) {
+        canvasRef.current.removeEventListener("mousedown", handleMouseDown);
+        canvasRef.current.removeEventListener("mouseup", handleMouseUp);
+        canvasRef.current.removeEventListener("mousemove", handleMouseMove);
+        canvasRef.current.removeEventListener("touchstart", handleTouchStart);
+        canvasRef.current.removeEventListener("touchend", handleTouchEnd);
+        canvasRef.current.removeEventListener("touchmove", handleTouchMove);
       }
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  const publishCommand = (command: string, data: Record<string, any> = {}) => {
-    if (client && isConnected) {
-      const payload: string = JSON.stringify({ command, data });
-      client.publish(COMMAND_TOPIC, payload, (err) => {
-        if (err) {
-          console.error("Failed to publish message:", err);
-        } else {
-          console.log(`Command published: ${payload}`);
-        }
-      });
-    } else {
-      console.warn("Client is not connected. Cannot publish message.");
-    }
-  };
-
-  const handleManualCommand = (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const data: Record<string, any> = dataInput ? JSON.parse(dataInput) : {};
-      publishCommand(commandInput, data);
-      setCommandInput("");
-      setDataInput("");
-    } catch (error) {
-      console.error("Failed to parse data JSON:", error);
-      console.error("Error: Data JSON tidak valid.");
-    }
-  };
-
-  const renderConnectionStatus = () => (
-    <div className="flex items-center gap-2">
-      <div
-        className={`w-3 h-3 rounded-full ${
-          isConnected ? "bg-green-500" : "bg-red-500"
-        }`}
-      />
-      <span
-        className={`font-bold ${
-          isConnected ? "text-green-600" : "text-red-600"
-        }`}
-      >
-        {isConnected ? "Terhubung" : "Tidak Terhubung"}
-      </span>
-    </div>
-  );
-
-  const renderControlPanel = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Current Mode</CardTitle>
-          <Badge
-            className={`w-fit mt-2 ${
-              mode === "reading sensor"
-                ? "bg-indigo-500 text-white"
-                : "bg-gray-500 text-white"
-            }`}
-          >
-            <Database className="mr-2 h-4 w-4" />
-            <span className="capitalize">{mode}</span>
-          </Badge>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <Button
-            onClick={() => {
-              publishCommand("change mode to reading sensor");
-              setMode("reading sensor");
-            }}
-            disabled={!isConnected}
-            className={`w-full ${
-              mode === "reading sensor"
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                : "bg-gray-200 hover:bg-gray-300"
-            }`}
-          >
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Reading Sensor
-          </Button>
-          <Button
-            onClick={() => {
-              publishCommand("change mode to scan");
-              setMode("scan address");
-            }}
-            disabled={!isConnected}
-            className={`w-full ${
-              mode === "scan address"
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                : "bg-gray-200 hover:bg-gray-300"
-            }`}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Scan Address
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Manual Commands</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleManualCommand} className="space-y-3">
-            <input
-              type="text"
-              placeholder="Enter command (e.g., get sensor list)"
-              value={commandInput}
-              onChange={(e) => setCommandInput(e.target.value)}
-              className="w-full p-2 rounded-md border"
-            />
-            <textarea
-              placeholder="Enter data JSON (optional)"
-              value={dataInput}
-              onChange={(e) => setDataInput(e.target.value)}
-              rows={3}
-              className="w-full p-2 rounded-md border"
-            />
-            <Button
-              type="submit"
-              disabled={!isConnected || !commandInput}
-              className="w-full bg-indigo-500 text-white hover:bg-indigo-600"
-            >
-              <Server className="mr-2 h-4 w-4" />
-              Send Command
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderDataDisplay = () => (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>Received Responses</CardTitle>
-        <Button className="w-fit" onClick={() => setReceivedMessages([])}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Clear Log
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="max-h-96 overflow-y-auto">
-          {receivedMessages.length > 0 ? (
-            <ul className="space-y-2">
-              {receivedMessages.map((msg, index: number) => (
-                <li
-                  key={index}
-                  className="bg-gray-50 p-3 rounded-md shadow-sm text-sm break-words"
-                >
-                  <strong className="text-blue-600">Command:</strong>{" "}
-                  {msg.command || "N/A"}
-                  <br />
-                  <strong className="text-green-600">Result:</strong>{" "}
-                  {msg.result || "N/A"}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-center text-gray-500 py-10">
-              No messages received yet.
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-100 p-8 font-sans">
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white rounded-lg shadow-md mb-6">
-        <BarChart3 className="h-5 w-5 text-gray-700" />
-        <h1 className="text-lg font-semibold text-gray-900">
-          IoT Sensor Dashboard
-        </h1>
-        <div className="ml-auto">{renderConnectionStatus()}</div>
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <div className="flex items-center gap-2">
+          <Box className="h-5 w-5" />
+          <h1 className="text-lg font-semibold">3D Rack Viewer</h1>
+        </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-4">
-        <Tabs defaultValue="control" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger
-              value="control"
-              onClick={() => setActiveTab("control")}
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Control Panel
-            </TabsTrigger>
-            <TabsTrigger value="data" onClick={() => setActiveTab("data")}>
-              <Table2 className="mr-2 h-4 w-4" />
-              Data Log
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="control" className="mt-6">
-            {renderControlPanel()}
-          </TabsContent>
-          <TabsContent value="data" className="mt-6">
-            {renderDataDisplay()}
-          </TabsContent>
-        </Tabs>
+      <div className="flex flex-1 flex-col p-0 items-center justify-center">
+        <div className="w-full h-full">
+          <canvas ref={canvasRef} className="w-full h-full rounded-none" />
+        </div>
       </div>
-    </div>
+    </SidebarInset>
   );
-};
-
-export default App;
+}

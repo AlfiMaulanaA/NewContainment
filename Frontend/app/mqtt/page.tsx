@@ -30,15 +30,30 @@ import {
 } from "@/lib/api-service";
 import { PageSkeleton } from "@/components/loading-skeleton";
 
-// Lazy load heavy components
-const MQTTOverview = React.lazy(() => import("@/components/mqtt/mqtt-overview"));
-const MQTTManagement = React.lazy(() => import("@/components/mqtt/mqtt-management"));
+// Optimized lazy loading with preload
+const MQTTOverview = React.lazy(() => 
+  import("@/components/mqtt/mqtt-overview").then(module => ({
+    default: module.default
+  }))
+);
 
-// Component loading fallback
+const MQTTManagement = React.lazy(() => 
+  import("@/components/mqtt/mqtt-management").then(module => ({
+    default: module.default
+  }))
+);
+
+// Enhanced component loader
 const ComponentLoader = () => (
-  <div className="flex items-center justify-center py-8">
-    <Loader2 className="h-8 w-8 animate-spin" />
-    <span className="ml-2">Loading...</span>
+  <div className="space-y-4">
+    <div className="flex items-center justify-center py-6">
+      <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+      <span className="ml-2 text-sm text-muted-foreground">Loading component...</span>
+    </div>
+    <div className="space-y-3">
+      <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+      <div className="h-24 bg-gray-100 rounded-lg animate-pulse" />
+    </div>
   </div>
 );
 
@@ -76,17 +91,27 @@ export default function UnifiedMqttPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [configurationsRes, activeConfigRes, effectiveConfigRes, connectionStatusRes] = await Promise.all([
-        mqttConfigurationApi.getConfigurations(),
-        mqttConfigurationApi.getActiveConfiguration(),
+      // Load essential data first (fastest APIs)
+      const [effectiveConfigRes, activeConfigRes] = await Promise.all([
         mqttConfigurationApi.getEffectiveConfiguration(),
-        mqttConfigurationApi.getAllConnectionStatus()
+        mqttConfigurationApi.getActiveConfiguration()
       ]);
 
-      if (configurationsRes.success) setConfigurations(configurationsRes.data || []);
-      if (activeConfigRes.success) setActiveConfiguration(activeConfigRes.data || null);
       if (effectiveConfigRes.success) setEffectiveConfiguration(effectiveConfigRes.data || {});
-      if (connectionStatusRes.success) setConnectionStatuses(connectionStatusRes.data || {});
+      if (activeConfigRes.success) setActiveConfiguration(activeConfigRes.data || null);
+
+      // Load secondary data in background (slower APIs)
+      Promise.all([
+        mqttConfigurationApi.getConfigurations(),
+        mqttConfigurationApi.getAllConnectionStatus()
+      ]).then(([configurationsRes, connectionStatusRes]) => {
+        if (configurationsRes.success) setConfigurations(configurationsRes.data || []);
+        if (connectionStatusRes.success) setConnectionStatuses(connectionStatusRes.data || {});
+      }).catch(() => {
+        // Non-critical error, don't show toast
+        console.warn('Failed to load secondary MQTT data');
+      });
+
     } catch (error) {
       toast.error("Failed to load MQTT configurations");
     } finally {
@@ -276,14 +301,19 @@ export default function UnifiedMqttPage() {
     setIsViewDialogOpen(true);
   };
 
-  // Preload components when user hovers over tabs
-  const preloadComponent = (tabValue: string) => {
+  // Preload components when user hovers over tabs or page loads
+  const preloadComponent = useCallback((tabValue: string) => {
     if (tabValue === "management") {
-      import("@/components/mqtt/mqtt-management");
+      import("@/components/mqtt/mqtt-management").catch(() => {});
     } else if (tabValue === "overview") {
-      import("@/components/mqtt/mqtt-overview");
+      import("@/components/mqtt/mqtt-overview").catch(() => {});
     }
-  };
+  }, []);
+
+  // Preload overview component immediately since it's the default tab
+  useEffect(() => {
+    preloadComponent("overview");
+  }, [preloadComponent]);
 
   if (loading) {
     return (
@@ -295,9 +325,21 @@ export default function UnifiedMqttPage() {
             <Wifi className="h-5 w-5" />
             <h1 className="text-lg font-semibold">MQTT Configuration</h1>
           </div>
+          <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading...
+          </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
-          <PageSkeleton />
+          {/* Quick loading skeleton */}
+          <div className="space-y-4">
+            <div className="h-24 bg-gray-100 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+            <div className="h-48 bg-gray-100 rounded-lg animate-pulse" />
+          </div>
         </div>
       </SidebarInset>
     );

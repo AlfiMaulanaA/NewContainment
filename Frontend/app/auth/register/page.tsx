@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api-service";
-import Swal from "sweetalert2";
+import { AuthNotifications } from "@/lib/auth-notifications";
 import { Eye, EyeOff } from "lucide-react";
 import { setCookie } from 'cookies-next';
 import { getCurrentUserFromToken } from '@/lib/auth-utils';
@@ -29,15 +29,21 @@ const RegisterPage = () => {
     e.preventDefault();
     setError("");
     if (!name || !email || !password || !confirmPassword) {
-      setError("Name, email, password, and confirm password are required.");
+      const errorMessage = "Name, email, password, and confirm password are required.";
+      setError(errorMessage);
+      AuthNotifications.missingFields();
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      const errorMessage = "Passwords do not match.";
+      setError(errorMessage);
+      AuthNotifications.passwordMismatch();
       return;
     }
     if (passwordStrength === "Weak") {
-      setError("Password is too weak. Please use a stronger password.");
+      const errorMessage = "Password is too weak. Please use a stronger password.";
+      setError(errorMessage);
+      AuthNotifications.passwordWeak();
       return;
     }
     setLoading(true);
@@ -53,21 +59,21 @@ const RegisterPage = () => {
         // Also save to cookie for compatibility
         setCookie('authToken', result.data.token, { path: '/', maxAge: 60 * 60 * 24 * 7 });
         
-        Swal.fire({
-          icon: "success",
-          title: "Registration Successful",
-          text: `Welcome ${result.data.user.name}! You are now logged in.`,
-          showConfirmButton: false,
-          timer: 2000,
-        }).then(() => {
-          // Force page reload to update sidebar
+        AuthNotifications.registerSuccess(result.data.user.name);
+        
+        // Slight delay to show toast before navigation
+        setTimeout(() => {
           window.location.href = "/";
-        });
+        }, 500);
       } else {
-        setError(result.message || "Registration failed");
+        const errorMessage = result.message || "Registration failed";
+        setError(errorMessage);
+        AuthNotifications.registerError(errorMessage);
       }
     } catch (err: any) {
-      setError(err.message || "Network error occurred");
+      const errorMessage = err.message || "Network error occurred";
+      setError(errorMessage);
+      AuthNotifications.connectionError(errorMessage);
     }
     setLoading(false);
   };

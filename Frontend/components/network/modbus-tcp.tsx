@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Save, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Swal from 'sweetalert2';
-import { useMQTT } from "@/lib/mqtt-manager";
+import { useMQTT } from "@/hooks/useMQTT";
 import { CardSkeleton } from "@/components/loading-skeleton";
 
 // MQTT Topics
@@ -32,7 +32,7 @@ const ModbusTCP: React.FC<ModbusTCPProps> = ({ isLoading: parentLoading = false 
   const { subscribe, unsubscribe, publish, isConnected } = useMQTT();
 
   const getCurrentSetting = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.warning("MQTT not connected. Cannot retrieve Modbus settings.");
       setIsLoading(false);
       return;
@@ -50,7 +50,7 @@ const ModbusTCP: React.FC<ModbusTCPProps> = ({ isLoading: parentLoading = false 
   }, [publish, isConnected]);
 
   const sendCommandRestartService = useCallback(async (serviceName: string, action: string, confirmMessage?: string): Promise<boolean> => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error("MQTT not connected. Please wait for connection or refresh.");
       return false;
     }
@@ -87,7 +87,7 @@ const ModbusTCP: React.FC<ModbusTCPProps> = ({ isLoading: parentLoading = false 
   }, [publish, isConnected]);
 
   const writeSetting = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error("MQTT client not connected. Cannot save configuration.");
       return;
     }
@@ -159,9 +159,9 @@ const ModbusTCP: React.FC<ModbusTCPProps> = ({ isLoading: parentLoading = false 
   useEffect(() => {
     if (parentLoading) return;
 
-    const handleMessage = (topic: string, message: Buffer) => {
+    const handleMessage = (topic: string, message: string) => {
       try {
-        const payload = JSON.parse(message.toString());
+        const payload = JSON.parse(message);
 
         if (topic === MODBUS_SETTING_DATA_TOPIC) {
           const { modbus_tcp_ip, modbus_tcp_port } = payload;
@@ -221,7 +221,7 @@ const ModbusTCP: React.FC<ModbusTCPProps> = ({ isLoading: parentLoading = false 
       await subscribe(SERVICE_RESPONSE_TOPIC, handleMessage, "modbus-tcp");
 
       // Request initial data
-      if (isConnected()) {
+      if (isConnected) {
         getCurrentSetting();
       }
     };

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api-service";
 import { getCurrentUserFromToken } from "@/lib/auth-utils";
-import Swal from "sweetalert2";
+import { AuthNotifications } from "@/lib/auth-notifications";
 import { Facebook, Twitter, Instagram, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { setCookie } from 'cookies-next';
@@ -97,21 +97,21 @@ const LoginPage = () => {
         // Verify token is working
         const user = getCurrentUserFromToken();
         
-        Swal.fire({
-          icon: "success",
-          title: "Login Successful",
-          text: `Welcome back, ${user?.name || result.data.user.name}!`,
-          showConfirmButton: false,
-          timer: 1500,
-        }).then(() => {
-          // Force page reload to update sidebar
+        AuthNotifications.loginSuccess(user?.name || result.data.user.name);
+        
+        // Slight delay to show toast before navigation
+        setTimeout(() => {
           window.location.href = "/";
-        });
+        }, 500);
       } else {
-        setError(result.message || "Login failed");
+        const errorMessage = result.message || "Login failed";
+        setError(errorMessage);
+        AuthNotifications.loginError(errorMessage);
       }
     } catch (err: any) {
-      setError(err.message || "Network error occurred");
+      const errorMessage = err.message || "Network error occurred";
+      setError(errorMessage);
+      AuthNotifications.connectionError(errorMessage);
     }
     setLoading(false);
   };

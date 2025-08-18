@@ -422,7 +422,9 @@ export default function MaintenancePage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Enter task description"
                     rows={3}
+                    aria-describedby="description-help"
                   />
+                  <p id="description-help" className="text-xs text-muted-foreground">Optional: Provide additional details about the maintenance task</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1001,7 +1003,9 @@ export default function MaintenancePage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter task description"
                   rows={3}
+                  aria-describedby="edit-description-help"
                 />
+                <p id="edit-description-help" className="text-xs text-muted-foreground">Optional: Provide additional details about the maintenance task</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from 'react';
-import { useMQTT } from '@/lib/mqtt-manager';
+import { useMQTT } from '@/hooks/useMQTT';
 import { useMQTTPublish } from '@/hooks/useMQTTPublish';
 import { toast } from 'sonner';
 
@@ -54,35 +54,35 @@ export function useSystemConfig() {
 
   // Subscribe to MQTT messages
   useEffect(() => {
-    const handleMessage = (topic: string, message: Buffer) => {
+    const handleMessage = (topic: string, message: string) => {
       if (topic === TOPICS.CURRENT_CONFIG) {
         try {
-          const receivedConfig = JSON.parse(message.toString());
-          console.log('Received system config:', receivedConfig);
+          const receivedConfig = JSON.parse(message);
+          // Received system config from device
           
           setConfig(receivedConfig);
           setOriginalConfig(receivedConfig);
           setLastUpdated(new Date());
           toast.success('System configuration received from device');
         } catch (error) {
-          console.error('Failed to parse system config message:', error);
+          // Failed to parse system config message
           toast.error('Failed to parse system configuration from device');
         }
       }
     };
 
-    if (isConnected()) {
+    if (isConnected) {
       subscribe(TOPICS.CURRENT_CONFIG, handleMessage, 'system-config-hook');
     }
 
     return () => {
       unsubscribe(TOPICS.CURRENT_CONFIG, 'system-config-hook');
     };
-  }, [isConnected()]);
+  }, [isConnected]);
 
   // Request current configuration from device
   const requestCurrentConfig = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error('MQTT not connected');
       return false;
     }
@@ -95,7 +95,7 @@ export function useSystemConfig() {
 
     const success = await publishMessage(TOPICS.CONFIG, payload);
     if (success) {
-      console.log('Requested current system config');
+      // Requested current system config
       toast.info('Requesting current system configuration...');
       // Loading will be cleared when response is received or timeout
       setTimeout(() => setIsLoading(false), 5000);
@@ -108,7 +108,7 @@ export function useSystemConfig() {
 
   // Publish individual configuration changes
   const publishConfigChange = useCallback(async (key: string, value: any) => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error('MQTT not connected');
       return false;
     }
@@ -120,7 +120,7 @@ export function useSystemConfig() {
 
     const success = await publishMessage(TOPICS.CONFIG, payload);
     if (success) {
-      console.log(`Published ${key}:`, value);
+      // Published system config update
       toast.success(`${key} updated successfully`);
     }
     return success;
@@ -128,7 +128,7 @@ export function useSystemConfig() {
 
   // Save all configuration changes
   const saveAllChanges = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error('MQTT not connected');
       return false;
     }
@@ -168,7 +168,7 @@ export function useSystemConfig() {
 
   // Toggle emergency temperature
   const toggleEmergencyTemp = useCallback(async (enable: boolean) => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error('MQTT not connected');
       return false;
     }
@@ -180,7 +180,7 @@ export function useSystemConfig() {
 
     const success = await publishMessage(TOPICS.CONFIG, payload);
     if (success) {
-      console.log(`Emergency temp ${enable ? 'enabled' : 'disabled'}`);
+      // Emergency temp setting updated
       toast.success(`Emergency temperature ${enable ? 'enabled' : 'disabled'}`);
       setConfig(prev => ({ ...prev, temp_emergency: enable }));
     }
@@ -207,7 +207,7 @@ export function useSystemConfig() {
     isLoading,
     lastUpdated,
     hasChanges,
-    isConnected: isConnected(),
+    isConnected,
     requestCurrentConfig,
     publishConfigChange,
     saveAllChanges,

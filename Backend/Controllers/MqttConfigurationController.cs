@@ -13,10 +13,12 @@ namespace Backend.Controllers
     public class MqttConfigurationController : ControllerBase
     {
         private readonly IMqttConfigurationService _mqttConfigurationService;
+        private readonly IMqttService _mqttService;
 
-        public MqttConfigurationController(IMqttConfigurationService mqttConfigurationService)
+        public MqttConfigurationController(IMqttConfigurationService mqttConfigurationService, IMqttService mqttService)
         {
             _mqttConfigurationService = mqttConfigurationService;
+            _mqttService = mqttService;
         }
 
         [HttpGet("active")]
@@ -162,6 +164,18 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
+            // Reconnect MQTT with new configuration
+            try
+            {
+                await _mqttService.ReconnectWithNewConfigAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the request
+                // Configuration was saved, connection will be retried later
+                Console.WriteLine($"Failed to reconnect MQTT: {ex.Message}");
+            }
+
             return Ok(new { message = "Configuration activated successfully" });
         }
 
@@ -184,6 +198,25 @@ namespace Backend.Controllers
             if (!result)
             {
                 return BadRequest("No active MQTT configuration found");
+            }
+
+            // Reconnect MQTT with new configuration
+            try
+            {
+                if (request.Enabled)
+                {
+                    await _mqttService.ReconnectWithNewConfigAsync();
+                }
+                else
+                {
+                    await _mqttService.DisconnectAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the request
+                // Configuration was saved, connection will be retried later
+                Console.WriteLine($"Failed to reconnect MQTT: {ex.Message}");
             }
 
             return Ok(new { message = $"MQTT {(request.Enabled ? "enabled" : "disabled")} successfully" });
@@ -239,6 +272,34 @@ namespace Backend.Controllers
         {
             var statuses = await _mqttConfigurationService.GetAllConnectionStatusAsync();
             return Ok(statuses);
+        }
+
+        [HttpGet("status/current")]
+        public async Task<ActionResult<object>> GetCurrentStatus()
+        {
+            var effectiveConfig = await _mqttConfigurationService.GetEffectiveConfigurationAsync();
+            var isConnected = _mqttService.IsConnected;
+            
+            return Ok(new
+            {
+                IsConnected = isConnected,
+                Configuration = effectiveConfig,
+                ConnectionTime = DateTime.UtcNow
+            });
+        }
+
+        [HttpPost("reload")]
+        public async Task<IActionResult> ReloadConfiguration()
+        {
+            try
+            {
+                await _mqttService.ReconnectWithNewConfigAsync();
+                return Ok(new { message = "MQTT configuration reloaded and reconnected successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to reload MQTT configuration", error = ex.Message });
+            }
         }
 
         private int GetCurrentUserId()

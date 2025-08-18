@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeveloperMode } from "@/hooks/useDeveloperMode";
+import { useDeveloperMode } from "@/contexts/DeveloperModeContext";
 import { DeveloperModeDialog } from "@/components/developer-mode-dialog";
 import JwtTokenInfo from "@/components/jwt-token-info";
 import {
@@ -8,7 +8,7 @@ import {
   getRoleDisplayName,
   getRoleColor,
 } from "@/lib/auth-utils";
-import { authApi } from "@/lib/api-service";
+import { authApi, userProfileApi } from "@/lib/api-service";
 import { getAppConfig } from "@/lib/config";
 import {
   Dialog,
@@ -56,6 +56,8 @@ import {
   Video,
   DoorClosedLocked,
   FileLock,
+  MessageCircleMore,
+  Thermometer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -78,6 +80,7 @@ import { Separator } from "@radix-ui/react-separator";
 import { deleteCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import { LogoutConfirmation } from "@/components/logout-confirmation";
 import { Badge } from "@/components/ui/badge";
 
 interface NavigationItem {
@@ -123,6 +126,11 @@ const navigation: NavigationGroup[] = [
         icon: Users,
       },
       {
+        title: "User Activity",
+        url: "/management/user-activity",
+        icon: Activity,
+      },
+      {
         title: "Containments",
         url: "/management/containments",
         icon: Server,
@@ -138,9 +146,19 @@ const navigation: NavigationGroup[] = [
         icon: Database,
       },
       {
+        title: "Sensors",
+        url: "/management/sensors",
+        icon: Thermometer,
+      },
+      {
         title: "Maintenance",
         url: "/management/maintenance",
         icon: Wrench,
+      },
+      {
+        title: "WhatsApp",
+        url: "/management/whatsapp",
+        icon: MessageCircleMore,
       },
     ],
   },
@@ -264,19 +282,16 @@ export function AppSidebar() {
   const fetchUserPhoto = async (userId: number) => {
     try {
       const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
+      const result = await userProfileApi.getUserProfile(userId);
 
-      if (response.ok) {
-        const result = await response.json();
+      if (result.success && result.data) {
         const photoUrl =
-          result.photoPath && result.photoPath !== "/images/avatar-user.png"
-            ? `${apiBaseUrl}${result.photoPath}`
+          result.data.photoPath && result.data.photoPath !== "/images/avatar-user.png"
+            ? `${apiBaseUrl}${result.data.photoPath}`
             : avatarIcon;
         setUserPhotoUrl(photoUrl);
+      } else {
+        setUserPhotoUrl(avatarIcon);
       }
     } catch (error) {
       console.error("Error fetching user photo:", error);
@@ -308,7 +323,13 @@ export function AppSidebar() {
     }
   }, []);
 
-  const handleLogout = async () => {
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutConfirmation(true);
+  };
+
+  const handleLogoutConfirm = async () => {
     setIsLoggingOut(true);
     try {
       await authApi.logout();
@@ -439,16 +460,28 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 {isDeveloperMode ? (
-                  <div className="px-3 py-2 rounded-md bg-green-50 border border-green-200">
-                    <div className="flex items-center gap-2 text-green-700">
-                      <Unlock className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        Developer Mode
-                      </span>
+                  <div className="space-y-2">
+                    <div className="px-3 py-2 rounded-md bg-green-50 border border-green-200">
+                      <div className="flex items-center gap-2 text-green-700">
+                        <Unlock className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          Developer Mode
+                        </span>
+                      </div>
+                      <div className="text-xs text-green-600 mt-1">
+                        Active • {getFormattedRemainingTime()}
+                      </div>
                     </div>
-                    <div className="text-xs text-green-600 mt-1">
-                      Active • {getFormattedRemainingTime()}
-                    </div>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === "/developer"}
+                      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm hover:scale-[1.01] data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-md data-[active=true]:scale-[1.01] data-[active=true]:border-l-3 data-[active=true]:border-primary sidebar-focus-ring"
+                    >
+                      <Link href="/developer">
+                        <Code className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110 transition-all duration-200" />
+                        <span className="truncate">Developer Dashboard</span>
+                      </Link>
+                    </SidebarMenuButton>
                   </div>
                 ) : (
                   <DeveloperModeDialog>
@@ -574,7 +607,7 @@ export function AppSidebar() {
                 <Button
                   variant="destructive"
                   className="hover:scale-105 transition"
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   disabled={isLoggingOut}
                 >
                   {isLoggingOut ? (
@@ -613,7 +646,7 @@ export function AppSidebar() {
                 asChild
               >
                 <span
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="flex items-center gap-2"
                 >
                   <LogOut className="h-4 w-4" />
@@ -628,6 +661,12 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarRail />
       <br />
+      
+      <LogoutConfirmation
+        isOpen={showLogoutConfirmation}
+        onClose={() => setShowLogoutConfirmation(false)}
+        onConfirm={handleLogoutConfirm}
+      />
     </Sidebar>
   );
 }

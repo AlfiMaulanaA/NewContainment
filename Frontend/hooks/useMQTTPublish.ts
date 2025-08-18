@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useMQTT } from "@/lib/mqtt-manager";
+import { useMQTT } from "@/hooks/useMQTT";
 import { toast } from "sonner";
 
 export interface MQTTMessage {
@@ -11,10 +11,10 @@ export interface MQTTMessage {
 }
 
 export function useMQTTPublish() {
-  const { publish, isConnected } = useMQTT();
+  const { publish, publishTopic, isConnected } = useMQTT();
   
   const publishMessage = useCallback(async (topic: string, payload: any): Promise<boolean> => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error("MQTT client is not connected");
       return false;
     }
@@ -22,7 +22,7 @@ export function useMQTTPublish() {
     const success = await publish(topic, JSON.stringify(payload));
     
     if (success) {
-      console.log(`MQTT Message published to ${topic}:`, payload);
+      // MQTT message published successfully
     } else {
       toast.error("Failed to publish MQTT message");
     }

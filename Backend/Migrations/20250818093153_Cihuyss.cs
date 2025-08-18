@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class Ciadas : Migration
+    public partial class Cihuyss : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -74,6 +74,63 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "MenuGroups",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Title = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Icon = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
+                    MinRoleLevel = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    RequiresDeveloperMode = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MenuGroups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Permissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Category = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Permissions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Roles",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Level = table.Column<int>(type: "INTEGER", nullable: false),
+                    Color = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "text-gray-600 bg-gray-100"),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Roles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -92,6 +149,63 @@ namespace Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MenuItems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Title = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Url = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Icon = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
+                    MinRoleLevel = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    RequiresDeveloperMode = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
+                    BadgeText = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
+                    BadgeVariant = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true, defaultValue: "default"),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    MenuGroupId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MenuItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MenuItems_MenuGroups_MenuGroupId",
+                        column: x => x.MenuGroupId,
+                        principalTable: "MenuGroups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    RoleId = table.Column<int>(type: "INTEGER", nullable: false),
+                    PermissionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -145,6 +259,49 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Containments_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Maintenances",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    StartTask = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    EndTask = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    AssignTo = table.Column<int>(type: "INTEGER", nullable: false),
+                    TargetType = table.Column<int>(type: "INTEGER", nullable: false),
+                    TargetId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "Scheduled"),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Maintenances", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Maintenances_Users_AssignTo",
+                        column: x => x.AssignTo,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Maintenances_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Maintenances_Users_UpdatedBy",
                         column: x => x.UpdatedBy,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -227,6 +384,148 @@ namespace Backend.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ScanConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    MaxAddressToScan = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 247),
+                    SelectedPort = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false, defaultValue: "COM3"),
+                    SelectedSensor = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "XY_MD02"),
+                    ScanTimeoutMs = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 1000),
+                    ScanIntervalMs = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 100),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ScanConfigurations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ScanConfigurations_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ScanConfigurations_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SensorConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    SensorNumber = table.Column<int>(type: "INTEGER", nullable: false),
+                    SensorName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    ModbusAddress = table.Column<int>(type: "INTEGER", nullable: false),
+                    ModbusPort = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    SensorType = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    IsEnabled = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    TemperatureOffset = table.Column<decimal>(type: "TEXT", nullable: false, defaultValue: 0m),
+                    HumidityOffset = table.Column<decimal>(type: "TEXT", nullable: false, defaultValue: 0m),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SensorConfigurations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SensorConfigurations_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SensorConfigurations_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserRoles",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    UserId = table.Column<int>(type: "INTEGER", nullable: false),
+                    RoleId = table.Column<int>(type: "INTEGER", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserRoles", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserRoles_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserRoles_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MenuPermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    MenuItemId = table.Column<int>(type: "INTEGER", nullable: true),
+                    MenuGroupId = table.Column<int>(type: "INTEGER", nullable: true),
+                    RoleId = table.Column<int>(type: "INTEGER", nullable: true),
+                    PermissionId = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsRequired = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MenuPermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MenuPermissions_MenuGroups_MenuGroupId",
+                        column: x => x.MenuGroupId,
+                        principalTable: "MenuGroups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MenuPermissions_MenuItems_MenuItemId",
+                        column: x => x.MenuItemId,
+                        principalTable: "MenuItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MenuPermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MenuPermissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -378,6 +677,33 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DeviceActivityStatuses",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    DeviceId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Topic = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    LastSeen = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastStatusChange = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastMessage = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    ConsecutiveFailures = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DeviceActivityStatuses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DeviceActivityStatuses_Devices_DeviceId",
+                        column: x => x.DeviceId,
+                        principalTable: "Devices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DeviceSensorData",
                 columns: table => new
                 {
@@ -411,67 +737,6 @@ namespace Backend.Migrations
                         name: "FK_DeviceSensorData_Racks_RackId",
                         column: x => x.RackId,
                         principalTable: "Racks",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Maintenances",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
-                    StartTask = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    EndTask = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    AssignTo = table.Column<int>(type: "INTEGER", nullable: false),
-                    TargetType = table.Column<int>(type: "INTEGER", nullable: false),
-                    TargetId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "Scheduled"),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
-                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
-                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Maintenances", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Maintenances_Containments_TargetId",
-                        column: x => x.TargetId,
-                        principalTable: "Containments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Maintenances_Devices_TargetId",
-                        column: x => x.TargetId,
-                        principalTable: "Devices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Maintenances_Racks_TargetId",
-                        column: x => x.TargetId,
-                        principalTable: "Racks",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Maintenances_Users_AssignTo",
-                        column: x => x.AssignTo,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Maintenances_Users_CreatedBy",
-                        column: x => x.CreatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Maintenances_Users_UpdatedBy",
-                        column: x => x.UpdatedBy,
-                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -578,6 +843,11 @@ namespace Backend.Migrations
                 column: "MqttTimestamp");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DeviceActivityStatuses_DeviceId",
+                table: "DeviceActivityStatuses",
+                column: "DeviceId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Devices_CreatedBy",
                 table: "Devices",
                 column: "CreatedBy");
@@ -663,14 +933,69 @@ namespace Backend.Migrations
                 column: "CreatedBy");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Maintenances_TargetId",
-                table: "Maintenances",
-                column: "TargetId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Maintenances_UpdatedBy",
                 table: "Maintenances",
                 column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuGroups_IsActive",
+                table: "MenuGroups",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuGroups_RequiresDeveloperMode",
+                table: "MenuGroups",
+                column: "RequiresDeveloperMode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuGroups_SortOrder",
+                table: "MenuGroups",
+                column: "SortOrder");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuItems_IsActive",
+                table: "MenuItems",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuItems_MenuGroupId",
+                table: "MenuItems",
+                column: "MenuGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuItems_RequiresDeveloperMode",
+                table: "MenuItems",
+                column: "RequiresDeveloperMode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuItems_SortOrder",
+                table: "MenuItems",
+                column: "SortOrder");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuItems_Url",
+                table: "MenuItems",
+                column: "Url");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuPermissions_MenuGroupId",
+                table: "MenuPermissions",
+                column: "MenuGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuPermissions_MenuItemId",
+                table: "MenuPermissions",
+                column: "MenuItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuPermissions_PermissionId",
+                table: "MenuPermissions",
+                column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MenuPermissions_RoleId",
+                table: "MenuPermissions",
+                column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MqttConfigurations_CreatedBy",
@@ -724,6 +1049,22 @@ namespace Backend.Migrations
                 column: "UpdatedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Permissions_Category",
+                table: "Permissions",
+                column: "Category");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permissions_IsActive",
+                table: "Permissions",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permissions_Name",
+                table: "Permissions",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Racks_ContainmentId",
                 table: "Racks",
                 column: "ContainmentId");
@@ -737,6 +1078,105 @@ namespace Backend.Migrations
                 name: "IX_Racks_UpdatedBy",
                 table: "Racks",
                 column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermissions_PermissionId",
+                table: "RolePermissions",
+                column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RolePermissions_RoleId_PermissionId",
+                table: "RolePermissions",
+                columns: new[] { "RoleId", "PermissionId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Roles_IsActive",
+                table: "Roles",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Roles_Level",
+                table: "Roles",
+                column: "Level");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Roles_Name",
+                table: "Roles",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScanConfigurations_CreatedAt",
+                table: "ScanConfigurations",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScanConfigurations_CreatedBy",
+                table: "ScanConfigurations",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScanConfigurations_IsActive",
+                table: "ScanConfigurations",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScanConfigurations_UpdatedBy",
+                table: "ScanConfigurations",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorConfigurations_CreatedAt",
+                table: "SensorConfigurations",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorConfigurations_CreatedBy",
+                table: "SensorConfigurations",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorConfigurations_IsEnabled",
+                table: "SensorConfigurations",
+                column: "IsEnabled");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorConfigurations_SensorName",
+                table: "SensorConfigurations",
+                column: "SensorName");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorConfigurations_SensorNumber",
+                table: "SensorConfigurations",
+                column: "SensorNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorConfigurations_UpdatedBy",
+                table: "SensorConfigurations",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRoles_IsActive",
+                table: "UserRoles",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRoles_RoleId",
+                table: "UserRoles",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRoles_UserId",
+                table: "UserRoles",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRoles_UserId_RoleId_IsActive",
+                table: "UserRoles",
+                columns: new[] { "UserId", "RoleId", "IsActive" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -764,6 +1204,9 @@ namespace Backend.Migrations
                 name: "ContainmentStatuses");
 
             migrationBuilder.DropTable(
+                name: "DeviceActivityStatuses");
+
+            migrationBuilder.DropTable(
                 name: "DeviceSensorData");
 
             migrationBuilder.DropTable(
@@ -773,16 +1216,43 @@ namespace Backend.Migrations
                 name: "Maintenances");
 
             migrationBuilder.DropTable(
+                name: "MenuPermissions");
+
+            migrationBuilder.DropTable(
                 name: "MqttConfigurations");
 
             migrationBuilder.DropTable(
                 name: "NetworkConfigurations");
 
             migrationBuilder.DropTable(
+                name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "ScanConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "SensorConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "UserRoles");
+
+            migrationBuilder.DropTable(
                 name: "Devices");
 
             migrationBuilder.DropTable(
+                name: "MenuItems");
+
+            migrationBuilder.DropTable(
+                name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "Roles");
+
+            migrationBuilder.DropTable(
                 name: "Racks");
+
+            migrationBuilder.DropTable(
+                name: "MenuGroups");
 
             migrationBuilder.DropTable(
                 name: "Containments");

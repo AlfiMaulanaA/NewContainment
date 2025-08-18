@@ -12,7 +12,7 @@ import {
   Terminal,
   CheckCircle 
 } from "lucide-react";
-import { useMQTTConfig } from "@/lib/mqtt-config-manager";
+import { useMQTT } from "@/hooks/useMQTT";
 
 interface MQTTTroubleshootingGuideProps {
   isVisible: boolean;
@@ -25,7 +25,8 @@ export function MQTTTroubleshootingGuide({
   connectionError,
   onClose 
 }: MQTTTroubleshootingGuideProps) {
-  const { config } = useMQTTConfig();
+  const { getStatus } = useMQTT();
+  const config = getStatus()?.config;
 
   if (!isVisible) return null;
 

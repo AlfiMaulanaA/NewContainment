@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from 'react';
-import { useMQTT } from '@/lib/mqtt-manager';
+import { useMQTT } from '@/hooks/useMQTT';
 import { useMQTTPublish } from '@/hooks/useMQTTPublish';
 import { toast } from 'sonner';
 
@@ -89,11 +89,11 @@ export function usePinConfig() {
 
   // Subscribe to MQTT messages
   useEffect(() => {
-    const handleMessage = (topic: string, message: Buffer) => {
+    const handleMessage = (topic: string, message: string) => {
       if (topic === TOPICS.CURRENT_PIN_CONFIG) {
         try {
-          const response = JSON.parse(message.toString());
-          console.log('Received pin config response:', response);
+          const response = JSON.parse(message);
+          // Received pin config response
           
           // Check if it's a command response or actual config data
           if (response.success !== undefined || response.result !== undefined) {
@@ -137,20 +137,20 @@ export function usePinConfig() {
             toast.success('Pin configuration received from device');
           }
         } catch (error) {
-          console.error('Failed to parse pin config message:', error);
+          // Failed to parse pin config message
           toast.error('Failed to parse pin configuration from device');
         }
       }
     };
 
-    if (isConnected()) {
-      subscribe(TOPICS.CURRENT_PIN_CONFIG, handleMessage, 'pin-config-hook');
+    if (isConnected) {
+      subscribe(TOPICS.CURRENT_PIN_CONFIG, handleMessage);
     }
 
     return () => {
-      unsubscribe(TOPICS.CURRENT_PIN_CONFIG, 'pin-config-hook');
+      unsubscribe(TOPICS.CURRENT_PIN_CONFIG);
     };
-  }, [isConnected(), config]);
+  }, [isConnected, config]);
 
   // Validate pin configuration
   const validatePinConfig = useCallback((pinConfig: PinConfig) => {
@@ -240,7 +240,7 @@ export function usePinConfig() {
 
   // Request current pin configuration from device
   const requestCurrentPinConfig = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error('MQTT not connected');
       return false;
     }
@@ -253,7 +253,7 @@ export function usePinConfig() {
 
     const success = await publishMessage(TOPICS.PIN_CONFIG, payload);
     if (success) {
-      console.log('Requested current pin config');
+      // Requested current pin config
       toast.info('Requesting current pin configuration...');
       // Loading will be cleared when response is received or timeout
       setTimeout(() => setIsLoading(false), 5000);
@@ -266,7 +266,7 @@ export function usePinConfig() {
 
   // Save pin configuration to device
   const savePinConfig = useCallback(async () => {
-    if (!isConnected()) {
+    if (!isConnected) {
       toast.error('MQTT not connected');
       return false;
     }
@@ -298,7 +298,7 @@ export function usePinConfig() {
 
     const success = await publishMessage(TOPICS.PIN_CONFIG, payload);
     if (success) {
-      console.log('Published pin configuration');
+      // Pin configuration published
       toast.info('Saving pin configuration...');
       return true;
     }
@@ -326,7 +326,7 @@ export function usePinConfig() {
     lastUpdated,
     validationErrors,
     hasChanges,
-    isConnected: isConnected(),
+    isConnected,
     requestCurrentPinConfig,
     savePinConfig,
     updateConfig,

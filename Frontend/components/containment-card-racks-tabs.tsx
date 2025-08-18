@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { HardDrive, HardDriveUpload, Server, X } from "lucide-react";
+import {
+  HardDrive,
+  HardDriveUpload,
+  Server,
+  X,
+  Thermometer,
+  Wind,
+  Activity,
+  Filter,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,12 +34,37 @@ import {
   racksApi,
   containmentsApi,
   devicesApi,
+  deviceSensorDataApi,
   Rack,
   Containment,
   Device,
 } from "@/lib/api-service";
 import { toast } from "sonner";
-import { RackSensorDisplay } from "@/components/rack-sensor-display";
+import { mqttClient } from "@/lib/mqtt";
+
+// Defines the icons and colors for each sensor type
+const SENSOR_TYPE_VISUALS = {
+  Temperature: {
+    icon: Thermometer,
+    color: "text-red-500 bg-red-50",
+    name: "Temperature",
+  },
+  "Air Flow": {
+    icon: Wind,
+    color: "text-blue-500 bg-blue-50",
+    name: "Air Flow",
+  },
+  Vibration: {
+    icon: Activity,
+    color: "text-purple-500 bg-purple-50",
+    name: "Vibration",
+  },
+  "Dust Sensor": {
+    icon: Filter,
+    color: "text-amber-500 bg-amber-50",
+    name: "Dust",
+  },
+};
 
 export default function RackManagementPage({
   containmentId: propContainmentId,
@@ -48,6 +82,7 @@ export default function RackManagementPage({
   const [containments, setContainments] = useState<Containment[]>([]);
   const [loading, setLoading] = useState(true);
   const [deviceCounts, setDeviceCounts] = useState<Record<number, number>>({});
+  const [rackDevices, setRackDevices] = useState<Record<number, Device[]>>({});
   const [selectedRackForDevices, setSelectedRackForDevices] = useState<{
     rack: Rack;
     devices: Device[];
@@ -55,23 +90,44 @@ export default function RackManagementPage({
   const [isDeviceDialogOpen, setIsDeviceDialogOpen] = useState(false);
   const [loadingDevices, setLoadingDevices] = useState(false);
 
+  // State to store real-time sensor data (in object format)
+  const [sensorData, setSensorData] = useState<Record<string, any>>({});
+
   const loadDeviceCounts = async (racks: Rack[]) => {
     try {
-      const deviceCountPromises = racks.map(async (rack) => {
-        const result = await devicesApi.getDevicesByRack(rack.id);
+      // Optimizing: Load devices and sensor data in parallel for all racks
+      const rackPromises = racks.map(async (rack) => {
+        const [deviceResult, sensorResult] = await Promise.all([
+          devicesApi.getDevicesByRack(rack.id),
+          deviceSensorDataApi
+            .getSensorDataByRack(rack.id, 10)
+            .catch(() => ({ success: false, data: [] })),
+        ]);
+
         return {
           rackId: rack.id,
-          count: result.success && result.data ? result.data.length : 0,
+          count:
+            deviceResult.success && deviceResult.data
+              ? deviceResult.data.length
+              : 0,
+          devices:
+            deviceResult.success && deviceResult.data ? deviceResult.data : [],
+          sensorData:
+            sensorResult.success && sensorResult.data ? sensorResult.data : [],
         };
       });
 
-      const counts = await Promise.all(deviceCountPromises);
+      const results = await Promise.all(rackPromises);
       const deviceCountMap: Record<number, number> = {};
-      counts.forEach(({ rackId, count }) => {
+      const rackDevicesMap: Record<number, Device[]> = {};
+
+      results.forEach(({ rackId, count, devices }) => {
         deviceCountMap[rackId] = count;
+        rackDevicesMap[rackId] = devices;
       });
 
       setDeviceCounts(deviceCountMap);
+      setRackDevices(rackDevicesMap);
     } catch (error: any) {
       console.error("Failed to load device counts:", error);
       toast.error("Failed to load device counts for some racks.");
@@ -151,6 +207,88 @@ export default function RackManagementPage({
     }
   }, [containmentId]);
 
+  // useEffect function to manage MQTT subscriptions
+  useEffect(() => {
+    const allDevices = Object.values(rackDevices).flat();
+    const sensorDevices = allDevices.filter(
+      (device) => device.type === "Sensor"
+    );
+
+    // Map to store unsubscribe callbacks
+    const subscriptions = new Map<string, () => void>();
+
+    if (sensorDevices.length > 0) {
+      // Subscribe to each sensor device
+      sensorDevices.forEach((device) => {
+        // Fix type error by ensuring topic is a valid string
+        if (device.topic && typeof device.topic === "string") {
+          const callback = (topic: string, message: string) => {
+            // Log received data to the console for debugging
+            console.log(
+              `MQTT: Received data for device '${device.id}' on topic '${topic}':`,
+              message
+            );
+
+            // Update state with new sensor data
+            try {
+              const parsedData = JSON.parse(message);
+              setSensorData((prevData) => ({
+                ...prevData,
+                [device.id]: parsedData,
+              }));
+            } catch (e) {
+              console.error(`Failed to parse JSON for device ${device.id}:`, e);
+              setSensorData((prevData) => ({
+                ...prevData,
+                [device.id]: message, // Store the raw message if parsing fails
+              }));
+            }
+          };
+
+          mqttClient.subscribe(device.topic, callback);
+          // Store the unsubscribe callback for cleanup
+          subscriptions.set(device.topic, () => {
+            mqttClient.unsubscribe(device.topic, callback);
+          });
+        }
+      });
+    }
+
+    // Cleanup function to unsubscribe when the component unmounts
+    return () => {
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [rackDevices]);
+
+  // Function to format sensor data based on type
+  const formatSensorData = (device: Device, data: any) => {
+    if (!data) return "No Data";
+    if (typeof data !== "object") {
+      return data; // Return the raw message if it's not an object (failed to parse)
+    }
+
+    switch (device.sensorType) {
+      case "Temperature":
+        return `Temp: ${data.temp?.toFixed(1)}°C, Hum: ${data.hum?.toFixed(
+          1
+        )}%`;
+      case "Air Flow":
+        return `Flow: ${data.air_flow_lpm?.toFixed(
+          1
+        )} LPM, Press: ${data.air_pressure_hpa?.toFixed(1)} hPa`;
+      case "Dust Sensor":
+        return `Dust: ${data.dust_level_ug_m3?.toFixed(2)} µg/m³`;
+      case "Vibration":
+        return `X: ${data.vibration_x?.toFixed(
+          2
+        )}, Y: ${data.vibration_y?.toFixed(2)}, Z: ${data.vibration_z?.toFixed(
+          2
+        )}`;
+      default:
+        return "Unknown Sensor Type";
+    }
+  };
+
   const getContainmentName = (
     containmentId: number | null | undefined
   ): string => {
@@ -225,7 +363,6 @@ export default function RackManagementPage({
                 </Badge>
               </div>
             </CardTitle>
-            {/* Optional: Add a button here to navigate back if coming from a containment view */}
             {containmentId && (
               <Button onClick={() => router.push("/management/containments")}>
                 <X className="w-4 h-4 mr-2" />
@@ -261,16 +398,66 @@ export default function RackManagementPage({
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {/* Sensor Data Display */}
-                          <div className="border-t pt-3">
-                            <RackSensorDisplay
-                              rackId={rack.id}
-                              devices={rack.devices}
-                              refreshInterval={30000} // 30 seconds
-                            />
-                          </div>
+                          {/* Display sensor data directly on the card */}
+                          {rackDevices[rack.id] &&
+                          rackDevices[rack.id].length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {rackDevices[rack.id]
+                                .filter((device) => device.type === "Sensor")
+                                .map((device) => {
+                                  const visual =
+                                    SENSOR_TYPE_VISUALS[
+                                      device.sensorType as keyof typeof SENSOR_TYPE_VISUALS
+                                    ];
+                                  const IconComponent = visual?.icon;
+                                  return (
+                                    <div
+                                      key={device.id}
+                                      className="flex flex-col items-start p-3 rounded-lg"
+                                      style={{
+                                        backgroundColor:
+                                          visual?.color.split(" ")[1],
+                                      }}
+                                    >
+                                      {IconComponent && (
+                                        <IconComponent
+                                          className={`h-6 w-6 mb-1 ${
+                                            visual?.color.split(" ")[0]
+                                          }`}
+                                        />
+                                      )}
+                                      <div className="flex flex-col items-start text-left">
+                                        <span className="font-medium text-xs text-gray-800">
+                                          {visual?.name || device.name}
+                                        </span>
+                                        <span
+                                          className={`font-semibold text-xs ${
+                                            visual?.color.split(" ")[0]
+                                          }`}
+                                        >
+                                          {formatSensorData(
+                                            device,
+                                            sensorData[device.id]
+                                          )}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              {rackDevices[rack.id].filter(
+                                (device) => device.type === "Sensor"
+                              ).length === 0 && (
+                                <span className="text-sm text-muted-foreground">
+                                  No sensor devices.
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              No devices.
+                            </span>
+                          )}
 
-                          {/* Device Management Buttons */}
                           <div className="flex items-center justify-between mt-auto">
                             <Button
                               variant="ghost"
@@ -282,7 +469,6 @@ export default function RackManagementPage({
                               <HardDrive className="h-4 w-4 mr-1" />{" "}
                               {deviceCounts[rack.id] || 0} devices
                             </Button>
-                            {/* Navigate to a dedicated devices page */}
                             {(deviceCounts[rack.id] || 0) > 0 && (
                               <Button
                                 variant="ghost"
@@ -324,7 +510,6 @@ export default function RackManagementPage({
         </CardContent>
       </Card>
 
-      {/* Device Dialog */}
       <Dialog open={isDeviceDialogOpen} onOpenChange={setIsDeviceDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
@@ -353,6 +538,7 @@ export default function RackManagementPage({
                     <TableHead>Device Name</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Sensor Data</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -373,6 +559,17 @@ export default function RackManagementPage({
                             {device.status || "Unknown"}
                           </Badge>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {device.type === "Sensor" ? (
+                          <span className="font-semibold text-primary">
+                            {formatSensorData(device, sensorData[device.id])}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            N/A
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

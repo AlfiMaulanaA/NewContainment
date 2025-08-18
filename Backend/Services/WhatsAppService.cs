@@ -31,10 +31,24 @@ namespace Backend.Services
             _configuration = configuration;
             _logger = logger;
 
-            // Load configuration
-            _bearerToken = _configuration["WhatsApp:Qontak:BearerToken"] ?? "1Bs4cNxWFLUWUEd-3WSUKJOOmfeis8z4VrHU73v6_1Q";
-            _defaultTemplateId = _configuration["WhatsApp:Qontak:DefaultTemplateId"] ?? "300d84f2-d962-4451-bc27-870fb99d18e7";
-            _channelIntegrationId = _configuration["WhatsApp:Qontak:ChannelIntegrationId"] ?? "662f9fcb-7e2b-4c1a-8eda-9aeb4a388004";
+            // Load configuration from appsettings.json or environment variables
+            _bearerToken = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_BEARER_TOKEN") ?? 
+                          _configuration["WhatsApp:Qontak:BearerToken"] ?? 
+                          "1Bs4cNxWFLUWUEd-3WSUKJOOmfeis8z4VrHU73v6_1Q";
+            
+            _defaultTemplateId = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_DEFAULT_TEMPLATE_ID") ?? 
+                                _configuration["WhatsApp:Qontak:DefaultTemplateId"] ?? 
+                                "300d84f2-d962-4451-bc27-870fb99d18e7";
+            
+            _channelIntegrationId = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_CHANNEL_INTEGRATION_ID") ?? 
+                                   _configuration["WhatsApp:Qontak:ChannelIntegrationId"] ?? 
+                                   "662f9fcb-7e2b-4c1a-8eda-9aeb4a388004";
+
+            // Log configuration for debugging
+            _logger.LogInformation("WhatsApp Configuration - Bearer Token: {Token}, Template ID: {TemplateId}, Channel ID: {ChannelId}", 
+                _bearerToken?.Substring(0, Math.Min(_bearerToken.Length, 10)) + "...", 
+                _defaultTemplateId, 
+                _channelIntegrationId);
 
             // Setup HttpClient headers
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _bearerToken);
@@ -50,13 +64,81 @@ namespace Backend.Services
         /// <returns>True if message sent successfully</returns>
         public async Task<bool> SendMessageAsync(string phoneNumber, string recipientName, string messageText)
         {
-            var parameters = new Dictionary<string, string>
+            try
             {
-                ["full_name"] = recipientName,
-                ["messagetext"] = messageText
-            };
+                // Validate configuration
+                if (string.IsNullOrEmpty(_defaultTemplateId) || string.IsNullOrEmpty(_channelIntegrationId))
+                {
+                    _logger.LogError("WhatsApp configuration is invalid. Template ID: {TemplateId}, Channel ID: {ChannelId}", 
+                        _defaultTemplateId, _channelIntegrationId);
+                    return false;
+                }
 
-            return await SendTemplateMessageAsync(phoneNumber, recipientName, _defaultTemplateId, parameters);
+                // Format phone number (ensure it starts with country code)
+                var formattedPhoneNumber = FormatPhoneNumber(phoneNumber);
+
+                // For direct text messages, use simple payload
+                var payload = new
+                {
+                    to_number = formattedPhoneNumber,
+                    to_name = recipientName,
+                    message_template_id = _defaultTemplateId,
+                    channel_integration_id = _channelIntegrationId,
+                    language = new
+                    {
+                        code = "en"
+                    },
+                    parameters = new
+                    {
+                        body = new[]
+                        {
+                            new
+                            {
+                                key = "1",
+                                value = "full_name",
+                                value_text = recipientName
+                            },
+                            new
+                            {
+                                key = "2", 
+                                value = "messagetext",
+                                value_text = messageText
+                            }
+                        }
+                    }
+                };
+
+                var jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                    WriteIndented = true
+                });
+
+                _logger.LogInformation("Sending WhatsApp message to {PhoneNumber}: {Payload}", formattedPhoneNumber, jsonPayload);
+
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/broadcasts/whatsapp/direct", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation("✅ WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}", 
+                        formattedPhoneNumber, responseContent);
+                    return true;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("❌ Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}", 
+                        formattedPhoneNumber, response.StatusCode, errorContent);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred while sending WhatsApp message to {PhoneNumber}", phoneNumber);
+                return false;
+            }
         }
 
         /// <summary>
@@ -90,7 +172,7 @@ namespace Backend.Services
                     channel_integration_id = _channelIntegrationId,
                     language = new
                     {
-                        code = "id"
+                        code = "en"
                     },
                     parameters = new
                     {
@@ -100,7 +182,7 @@ namespace Backend.Services
 
                 var jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions
                 {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
                     WriteIndented = true
                 });
 
@@ -112,14 +194,14 @@ namespace Backend.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogInformation("WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}", 
+                    _logger.LogInformation("✅ WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}", 
                         formattedPhoneNumber, responseContent);
                     return true;
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}", 
+                    _logger.LogError("❌ Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}", 
                         formattedPhoneNumber, response.StatusCode, errorContent);
                     return false;
                 }

@@ -55,6 +55,7 @@ builder.Services.AddScoped<Backend.Services.IJwtService, Backend.Services.JwtSer
 builder.Services.AddScoped<Backend.Services.IContainmentService, Backend.Services.ContainmentService>();
 builder.Services.AddScoped<Backend.Services.IRackService, Backend.Services.RackService>();
 builder.Services.AddScoped<Backend.Services.IDeviceService, Backend.Services.DeviceService>();
+builder.Services.AddScoped<Backend.Services.IDeviceStatusMonitoringService, Backend.Services.DeviceStatusMonitoringService>();
 builder.Services.AddScoped<Backend.Services.IMaintenanceService, Backend.Services.MaintenanceService>();
 builder.Services.AddScoped<Backend.Services.IActivityReportService, Backend.Services.ActivityReportService>();
 builder.Services.AddScoped<Backend.Services.IBackupService, Backend.Services.BackupService>();
@@ -71,8 +72,8 @@ builder.Services.AddScoped<Backend.Services.IDeviceSensorDataService, Backend.Se
 builder.Services.AddScoped<Backend.Services.IDeviceActivityService, Backend.Services.DeviceActivityService>();
 builder.Services.AddSingleton<Backend.Services.IpScannerService>();
 builder.Services.AddScoped<Backend.Services.IAccessLogService, Backend.Services.AccessLogService>();
-// builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
-// builder.Services.AddSingleton<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
+builder.Services.AddScoped<Backend.Services.IMaintenanceNotificationService, Backend.Services.MaintenanceNotificationService>();
+builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
 
 
 builder.Services.AddHttpClient();
@@ -80,14 +81,15 @@ builder.Services.AddHttpClient();
 // Add background services
 builder.Services.AddHostedService<Backend.Services.BackupHostedService>();
 builder.Services.AddHostedService<Backend.Services.DeviceActivityHostedService>();
+builder.Services.AddHostedService<Backend.Services.MaintenanceReminderHostedService>();
+builder.Services.AddHostedService<Backend.Services.DeviceStatusMonitoringHostedService>();
 
 // Add MQTT hosted service only if MQTT is enabled
 var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? builder.Configuration["Mqtt:EnableMqtt"] ?? "true");
 if (enableMqtt)
 {
     builder.Services.AddHostedService<Backend.Services.ContainmentMqttHostedService>();
-    // Note: MqttDeviceSubscriptionService is disabled to avoid conflicts
-    // Sensor data handling is now integrated in ContainmentMqttHostedService
+    builder.Services.AddHostedService<Backend.Services.MqttDeviceSubscriptionService>();
 }
 
 // Add JWT Authentication
@@ -129,6 +131,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -198,6 +201,10 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("Seeding initial data...");
         await Backend.Data.SeedData.InitializeAsync(context, authService, scopedLogger);
         
+        logger.LogInformation("Seeding menu management data...");
+        await Backend.Data.MenuSeedData.SeedMenuDataAsync(context);
+        await Backend.Data.MenuSeedData.AssignUserRolesAsync(context);
+        
         logger.LogInformation("Database seeding completed");
     }
     else
@@ -239,6 +246,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 // Log server startup information
 var urls = builder.WebHost.GetSetting("urls") ?? app.Urls.FirstOrDefault() ?? "http://localhost:5000";

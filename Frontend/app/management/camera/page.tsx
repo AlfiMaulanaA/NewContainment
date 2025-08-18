@@ -81,6 +81,7 @@ import {
   CameraConfig,
   CreateCameraConfigRequest,
   UpdateCameraConfigRequest,
+  cctvApi,
 } from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import Hls from "hls.js";
@@ -547,11 +548,7 @@ const MotionVideosTab = ({
           const videosUrl = `http://${monData.camera.ipAddress}:${monData.camera.port}/${monData.camera.apiKey}/videos/${monData.camera.group}/${item.mid}`;
           console.log("Loading videos from URL:", videosUrl);
 
-          const response = await fetch(videosUrl);
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-
-          const videos = await response.json();
+          const videos = await cctvApi.getVideoList(videosUrl);
           setVideosData((prev) => ({ ...prev, [key]: videos }));
         } catch (error: any) {
           console.error(
@@ -943,13 +940,9 @@ export default function CctvManagementPage() {
     const monitorUrl = `http://${camera.ipAddress}:${camera.port}/${camera.apiKey}/monitor/${camera.group}`;
 
     try {
-      const response = await fetch(monitorUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const videos = await cctvApi.getVideoList(monitorUrl);
       toast.success(`Monitor data for "${camera.name}" loaded successfully.`);
-      return { camera, data };
+      return { camera, data: videos };
     } catch (error: any) {
       toast.error(
         `Error loading monitor data for "${camera.name}": ${error.message}`

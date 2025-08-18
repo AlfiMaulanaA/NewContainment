@@ -4,6 +4,7 @@ namespace Backend.Services
     {
         Task ConnectAsync();
         Task DisconnectAsync();
+        Task ReconnectWithNewConfigAsync();
         Task PublishAsync(string topic, string payload);
         Task SubscribeAsync(string topic, Func<string, string, Task> messageHandler);
         Task UnsubscribeAsync(string topic);

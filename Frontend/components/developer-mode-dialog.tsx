@@ -18,7 +18,7 @@ import {
   AlertTriangle,
   CheckCircle 
 } from 'lucide-react';
-import { useDeveloperMode } from '@/hooks/useDeveloperMode';
+import { useDeveloperMode, DEVELOPER_MODE_CONFIG } from '@/contexts/DeveloperModeContext';
 import { toast } from 'sonner';
 
 interface DeveloperModeDialogProps {
@@ -31,7 +31,8 @@ export function DeveloperModeDialog({ children, className }: DeveloperModeDialog
     isDeveloperMode, 
     enableDeveloperMode, 
     disableDeveloperMode,
-    getFormattedRemainingTime 
+    getFormattedRemainingTime,
+    triggerUpdate
   } = useDeveloperMode();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +53,10 @@ export function DeveloperModeDialog({ children, className }: DeveloperModeDialog
         toast.success('Developer Mode enabled successfully!');
         setPassword('');
         setIsOpen(false);
+        // Force immediate UI update
+        setTimeout(() => {
+          triggerUpdate();
+        }, 100);
       } else {
         setError('Invalid password. Please try again.');
         toast.error('Invalid developer password');
@@ -199,10 +204,9 @@ export function DeveloperModeDialog({ children, className }: DeveloperModeDialog
           <div className="text-xs text-muted-foreground p-3 bg-muted/20 rounded-lg">
             <p className="font-medium mb-1">Developer Mode Features:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Access Control System management</li>
-              <li>ZKTeco device integration</li>
-              <li>Biometric registration tools</li>
-              <li>Advanced monitoring capabilities</li>
+              {DEVELOPER_MODE_CONFIG.features.map((feature) => (
+                <li key={feature.id}>{feature.description}</li>
+              ))}
             </ul>
             <p className="mt-2 text-orange-600">
               ⚠️ Developer Mode automatically expires after 5 minutes

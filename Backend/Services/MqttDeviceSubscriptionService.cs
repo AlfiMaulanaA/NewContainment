@@ -198,11 +198,10 @@ namespace Backend.Services
 
                 // Store sensor data
                 using var scope = _serviceProvider.CreateScope();
-                var sensorDataService = scope.ServiceProvider.GetRequiredService<IDeviceSensorDataService>();
+                // Just log the MQTT message as requested
+                _logger.LogInformation("MQTT Data - Device {DeviceId}, Topic: {Topic}, Payload: {Payload}", deviceId, topic, payload);
                 
-                await sensorDataService.ParseAndStoreSensorDataAsync(deviceId.Value, topic, payload);
-                
-                _logger.LogDebug("Stored sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
+                _logger.LogDebug("Logged MQTT data for device {DeviceId} from topic {Topic}", deviceId, topic);
             }
             catch (Exception ex)
             {
@@ -278,6 +277,8 @@ namespace Backend.Services
                 _logger.LogInformation("Disconnected from MQTT broker");
             }
         }
+
+
 
         public override void Dispose()
         {

@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { cameraConfig, CameraConfig } from "@/lib/api-service";
+import { cameraConfig, CameraConfig, cctvApi } from "@/lib/api-service";
 import Hls from "hls.js";
 
 interface MonitorData {
@@ -609,17 +609,25 @@ export default function ModernCCTVWidget({ layout = "auto" }: ModernCCTVWidgetPr
     );
   }
 
+  const renderCCTVCards = () => {
+    const streamsToShow = layout === "1x1" ? allStreams.slice(0, 1) : 
+                         layout === "2x2" ? allStreams.slice(0, 2) :
+                         layout === "3x3" ? allStreams.slice(0, 3) :
+                         layout === "4x2" ? allStreams.slice(0, 4) :
+                         allStreams;
+
+    return streamsToShow.map((streamItem, index) => (
+      <CCTVCard
+        key={index}
+        streamItem={streamItem}
+        onExpand={handleExpand}
+      />
+    ));
+  };
+
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {allStreams.map((streamItem, index) => (
-          <CCTVCard
-            key={index}
-            streamItem={streamItem}
-            onExpand={handleExpand}
-          />
-        ))}
-      </div>
+      {renderCCTVCards()}
 
       {/* Fullscreen Modal */}
       {fullscreenStream && (

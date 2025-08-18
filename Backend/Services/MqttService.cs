@@ -1,5 +1,7 @@
 using MQTTnet;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services
 {
@@ -7,36 +9,45 @@ namespace Backend.Services
     {
         private readonly ILogger<MqttService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
         private IMqttClient? _mqttClient;
         private readonly Dictionary<string, Func<string, string, Task>> _messageHandlers;
-        private readonly bool _mqttEnabled;
+        private bool _mqttEnabled;
 
         public bool IsConnected => _mqttClient?.IsConnected ?? false;
         public event EventHandler<string>? ConnectionStatusChanged;
 
-        public MqttService(ILogger<MqttService> logger, IConfiguration configuration)
+        public MqttService(ILogger<MqttService> logger, IConfiguration configuration, IServiceScopeFactory serviceScopeFactory)
         {
             _logger = logger;
             _configuration = configuration;
+            _serviceScopeFactory = serviceScopeFactory;
             _messageHandlers = new Dictionary<string, Func<string, string, Task>>();
-            _mqttEnabled = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? configuration["Mqtt:EnableMqtt"] ?? "true");
+            _mqttEnabled = true; // Will be checked dynamically from database
             
-            if (!_mqttEnabled)
-            {
-                _logger.LogInformation("MQTT service is disabled in configuration");
-            }
+            _logger.LogInformation("MQTT service initialized with dynamic configuration via scope factory");
         }
 
         public async Task ConnectAsync()
         {
-            if (!_mqttEnabled)
-            {
-                _logger.LogInformation("MQTT is disabled, skipping connection");
-                return;
-            }
-
             try
             {
+                // Get effective configuration from database or environment using scoped service
+                Dictionary<string, object> effectiveConfig;
+                using (var scope = _serviceScopeFactory.CreateScope())
+                {
+                    var mqttConfigService = scope.ServiceProvider.GetRequiredService<IMqttConfigurationService>();
+                    effectiveConfig = await mqttConfigService.GetEffectiveConfigurationAsync();
+                }
+                
+                _mqttEnabled = (bool)effectiveConfig["IsEnabled"];
+                
+                if (!_mqttEnabled)
+                {
+                    _logger.LogInformation("MQTT is disabled in configuration, skipping connection");
+                    return;
+                }
+
                 if (_mqttClient?.IsConnected == true)
                 {
                     _logger.LogInformation("MQTT client is already connected");
@@ -46,15 +57,17 @@ namespace Backend.Services
                 var mqttFactory = new MqttClientFactory();
                 _mqttClient = mqttFactory.CreateMqttClient();
 
-                var host = Environment.GetEnvironmentVariable("MQTT_BROKER_HOST") ?? _configuration["Mqtt:BrokerHost"] ?? "localhost";
-                var port = int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT") ?? _configuration["Mqtt:BrokerPort"] ?? "1883");
-                var baseClientId = Environment.GetEnvironmentVariable("MQTT_CLIENT_ID") ?? _configuration["Mqtt:ClientId"] ?? "Backend_Client";
+                var host = (string)effectiveConfig["BrokerHost"];
+                var port = (int)effectiveConfig["BrokerPort"];
+                var baseClientId = (string)effectiveConfig["ClientId"];
                 var clientId = $"{baseClientId}_{Guid.NewGuid().ToString("N")[..8]}";
-                var username = Environment.GetEnvironmentVariable("MQTT_USERNAME") ?? _configuration["Mqtt:Username"];
-                var password = Environment.GetEnvironmentVariable("MQTT_PASSWORD") ?? _configuration["Mqtt:Password"];
-                var useTls = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_TLS") ?? _configuration["Mqtt:UseTls"] ?? "false");
-                var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? _configuration["Mqtt:UseWebSocket"] ?? "false");
-                var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? _configuration["Mqtt:WebSocketUri"];
+                var username = (string)effectiveConfig["Username"];
+                var password = (string)effectiveConfig["Password"];
+                var useTls = (bool)effectiveConfig["UseSsl"];
+                var useWebSocket = (bool)effectiveConfig["UseWebSocket"];
+                var webSocketUri = (string)effectiveConfig["WebSocketUri"];
+                
+                // WebSocket path for backward compatibility
                 var webSocketPath = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_PATH") ?? _configuration["Mqtt:WebSocketPath"] ?? "/mqtt";
 
                 var clientOptionsBuilder = new MqttClientOptionsBuilder()
@@ -150,6 +163,31 @@ namespace Backend.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error disconnecting from MQTT broker");
+                throw;
+            }
+        }
+
+        public async Task ReconnectWithNewConfigAsync()
+        {
+            _logger.LogInformation("Reconnecting MQTT with new configuration");
+            
+            try
+            {
+                // Disconnect current client
+                await DisconnectAsync();
+                
+                // Dispose current client
+                _mqttClient?.Dispose();
+                _mqttClient = null;
+                
+                // Connect with new configuration
+                await ConnectAsync();
+                
+                _logger.LogInformation("Successfully reconnected with new MQTT configuration");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to reconnect with new MQTT configuration");
                 throw;
             }
         }
@@ -251,6 +289,9 @@ namespace Backend.Services
 
                 _logger.LogInformation("Received message from topic {Topic}: {Payload}", topic, payload);
 
+                // Track device activity based on topic
+                await TrackDeviceActivityFromTopicAsync(topic, payload);
+
                 // Check for exact topic match first
                 if (_messageHandlers.TryGetValue(topic, out var handler))
                 {
@@ -275,6 +316,39 @@ namespace Backend.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing received MQTT message");
+            }
+        }
+
+        private async Task TrackDeviceActivityFromTopicAsync(string topic, string payload)
+        {
+            try
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+                var deviceStatusService = scope.ServiceProvider.GetService<IDeviceStatusMonitoringService>();
+                
+                if (deviceStatusService == null)
+                    return;
+
+                // Find device(s) that have this topic
+                var devices = await context.Devices
+                    .Where(d => d.IsActive && d.Topic == topic)
+                    .Select(d => d.Id)
+                    .ToListAsync();
+
+                foreach (var deviceId in devices)
+                {
+                    await deviceStatusService.UpdateDeviceActivityAsync(deviceId, topic, payload);
+                }
+
+                if (devices.Any())
+                {
+                    _logger.LogDebug($"Updated activity for {devices.Count} device(s) with topic {topic}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error tracking device activity for topic {topic}");
             }
         }
 

@@ -8,6 +8,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 import { SessionTimeoutWarning } from "@/components/session-timeout-warning";
+import { BackendStatusAlert } from "@/components/backend-status-alert";
+import { DeveloperModeProvider } from "@/contexts/DeveloperModeContext";
 // import { useRoutePreloader } from "@/hooks/useRoutePreloader";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -19,15 +21,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <AuthProvider>
-      <SidebarProvider>
-        {/* Sidebar hanya ditampilkan jika hideSidebar adalah false */}
-        {!hideSidebar && <AppSidebar />}
-        <main className="flex-1 overflow-auto">{children}</main>
-        {/* Session timeout warning */}
-        <SessionTimeoutWarning />
-        {/* Toaster untuk sonner notifications */}
-        <Toaster richColors position="top-right" />
-      </SidebarProvider>
+      <DeveloperModeProvider>
+        <SidebarProvider>
+          {/* Sidebar hanya ditampilkan jika hideSidebar adalah false */}
+          {!hideSidebar && <AppSidebar />}
+          <main className="flex-1 overflow-auto">{children}</main>
+          {/* Session timeout warning */}
+          <SessionTimeoutWarning />
+          {/* Backend status alert - only show when not on auth pages */}
+          {!hideSidebar && <BackendStatusAlert showWhenOnline={true} />}
+          {/* Toaster untuk sonner notifications */}
+          <Toaster richColors position="top-right" />
+        </SidebarProvider>
+      </DeveloperModeProvider>
     </AuthProvider>
   );
 }

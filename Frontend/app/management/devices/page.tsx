@@ -81,6 +81,8 @@ import {
 } from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
+import { useDeviceStatus } from "@/hooks/useDeviceStatus";
+import { DeviceStatusBadge } from "@/components/device-status-badge";
 import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 10;
@@ -119,6 +121,15 @@ export default function DeviceManagementPage({
     []
   );
   const [activityLoading, setActivityLoading] = useState(false);
+
+  // Device status hook for real-time status monitoring
+  const { 
+    deviceStatuses, 
+    loading: statusLoading, 
+    getDeviceStatusFromCache,
+    forceStatusCheck,
+    initializeMonitoring 
+  } = useDeviceStatus(30000); // Refresh every 30 seconds
 
   // Form state
   const [formData, setFormData] = useState<
@@ -921,7 +932,7 @@ export default function DeviceManagementPage({
                                 <Badge variant="secondary" className="text-xs">
                                   {device.sensorType || "No Type"}
                                 </Badge>
-                                {activityInfo && activityInfo.lastSeenAt && (
+                                {activityInfo && activityInfo.lastDataReceived && (
                                   <span className="text-xs text-muted-foreground">
                                     {activityInfo.minutesSinceLastData}m ago
                                   </span>
@@ -1392,7 +1403,7 @@ export default function DeviceManagementPage({
                           <Badge variant={activityInfo.hasRecentData ? "default" : "secondary"}>
                             {activityInfo.hasRecentData ? "Active" : "Inactive"}
                           </Badge>
-                          {activityInfo.lastSeenAt && (
+                          {activityInfo.lastDataReceived && (
                             <span className="text-xs text-muted-foreground">
                               Last seen: {activityInfo.minutesSinceLastData} minutes ago
                             </span>

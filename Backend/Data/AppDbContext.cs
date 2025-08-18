@@ -24,6 +24,18 @@ namespace Backend.Data
         public DbSet<CameraConfig> CameraConfigs { get; set; }
         public DbSet<DeviceSensorData> DeviceSensorData { get; set; }
         public DbSet<AccessLog> AccessLogs { get; set; }
+        public DbSet<SensorConfiguration> SensorConfigurations { get; set; }
+        public DbSet<ScanConfiguration> ScanConfigurations { get; set; }
+        public DbSet<DeviceActivityStatus> DeviceActivityStatuses { get; set; }
+        
+        // Menu Management tables
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<MenuGroup> MenuGroups { get; set; }
+        public DbSet<MenuItem> MenuItems { get; set; }
+        public DbSet<MenuPermission> MenuPermissions { get; set; }
+        public DbSet<UserRoleAssignment> UserRoles { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -35,7 +47,7 @@ namespace Backend.Data
                         entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                         entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
                         entity.Property(e => e.PhoneNumber).HasMaxLength(20);
-                        entity.Property(e => e.Role).IsRequired().HasDefaultValue(UserRole.User).HasSentinel(UserRole.None);
+                        entity.Property(e => e.Role).IsRequired().HasDefaultValue(Backend.Enums.UserRole.User).HasSentinel(Backend.Enums.UserRole.None);
                         entity.Property(e => e.CreatedAt).IsRequired();
                         entity.Property(e => e.UpdatedAt).IsRequired();
                         entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
@@ -159,27 +171,11 @@ namespace Backend.Data
                         .HasForeignKey(e => e.UpdatedBy)
                         .OnDelete(DeleteBehavior.Restrict);
 
-                        // Polymorphic relationships (configured manually)
-                        entity.HasOne(e => e.TargetDevice)
-                        .WithMany()
-                        .HasForeignKey(e => e.TargetId)
-                        .HasPrincipalKey(d => d.Id)
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired(false);
-
-                        entity.HasOne(e => e.TargetRack)
-                        .WithMany()
-                        .HasForeignKey(e => e.TargetId)
-                        .HasPrincipalKey(r => r.Id)
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired(false);
-
-                        entity.HasOne(e => e.TargetContainment)
-                        .WithMany()
-                        .HasForeignKey(e => e.TargetId)
-                        .HasPrincipalKey(c => c.Id)
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired(false);
+                        // Navigation properties without foreign key constraints
+                        // These will be populated manually in the service layer based on TargetType and TargetId
+                        entity.Ignore(e => e.TargetDevice);
+                        entity.Ignore(e => e.TargetRack);
+                        entity.Ignore(e => e.TargetContainment);
                   });
 
                   modelBuilder.Entity<ActivityReport>(entity =>
@@ -412,6 +408,227 @@ namespace Backend.Data
                         entity.HasIndex(e => e.Timestamp);
                         entity.HasIndex(e => new { e.Via, e.Timestamp });
                         entity.HasIndex(e => e.User);
+                  });
+
+                  modelBuilder.Entity<SensorConfiguration>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.SensorNumber).IsRequired();
+                        entity.Property(e => e.SensorName).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.ModbusAddress).IsRequired();
+                        entity.Property(e => e.ModbusPort).IsRequired().HasMaxLength(20);
+                        entity.Property(e => e.SensorType).IsRequired().HasMaxLength(50);
+                        entity.Property(e => e.Description).HasMaxLength(500);
+                        entity.Property(e => e.IsEnabled).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.TemperatureOffset).HasDefaultValue(0);
+                        entity.Property(e => e.HumidityOffset).HasDefaultValue(0);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.CreatedBy).IsRequired();
+
+                        // Foreign key relationships
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                        // Unique index for sensor number
+                        entity.HasIndex(e => e.SensorNumber).IsUnique();
+                        entity.HasIndex(e => e.SensorName);
+                        entity.HasIndex(e => e.IsEnabled);
+                        entity.HasIndex(e => e.CreatedAt);
+                  });
+
+                  modelBuilder.Entity<ScanConfiguration>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.MaxAddressToScan).IsRequired().HasDefaultValue(247);
+                        entity.Property(e => e.SelectedPort).IsRequired().HasMaxLength(20).HasDefaultValue("COM3");
+                        entity.Property(e => e.SelectedSensor).IsRequired().HasMaxLength(50).HasDefaultValue("XY_MD02");
+                        entity.Property(e => e.ScanTimeoutMs).HasDefaultValue(1000);
+                        entity.Property(e => e.ScanIntervalMs).HasDefaultValue(100);
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt).IsRequired();
+                        entity.Property(e => e.CreatedBy).IsRequired();
+
+                        // Foreign key relationships
+                        entity.HasOne(e => e.CreatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.CreatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                        entity.HasOne(e => e.UpdatedByUser)
+                        .WithMany()
+                        .HasForeignKey(e => e.UpdatedBy)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                        // Indexes for performance
+                        entity.HasIndex(e => e.IsActive);
+                        entity.HasIndex(e => e.CreatedAt);
+                  });
+
+                  // Menu Management entity configurations
+                  modelBuilder.Entity<Role>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+                        entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Description).HasMaxLength(200);
+                        entity.Property(e => e.Level).IsRequired();
+                        entity.Property(e => e.Color).HasMaxLength(50).HasDefaultValue("text-gray-600 bg-gray-100");
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt);
+
+                        entity.HasIndex(e => e.Name).IsUnique();
+                        entity.HasIndex(e => e.Level);
+                        entity.HasIndex(e => e.IsActive);
+                  });
+
+                  modelBuilder.Entity<Permission>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Description).HasMaxLength(200);
+                        entity.Property(e => e.Category).HasMaxLength(50);
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+
+                        entity.HasIndex(e => e.Name).IsUnique();
+                        entity.HasIndex(e => e.Category);
+                        entity.HasIndex(e => e.IsActive);
+                  });
+
+                  modelBuilder.Entity<MenuGroup>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Title).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Icon).HasMaxLength(50);
+                        entity.Property(e => e.SortOrder).HasDefaultValue(0);
+                        entity.Property(e => e.MinRoleLevel);
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.RequiresDeveloperMode).HasDefaultValue(false);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt);
+
+                        entity.HasIndex(e => e.SortOrder);
+                        entity.HasIndex(e => e.IsActive);
+                        entity.HasIndex(e => e.RequiresDeveloperMode);
+                  });
+
+                  modelBuilder.Entity<MenuItem>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.Title).IsRequired().HasMaxLength(100);
+                        entity.Property(e => e.Url).IsRequired().HasMaxLength(200);
+                        entity.Property(e => e.Icon).HasMaxLength(50);
+                        entity.Property(e => e.SortOrder).HasDefaultValue(0);
+                        entity.Property(e => e.MinRoleLevel);
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+                        entity.Property(e => e.RequiresDeveloperMode).HasDefaultValue(false);
+                        entity.Property(e => e.BadgeText).HasMaxLength(50);
+                        entity.Property(e => e.BadgeVariant).HasMaxLength(20).HasDefaultValue("default");
+                        entity.Property(e => e.CreatedAt).IsRequired();
+                        entity.Property(e => e.UpdatedAt);
+                        entity.Property(e => e.MenuGroupId).IsRequired();
+
+                        // Foreign key relationship
+                        entity.HasOne(e => e.MenuGroup)
+                        .WithMany(mg => mg.MenuItems)
+                        .HasForeignKey(e => e.MenuGroupId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasIndex(e => e.Url);
+                        entity.HasIndex(e => e.SortOrder);
+                        entity.HasIndex(e => e.IsActive);
+                        entity.HasIndex(e => e.RequiresDeveloperMode);
+                        entity.HasIndex(e => e.MenuGroupId);
+                  });
+
+                  modelBuilder.Entity<MenuPermission>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.MenuItemId);
+                        entity.Property(e => e.MenuGroupId);
+                        entity.Property(e => e.RoleId);
+                        entity.Property(e => e.PermissionId);
+                        entity.Property(e => e.IsRequired).HasDefaultValue(true);
+                        entity.Property(e => e.CreatedAt).IsRequired();
+
+                        // Foreign key relationships
+                        entity.HasOne(e => e.MenuItem)
+                        .WithMany(mi => mi.MenuPermissions)
+                        .HasForeignKey(e => e.MenuItemId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.MenuGroup)
+                        .WithMany()
+                        .HasForeignKey(e => e.MenuGroupId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Role)
+                        .WithMany(r => r.MenuPermissions)
+                        .HasForeignKey(e => e.RoleId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Permission)
+                        .WithMany(p => p.MenuPermissions)
+                        .HasForeignKey(e => e.PermissionId)
+                        .OnDelete(DeleteBehavior.Cascade);
+                  });
+
+                  modelBuilder.Entity<UserRoleAssignment>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.UserId).IsRequired();
+                        entity.Property(e => e.RoleId).IsRequired();
+                        entity.Property(e => e.AssignedAt).IsRequired();
+                        entity.Property(e => e.ExpiresAt);
+                        entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+
+                        // Foreign key relationships
+                        entity.HasOne(e => e.User)
+                        .WithMany()
+                        .HasForeignKey(e => e.UserId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Role)
+                        .WithMany(r => r.UserRoles)
+                        .HasForeignKey(e => e.RoleId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        // Unique constraint: one active role per user
+                        entity.HasIndex(e => new { e.UserId, e.RoleId, e.IsActive }).IsUnique();
+                        entity.HasIndex(e => e.UserId);
+                        entity.HasIndex(e => e.IsActive);
+                  });
+
+                  modelBuilder.Entity<RolePermission>(entity =>
+                  {
+                        entity.HasKey(e => e.Id);
+                        entity.Property(e => e.RoleId).IsRequired();
+                        entity.Property(e => e.PermissionId).IsRequired();
+                        entity.Property(e => e.AssignedAt).IsRequired();
+
+                        // Foreign key relationships
+                        entity.HasOne(e => e.Role)
+                        .WithMany(r => r.RolePermissions)
+                        .HasForeignKey(e => e.RoleId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        entity.HasOne(e => e.Permission)
+                        .WithMany(p => p.RolePermissions)
+                        .HasForeignKey(e => e.PermissionId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                        // Unique constraint: one permission per role
+                        entity.HasIndex(e => new { e.RoleId, e.PermissionId }).IsUnique();
                   });
 
                   // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing

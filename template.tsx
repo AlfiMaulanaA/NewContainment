@@ -1,20 +1,6 @@
 "use client";
 
-import {
-  Download,
-  BarChart3,
-  Table2,
-  TrendingUp,
-  Filter,
-  RefreshCw,
-  Activity,
-  Server,
-  Database,
-  Thermometer,
-  Droplets,
-  Gauge,
-  LineChart,
-} from "lucide-react";
+import { Download } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

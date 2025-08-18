@@ -22,7 +22,7 @@ import {
   Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useMQTT } from '@/lib/mqtt-manager';
+import { useMQTT } from '@/hooks/useMQTT';
 import { useMQTTStatus } from '@/hooks/useMQTTStatus';
 import { useMQTTPublish } from '@/hooks/useMQTTPublish';
 
@@ -68,7 +68,7 @@ export function SystemConfigComponent() {
   const mqttStatus = useMQTTStatus();
   const { publishMessage } = useMQTTPublish();
   const { subscribe, unsubscribe, isConnected } = useMQTT();
-  const isConnectedStatus = isConnected();
+  const isConnectedStatus = isConnected;
 
   // MQTT Topics
   const TOPICS = {
@@ -79,10 +79,10 @@ export function SystemConfigComponent() {
 
   // Subscribe to MQTT messages
   useEffect(() => {
-    const handleMessage = (topic: string, message: Buffer) => {
+    const handleMessage = (topic: string, message: string) => {
       if (topic === TOPICS.CURRENT_CONFIG) {
         try {
-          const receivedConfig = JSON.parse(message.toString());
+          const receivedConfig = JSON.parse(message);
           console.log('Received current config:', receivedConfig);
           
           setConfig(receivedConfig);

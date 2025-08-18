@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DeveloperModeDialog } from '@/components/developer-mode-dialog';
-import { useDeveloperMode } from '@/hooks/useDeveloperMode';
+import { useDeveloperMode } from '@/contexts/DeveloperModeContext';
 import { 
   Lock, 
   Code, 

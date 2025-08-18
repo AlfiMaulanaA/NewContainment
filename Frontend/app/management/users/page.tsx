@@ -287,6 +287,15 @@ export default function UserManagementPage() {
 
       if (result.success) {
         toast.success(result.message || "Photo uploaded successfully");
+        
+        // Update editingUser state to reflect new photo
+        if (editingUser && editingUser.id === userId && result.data?.photoPath) {
+          setEditingUser({
+            ...editingUser,
+            photoPath: result.data.photoPath
+          });
+        }
+        
         setSelectedFile(null);
         setPreviewUrl(null);
         loadUsers(); // Reload users to get updated photo path
@@ -308,6 +317,15 @@ export default function UserManagementPage() {
 
       if (result.success) {
         toast.success(result.message || "Photo deleted successfully");
+        
+        // Update editingUser state to reflect photo removal
+        if (editingUser && editingUser.id === userId) {
+          setEditingUser({
+            ...editingUser,
+            photoPath: "/images/avatar-user.png"
+          });
+        }
+        
         loadUsers(); // Reload users to get updated photo path
       } else {
         toast.error(result.message || "Failed to delete photo");

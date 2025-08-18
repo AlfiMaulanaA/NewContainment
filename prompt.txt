@@ -67,3 +67,31 @@ Dan untuk ceiling saat open itu dikebawah dan saat close dia keatas.
 terlalu banyak file config mqtt di frontend, bisa buat lebih sedikit praktis? dan yang tidak digunakan tidak usah digunakan
 
 Buatkan seed data untuk NetwrokConfiguration untuk 2 data 1 ETH0 192.168.1.100 dan 2 ETH1 192.168.0.200
+
+
+Pada componntn componenct-card-rack-tabs.tsx menampilkan data semua rack.
+
+Anlisa fungsi DeviceSensorData di backend dan frontent 
+Analisa dan buatkan fungsi untuk menampilkan data realtime dari setiap TOPIC Device dengan DeviceType == Sensor. Pastikan Data device mqtt yang diterima dikirim ke frontend realtime data yang paling baru untuk setiap device
+
+Buatkan fungsi untuk menampilkan data device terbaru di frontend untuk deviceType == sensor dan sensorType == Temperature, parse data tersebut dan tampilkan di UI.
+
+6283116297507
+
+buat fitur magement backend, saat backend tidak konek atau mati maka munculkan alert di kanan bawah halaman
+
+buatkan fitur agar bisa update otomatis status isActive device berdasarkan sebuah fungsi, dengan cara cek apakah topic pada setiap device mengirim data? jika iya maka ubah otomatis status menjadi Online atau Active dan jika pada waktu tertentu tidak menerima data dari topic mqtt device maka ubah statis device menjadi Offline atau InActive
+
+
+hapus fungsi memunculkan konfigurasi mqtt di modal devices
+
+
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'D:\Alfi\RnD\DEVELOPMENT\NewContainment\Frontend\.next\cache\webpack\client-development\4.pack.gz'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: 'D:\\Alfi\\RnD\\DEVELOPMENT\\NewContainment\\Frontend\\.next\\cache\\webpack\\client-development\\4.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat 'D:\Alfi\RnD\DEVELOPMENT\NewContainment\Frontend\.next\cache\webpack\client-development\1.pack.gz'
+ ○ Compiling /reports/sensor-data/page ...
+ ✓ Compiled /reports/sensor-data/page in 4.5s (1464 modules)

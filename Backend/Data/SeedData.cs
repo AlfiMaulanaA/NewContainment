@@ -24,7 +24,7 @@ namespace Backend.Data
                 var racks = await SeedRacksAsync(context, containments, users);
 
                 // Seed Devices
-                await SeedDevicesAsync(context, racks, users);
+                // await SeedDevicesAsync(context, racks, users);
 
                 // Seed Default ContainmentStatus
                 await SeedContainmentStatusAsync(context, containments);
@@ -43,6 +43,9 @@ namespace Backend.Data
 
                 // Seed MqttConfiguration
                 await SeedMqttConfigurationAsync(context, users);
+
+                // Seed NetworkConfiguration
+                await SeedNetworkConfigurationAsync(context, users);
 
                 // Seed AccessLog
                 // await SeedAccessLogAsync(context, users);
@@ -76,6 +79,7 @@ namespace Backend.Data
                     Email = "admin@gmail.com",
                     PhoneNumber = "123456789",
                     PasswordHash = authService.HashPassword("password123"),
+                    
                     Role = UserRole.Admin,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -85,7 +89,7 @@ namespace Backend.Data
                 {
                     Name = "John Developer",
                     Email = "dev@gmail.com",
-                    PhoneNumber = "987654321",
+                    PhoneNumber = "6283116297507",
                     PasswordHash = authService.HashPassword("password123"),
                     Role = UserRole.Developer,
                     CreatedAt = DateTime.UtcNow,
@@ -631,11 +635,11 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
                     IsEnabled = false,
                     UseEnvironmentConfig = false,
                     BrokerHost = "mqttws.iotech.my.id",
-                    BrokerPort = 443,
-                    Username = "containment_user",
-                    Password = "secure_password",
+                    BrokerPort = 1883,
+                    Username = "",
+                    Password = "",
                     ClientId = "ContainmentSystem_Cloud",
-                    UseSsl = true,
+                    UseSsl = false,
                     KeepAliveInterval = 120,
                     ReconnectDelay = 10,
                     TopicPrefix = "datacenter/containment",
@@ -891,6 +895,53 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
                 RawPayload = rawPayload,
                 SensorType = device.SensorType ?? "Unknown"
             };
+        }
+
+        private static async Task SeedNetworkConfigurationAsync(AppDbContext context, List<User> users)
+        {
+            if (context.NetworkConfigurations.Any())
+            {
+                return;
+            }
+
+            var adminUser = users.First(u => u.Role == UserRole.Admin);
+
+            var networkConfigurations = new List<NetworkConfiguration>
+            {
+                new NetworkConfiguration
+                {
+                    InterfaceType = NetworkInterfaceType.ETH0,
+                    ConfigMethod = NetworkConfigMethod.Static,
+                    IpAddress = "192.168.1.100",
+                    SubnetMask = "255.255.255.0",
+                    Gateway = "192.168.1.1",
+                    PrimaryDns = "8.8.8.8",
+                    SecondaryDns = "8.8.4.4",
+                    Metric = "100",
+                    IsActive = true,
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new NetworkConfiguration
+                {
+                    InterfaceType = NetworkInterfaceType.ETH1,
+                    ConfigMethod = NetworkConfigMethod.Static,
+                    IpAddress = "192.168.0.200",
+                    SubnetMask = "255.255.255.0",
+                    Gateway = "192.168.0.1",
+                    PrimaryDns = "1.1.1.1",
+                    SecondaryDns = "1.0.0.1",
+                    Metric = "200",
+                    IsActive = true,
+                    CreatedBy = adminUser.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+
+            context.NetworkConfigurations.AddRange(networkConfigurations);
+            await context.SaveChangesAsync();
         }
 
     }

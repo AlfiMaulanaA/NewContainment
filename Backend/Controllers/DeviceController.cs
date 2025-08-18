@@ -4,6 +4,7 @@ using Backend.Models;
 using Backend.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers
 {
@@ -13,10 +14,17 @@ namespace Backend.Controllers
     public class DeviceController : ControllerBase
     {
         private readonly IDeviceService _deviceService;
+        private readonly IDeviceStatusMonitoringService _deviceStatusService;
+        private readonly Backend.Data.AppDbContext _context;
 
-        public DeviceController(IDeviceService deviceService)
+        public DeviceController(
+            IDeviceService deviceService, 
+            IDeviceStatusMonitoringService deviceStatusService,
+            Backend.Data.AppDbContext context)
         {
             _deviceService = deviceService;
+            _deviceStatusService = deviceStatusService;
+            _context = context;
         }
 
         [HttpGet]
@@ -125,6 +133,47 @@ namespace Backend.Controllers
             return NoContent();
         }
 
+        [HttpGet("status")]
+        public async Task<ActionResult<IEnumerable<DeviceActivityStatus>>> GetDevicesStatus()
+        {
+            var statuses = await _deviceStatusService.GetAllDeviceActivityStatusAsync();
+            return Ok(statuses);
+        }
+
+        [HttpGet("{id}/status")]
+        public async Task<ActionResult<DeviceActivityStatus>> GetDeviceStatus(int id)
+        {
+            var status = await _deviceStatusService.GetDeviceActivityStatusAsync(id);
+            
+            if (status == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(status);
+        }
+
+        [HttpGet("{id}/online")]
+        public async Task<ActionResult<bool>> IsDeviceOnline(int id)
+        {
+            var isOnline = await _deviceStatusService.IsDeviceOnlineAsync(id);
+            return Ok(isOnline);
+        }
+
+        [HttpPost("status/check")]
+        public async Task<ActionResult> ForceStatusCheck()
+        {
+            await _deviceStatusService.CheckAndUpdateDeviceStatusesAsync();
+            return Ok(new { message = "Device status check completed" });
+        }
+
+        [HttpPost("status/initialize")]
+        public async Task<ActionResult> InitializeMonitoring()
+        {
+            await _deviceStatusService.InitializeDeviceMonitoringAsync();
+            return Ok(new { message = "Device monitoring initialized" });
+        }
+
         private int GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
@@ -190,5 +239,17 @@ namespace Backend.Controllers
         public string? SensorType { get; set; }
         
         public int? UCapacity { get; set; }
+    }
+
+    public class DeviceStatusResponse
+    {
+        public int DeviceId { get; set; }
+        public string DeviceName { get; set; } = string.Empty;
+        public string DeviceType { get; set; } = string.Empty;
+        public string? SensorType { get; set; }
+        public string? Topic { get; set; }
+        public bool IsOnline { get; set; }
+        public DateTime? LastSeen { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

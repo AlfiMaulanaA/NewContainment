@@ -152,41 +152,88 @@ namespace Backend.Services
 
         public async Task<Dictionary<string, object>> GetEffectiveConfigurationAsync()
         {
-            var activeConfig = await GetActiveConfigurationAsync();
             var effectiveConfig = new Dictionary<string, object>();
+            var activeConfig = await GetActiveConfigurationAsync();
+            
+            // Configuration Priority:
+            // 1. Database configuration (if exists and not set to use environment)
+            // 2. Environment variables
+            // 3. appsettings.json
+            // 4. Default values
 
-            if (activeConfig == null || activeConfig.UseEnvironmentConfig)
-            {
-                // Use environment variables
-                effectiveConfig["IsEnabled"] = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? _configuration["Mqtt:EnableMqtt"] ?? "true");
-                effectiveConfig["BrokerHost"] = Environment.GetEnvironmentVariable("MQTT_BROKER_HOST") ?? _configuration["Mqtt:BrokerHost"] ?? "localhost";
-                effectiveConfig["BrokerPort"] = int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT") ?? _configuration["Mqtt:BrokerPort"] ?? "1883");
-                effectiveConfig["Username"] = Environment.GetEnvironmentVariable("MQTT_USERNAME") ?? _configuration["Mqtt:Username"] ?? "";
-                effectiveConfig["Password"] = Environment.GetEnvironmentVariable("MQTT_PASSWORD") ?? _configuration["Mqtt:Password"] ?? "";
-                effectiveConfig["ClientId"] = Environment.GetEnvironmentVariable("MQTT_CLIENT_ID") ?? _configuration["Mqtt:ClientId"] ?? "ContainmentSystem";
-                effectiveConfig["UseSsl"] = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_SSL") ?? _configuration["Mqtt:UseSsl"] ?? "false");
-                effectiveConfig["KeepAliveInterval"] = int.Parse(Environment.GetEnvironmentVariable("MQTT_KEEP_ALIVE") ?? _configuration["Mqtt:KeepAliveInterval"] ?? "60");
-                effectiveConfig["ReconnectDelay"] = int.Parse(Environment.GetEnvironmentVariable("MQTT_RECONNECT_DELAY") ?? _configuration["Mqtt:ReconnectDelay"] ?? "5");
-                effectiveConfig["TopicPrefix"] = Environment.GetEnvironmentVariable("MQTT_TOPIC_PREFIX") ?? _configuration["Mqtt:TopicPrefix"] ?? "containment";
-                effectiveConfig["Source"] = "Environment/Config";
-            }
-            else
+            string source = "Default";
+
+            if (activeConfig != null && !activeConfig.UseEnvironmentConfig && activeConfig.IsEnabled)
             {
                 // Use database configuration
                 effectiveConfig["IsEnabled"] = activeConfig.IsEnabled;
-                effectiveConfig["BrokerHost"] = activeConfig.BrokerHost ?? "localhost";
-                effectiveConfig["BrokerPort"] = activeConfig.BrokerPort ?? 1883;
-                effectiveConfig["Username"] = activeConfig.Username ?? "";
-                effectiveConfig["Password"] = activeConfig.Password ?? "";
-                effectiveConfig["ClientId"] = activeConfig.ClientId ?? "ContainmentSystem";
+                effectiveConfig["BrokerHost"] = activeConfig.BrokerHost ?? GetFallbackValue("BrokerHost", "localhost");
+                effectiveConfig["BrokerPort"] = activeConfig.BrokerPort ?? GetFallbackValue("BrokerPort", 1883);
+                effectiveConfig["Username"] = activeConfig.Username ?? GetFallbackValue("Username", "");
+                effectiveConfig["Password"] = activeConfig.Password ?? GetFallbackValue("Password", "");
+                effectiveConfig["ClientId"] = activeConfig.ClientId ?? GetFallbackValue("ClientId", "ContainmentSystem");
                 effectiveConfig["UseSsl"] = activeConfig.UseSsl;
                 effectiveConfig["KeepAliveInterval"] = activeConfig.KeepAliveInterval;
                 effectiveConfig["ReconnectDelay"] = activeConfig.ReconnectDelay;
-                effectiveConfig["TopicPrefix"] = activeConfig.TopicPrefix ?? "containment";
-                effectiveConfig["Source"] = "Database";
+                effectiveConfig["TopicPrefix"] = activeConfig.TopicPrefix ?? GetFallbackValue("TopicPrefix", "containment");
+                effectiveConfig["UseWebSocket"] = GetFallbackValue("UseWebSocket", false);
+                effectiveConfig["WebSocketUri"] = GetFallbackValue("WebSocketUri", "");
+                source = "Database";
+            }
+            else
+            {
+                // Use environment/config fallback
+                effectiveConfig["IsEnabled"] = GetFallbackValue("IsEnabled", true);
+                effectiveConfig["BrokerHost"] = GetFallbackValue("BrokerHost", "localhost");
+                effectiveConfig["BrokerPort"] = GetFallbackValue("BrokerPort", 1883);
+                effectiveConfig["Username"] = GetFallbackValue("Username", "");
+                effectiveConfig["Password"] = GetFallbackValue("Password", "");
+                effectiveConfig["ClientId"] = GetFallbackValue("ClientId", "ContainmentSystem");
+                effectiveConfig["UseSsl"] = GetFallbackValue("UseSsl", false);
+                effectiveConfig["KeepAliveInterval"] = GetFallbackValue("KeepAliveInterval", 60);
+                effectiveConfig["ReconnectDelay"] = GetFallbackValue("ReconnectDelay", 5);
+                effectiveConfig["TopicPrefix"] = GetFallbackValue("TopicPrefix", "containment");
+                effectiveConfig["UseWebSocket"] = GetFallbackValue("UseWebSocket", false);
+                effectiveConfig["WebSocketUri"] = GetFallbackValue("WebSocketUri", "");
+                source = activeConfig?.UseEnvironmentConfig == true ? "Environment/Config" : "Environment/Config (Fallback)";
             }
 
+            effectiveConfig["Source"] = source;
+            effectiveConfig["ConfigurationId"] = activeConfig?.Id ?? (object?)null;
+            effectiveConfig["LastUpdated"] = activeConfig?.UpdatedAt ?? DateTime.UtcNow;
+
+            _logger.LogInformation("MQTT Configuration loaded from: {Source}", source);
             return effectiveConfig;
+        }
+
+        private T GetFallbackValue<T>(string key, T defaultValue)
+        {
+            try
+            {
+                // Environment variables have priority
+                var envKey = $"MQTT_{key.ToUpper()}";
+                var envValue = Environment.GetEnvironmentVariable(envKey);
+                if (!string.IsNullOrEmpty(envValue))
+                {
+                    return (T)Convert.ChangeType(envValue, typeof(T));
+                }
+
+                // Then appsettings.json
+                var configKey = $"Mqtt:{key}";
+                var configValue = _configuration[configKey];
+                if (!string.IsNullOrEmpty(configValue))
+                {
+                    return (T)Convert.ChangeType(configValue, typeof(T));
+                }
+
+                // Finally default value
+                return defaultValue;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse configuration value for {Key}, using default", key);
+                return defaultValue;
+            }
         }
 
         public async Task<Dictionary<int, bool>> GetAllConnectionStatusAsync()

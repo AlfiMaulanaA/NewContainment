@@ -164,7 +164,7 @@ namespace Backend.Data
                     {
                         Title = "Control Panel",
                         Url = "/control/containment",
-                        Icon = "SlidersHorizontalIcon",
+                        Icon = "Sliders",
                         SortOrder = 2,
                         MinRoleLevel = 1,
                         IsActive = true,
@@ -388,7 +388,7 @@ namespace Backend.Data
                     {
                         Title = "System Info",
                         Url = "/info",
-                        Icon = "InfoIcon",
+                        Icon = "Info",
                         SortOrder = 4,
                         MinRoleLevel = 1,
                         IsActive = true,
@@ -423,6 +423,50 @@ namespace Backend.Data
                         RequiresDeveloperMode = true,
                         BadgeText = "Dev",
                         BadgeVariant = "secondary",
+                        MenuGroupId = managementGroup.Id,
+                        CreatedAt = DateTime.UtcNow
+                    },
+
+                    // Additional useful menu items
+                    new MenuItem
+                    {
+                        Title = "MQTT Test",
+                        Url = "/test/mqtt",
+                        Icon = "Radio",
+                        SortOrder = 1,
+                        MinRoleLevel = 2,
+                        IsActive = true,
+                        RequiresDeveloperMode = true,
+                        BadgeText = "Test",
+                        BadgeVariant = "outline",
+                        MenuGroupId = securityGroup.Id,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new MenuItem
+                    {
+                        Title = "API Documentation",
+                        Url = "/docs/api",
+                        Icon = "BookOpen",
+                        SortOrder = 3,
+                        MinRoleLevel = 2,
+                        IsActive = true,
+                        RequiresDeveloperMode = true,
+                        BadgeText = "Docs",
+                        BadgeVariant = "outline",
+                        MenuGroupId = managementGroup.Id,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new MenuItem
+                    {
+                        Title = "System Logs",
+                        Url = "/logs",
+                        Icon = "ScrollText",
+                        SortOrder = 4,
+                        MinRoleLevel = 3,
+                        IsActive = true,
+                        RequiresDeveloperMode = false,
+                        BadgeText = "Live",
+                        BadgeVariant = "default",
                         MenuGroupId = managementGroup.Id,
                         CreatedAt = DateTime.UtcNow
                     }
@@ -510,6 +554,172 @@ namespace Backend.Data
             }
 
             await context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Updates existing menu data while preserving custom configurations
+        /// </summary>
+        public static async Task UpdateMenuDataAsync(AppDbContext context)
+        {
+            try
+            {
+                // Update role colors if they haven't been customized
+                var roles = await context.Roles.ToListAsync();
+                var defaultRoleColors = new Dictionary<string, string>
+                {
+                    ["user"] = "text-green-600 bg-green-100",
+                    ["developer"] = "text-blue-600 bg-blue-100",
+                    ["admin"] = "text-red-600 bg-red-100"
+                };
+
+                foreach (var role in roles)
+                {
+                    if (defaultRoleColors.TryGetValue(role.Name, out var defaultColor) && role.Color == "text-gray-600 bg-gray-100")
+                    {
+                        role.Color = defaultColor;
+                        role.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                // Add missing permissions
+                var existingPermissions = await context.Permissions.Select(p => p.Name).ToListAsync();
+                var newPermissions = new List<Permission>();
+
+                var permissionsToAdd = new Dictionary<string, (string description, string category)>
+                {
+                    ["device.view"] = ("View devices", "device"),
+                    ["device.manage"] = ("Manage devices", "device"),
+                    ["sensor.view"] = ("View sensor data", "sensor"),
+                    ["sensor.configure"] = ("Configure sensors", "sensor"),
+                    ["maintenance.view"] = ("View maintenance records", "maintenance"),
+                    ["maintenance.manage"] = ("Manage maintenance", "maintenance"),
+                    ["report.generate"] = ("Generate reports", "report"),
+                    ["system.logs"] = ("Access system logs", "system")
+                };
+
+                foreach (var kvp in permissionsToAdd)
+                {
+                    if (!existingPermissions.Contains(kvp.Key))
+                    {
+                        newPermissions.Add(new Permission
+                        {
+                            Name = kvp.Key,
+                            Description = kvp.Value.description,
+                            Category = kvp.Value.category,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                if (newPermissions.Any())
+                {
+                    await context.Permissions.AddRangeAsync(newPermissions);
+                }
+
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating menu data: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Cleans up orphaned menu items and inactive data
+        /// </summary>
+        public static async Task CleanupMenuDataAsync(AppDbContext context)
+        {
+            try
+            {
+                // Remove inactive menu items older than 30 days
+                var cutoffDate = DateTime.UtcNow.AddDays(-30);
+                var inactiveItems = await context.MenuItems
+                    .Where(m => !m.IsActive && m.UpdatedAt < cutoffDate)
+                    .ToListAsync();
+
+                if (inactiveItems.Any())
+                {
+                    context.MenuItems.RemoveRange(inactiveItems);
+                }
+
+                // Remove expired user role assignments
+                var expiredRoles = await context.UserRoles
+                    .Where(ur => ur.ExpiresAt.HasValue && ur.ExpiresAt < DateTime.UtcNow)
+                    .ToListAsync();
+
+                foreach (var expiredRole in expiredRoles)
+                {
+                    expiredRole.IsActive = false;
+                }
+
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error cleaning up menu data: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Validates menu data integrity
+        /// </summary>
+        public static async Task<List<string>> ValidateMenuDataAsync(AppDbContext context)
+        {
+            var issues = new List<string>();
+
+            try
+            {
+                // Check for orphaned menu items
+                var orphanedItems = await context.MenuItems
+                    .Where(mi => !context.MenuGroups.Any(mg => mg.Id == mi.MenuGroupId))
+                    .CountAsync();
+
+                if (orphanedItems > 0)
+                {
+                    issues.Add($"Found {orphanedItems} orphaned menu items");
+                }
+
+                // Check for duplicate role levels
+                var duplicateRoles = await context.Roles
+                    .GroupBy(r => r.Level)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToListAsync();
+
+                if (duplicateRoles.Any())
+                {
+                    issues.Add($"Found duplicate role levels: {string.Join(", ", duplicateRoles)}");
+                }
+
+                // Check for menu groups without items
+                var emptyGroups = await context.MenuGroups
+                    .Where(mg => !mg.MenuItems.Any())
+                    .Select(mg => mg.Title)
+                    .ToListAsync();
+
+                if (emptyGroups.Any())
+                {
+                    issues.Add($"Found empty menu groups: {string.Join(", ", emptyGroups)}");
+                }
+
+                // Check for invalid URLs
+                var invalidUrls = await context.MenuItems
+                    .Where(mi => mi.IsActive && (mi.Url == null || mi.Url == ""))
+                    .Select(mi => mi.Title)
+                    .ToListAsync();
+
+                if (invalidUrls.Any())
+                {
+                    issues.Add($"Found menu items with invalid URLs: {string.Join(", ", invalidUrls)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                issues.Add($"Error during validation: {ex.Message}");
+            }
+
+            return issues;
         }
     }
 }

@@ -94,15 +94,13 @@ const LoginPage = () => {
         // Also save to cookie for compatibility
         saveCookieToken(result.data.token, rememberMe);
         
-        // Verify token is working
-        const user = getCurrentUserFromToken();
+        // Show success notification
+        AuthNotifications.loginSuccess(result.data.user.name);
         
-        AuthNotifications.loginSuccess(user?.name || result.data.user.name);
-        
-        // Slight delay to show toast before navigation
+        // Small delay to ensure token is stored, then navigate using router
         setTimeout(() => {
-          window.location.href = "/";
-        }, 500);
+          router.push("/");
+        }, 100);
       } else {
         const errorMessage = result.message || "Login failed";
         setError(errorMessage);

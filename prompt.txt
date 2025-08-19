@@ -2,33 +2,15 @@
 netstat -ano | findstr :3000
 taskkill /PID <PID> /F
 
-4. show new data realtime to frontend per each racks kalau type device adalah sensor change from dmmy to real data
-5. Bisa setting berapa lama waktu save
-6. Bisa setting color untuk badgenya
-7. Disatu rack bisa menampilkan 2 device
 
-
-1. Total Rack pada containment berdasarkan ContainmentID
-3. Buat fitur untuk disable dan enable menu untuk beberapa menu agar hilang atau terganti di client
-4. Buat fitur untuk authorize role untuk menu menu tertentu
 5. Access Control
 6. Color Range Indicator, buat sebuah fungsi untuk menentukan warna dari suatu perbandingan parameter
 7. kenapa project frontend saya sering glith css style nya?
-8. Developer Mode apakah fiturnya sudah aktif
-
 
 
 Overview
 - Racks Sensor Data
 - Matikan debug
-
-Control Panel
-- Simpan Ke Log Control
-
-camera
-
-Sensor Data
-- sort table dan pagnation
 
 Emrgency Logs
 - Delete All Logs
@@ -39,59 +21,12 @@ Maintenance Reports
 Networks
 - Analisa dan perbaiki
 
-MQTT
-
-System settings
-
-System Info
-
-Developer Mode
-- Data menu developer Mode tidak muncul
-
-
-analisa mendalam untuk fungsi network dengan fungsi menulis sebuah configurasi IP Static ETH0 dan atau ETH1 ke file /etc/network/interfaces, modifikasi fungsinya agar pada UI bisa manage Ip seperti biasa.
-1. CRUD configurasi ETH0 & ETH1
-2. untuk write configurasi ke database kita perlu klik tombol action Config to interfaces
-3. Jika ingin kembali DHCP/hapus configurasi sttaic IP ETH0 & ETH1 pun gunakan tombol action
-4. Buatkan juga sebuah fungsi untuk read configurasidari file /etc/network/interfaces itu saat ini bagaimana
-5. Analisa, modifikasi, dan buatkan fungsi fungsinya tersebut dibackend dan difrontend
-
-error remove photo when update user
-
-buatkan fitur untuk deteksi ada berapa user yg login ke software ini, dan kapan terakhir dia login
-
-buat untuk control/containment pada fitur Front Door Always Open dan Back Door Always Open pada togglenya tetap true sebelum dibuat disable.
-Hapuskan system configuration, tapi munculkan status limit switch front & back door dan lighting dan emergency status dari containmentStatus dihalaman control/containment.
-Dan untuk ceiling saat open itu dikebawah dan saat close dia keatas.
-
-terlalu banyak file config mqtt di frontend, bisa buat lebih sedikit praktis? dan yang tidak digunakan tidak usah digunakan
-
-Buatkan seed data untuk NetwrokConfiguration untuk 2 data 1 ETH0 192.168.1.100 dan 2 ETH1 192.168.0.200
-
-
-Pada componntn componenct-card-rack-tabs.tsx menampilkan data semua rack.
-
-Anlisa fungsi DeviceSensorData di backend dan frontent 
-Analisa dan buatkan fungsi untuk menampilkan data realtime dari setiap TOPIC Device dengan DeviceType == Sensor. Pastikan Data device mqtt yang diterima dikirim ke frontend realtime data yang paling baru untuk setiap device
-
-Buatkan fungsi untuk menampilkan data device terbaru di frontend untuk deviceType == sensor dan sensorType == Temperature, parse data tersebut dan tampilkan di UI.
-
 6283116297507
 
-buat fitur magement backend, saat backend tidak konek atau mati maka munculkan alert di kanan bawah halaman
+Fungsi dan fitur untuk UI berdasarkan data containment dari data containment dengan id 1, jika containment data id 1 maka pada halaman control/containment/page.tsx maka Hide menu control ceiling selenoid
 
-buatkan fitur agar bisa update otomatis status isActive device berdasarkan sebuah fungsi, dengan cara cek apakah topic pada setiap device mengirim data? jika iya maka ubah otomatis status menjadi Online atau Active dan jika pada waktu tertentu tidak menerima data dari topic mqtt device maka ubah statis device menjadi Offline atau InActive
+analisa component containment-card-rack-tabs.tsx modifikasi UI untuk fungsi menampilkan data device sensor, perbaiki agar lebih simpen dan baik untuk tampilannya dan gunakan ICON dan pemilihan warna yang baik.
 
+Remember me, reset password
 
-hapus fungsi memunculkan konfigurasi mqtt di modal devices
-
-
- ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat 'D:\Alfi\RnD\DEVELOPMENT\NewContainment\Frontend\.next\cache\webpack\client-development\4.pack.gz'] {
-  errno: -4058,
-  code: 'ENOENT',
-  syscall: 'stat',
-  path: 'D:\\Alfi\\RnD\\DEVELOPMENT\\NewContainment\\Frontend\\.next\\cache\\webpack\\client-development\\4.pack.gz'
-}
-<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat 'D:\Alfi\RnD\DEVELOPMENT\NewContainment\Frontend\.next\cache\webpack\client-development\1.pack.gz'
- ○ Compiling /reports/sensor-data/page ...
- ✓ Compiled /reports/sensor-data/page in 4.5s (1464 modules)
+fitur untuk filter maintanance kalender berdasarkan user yg login, atau berdasarkan atasiknta sendiri

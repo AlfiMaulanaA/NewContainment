@@ -83,6 +83,11 @@ import {
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { toast } from "sonner";
+import {
+  usePermissions,
+  PermissionWrapper,
+  CrudPermission,
+} from "@/lib/role-permissions";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -95,6 +100,7 @@ export default function RackManagementPage({
 }: RackManagementPageProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const permissions = usePermissions();
 
   // Get containmentId from URL params or props
   const urlContainmentId = searchParams.get("containmentId");
@@ -476,13 +482,14 @@ export default function RackManagementPage({
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Rack
-              </Button>
-            </DialogTrigger>
+          <CrudPermission module="rackManagement" operation="create">
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Rack
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Rack</DialogTitle>
@@ -569,6 +576,7 @@ export default function RackManagementPage({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </CrudPermission>
         </div>
       </header>
 
@@ -708,7 +716,9 @@ export default function RackManagementPage({
                     <TableHead>Devices</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <PermissionWrapper condition={permissions.rack.canUpdate || permissions.rack.canDelete}>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </PermissionWrapper>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -804,63 +814,79 @@ export default function RackManagementPage({
                               ? new Date(rack.createdAt).toLocaleDateString()
                               : "-"}
                           </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                router.push(
-                                  `/management/devices/rack?rackId=${
-                                    rack.id
-                                  }&rackName=${encodeURIComponent(rack.name)}`
-                                )
-                              }
-                              title="Manage Devices"
-                            >
-                              <HardDrive className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditRack(rack)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive">
-                                  <Trash2 className="h-4 w-4" />
+                          <PermissionWrapper condition={permissions.rack.canUpdate || permissions.rack.canDelete}>
+                            <TableCell className="text-right space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  router.push(
+                                    `/management/devices/rack?rackId=${
+                                      rack.id
+                                    }&rackName=${encodeURIComponent(rack.name)}`
+                                  )
+                                }
+                                title="Manage Devices"
+                              >
+                                <HardDrive className="h-4 w-4" />
+                              </Button>
+                              <CrudPermission
+                                module="rackManagement"
+                                operation="update"
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  onClick={() => handleEditRack(rack)}
+                                >
+                                  <Edit className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete Rack
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{rack.name}
-                                    "? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteRack(rack.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
+                              </CrudPermission>
+                              <CrudPermission
+                                module="rackManagement"
+                                operation="delete"
+                              >
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive" className="text-red-600 bg-red-100 hover:bg-red-200">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete Rack
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{rack.name}
+                                        "? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteRack(rack.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </CrudPermission>
+                            </TableCell>
+                          </PermissionWrapper>
                         </TableRow>
                       );
                     })
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={containmentId ? 7 : 9}
+                        colSpan={
+                          (containmentId ? 7 : 9) + 
+                          (permissions.rack.canUpdate || permissions.rack.canDelete ? 0 : -1)
+                        }
                         className="text-center py-8 text-muted-foreground"
                       >
                         {searchQuery || selectedContainmentFilter !== "all"

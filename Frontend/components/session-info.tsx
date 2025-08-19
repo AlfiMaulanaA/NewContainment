@@ -25,6 +25,7 @@ import {
   XCircle,
   Info,
 } from "lucide-react";
+import { getEffectiveRoleDisplayName, getRoleColor } from "@/lib/auth-utils";
 
 export function SessionInfo() {
   const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
@@ -215,8 +216,23 @@ export function SessionInfo() {
                   <span className="text-sm text-muted-foreground">
                     Role
                   </span>
-                  <Badge variant="secondary">{tokenInfo.user.role}</Badge>
+                  <Badge 
+                    variant="secondary"
+                    className={getRoleColor(tokenInfo.user.role, tokenInfo.user)}
+                  >
+                    {getEffectiveRoleDisplayName(tokenInfo.user)}
+                  </Badge>
                 </div>
+                {tokenInfo.user.databaseRole && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">
+                      Role Level
+                    </span>
+                    <span className="font-mono text-sm">
+                      {tokenInfo.user.roleLevel}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2">
                   <span className="text-sm text-muted-foreground">
                     User ID

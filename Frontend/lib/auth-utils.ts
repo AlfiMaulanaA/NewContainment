@@ -6,6 +6,11 @@ export interface DecodedToken {
   email: string;
   role: string;
   UserId: string;
+  RoleLevel?: string;
+  DatabaseRoleId?: string;
+  DatabaseRoleName?: string;
+  DatabaseRoleDisplayName?: string;
+  RoleColor?: string;
   nbf: number;
   exp: number;
   iat: number;
@@ -18,6 +23,13 @@ export interface CurrentUser {
   name: string;
   email: string;
   role: string;
+  roleLevel: number;
+  databaseRole?: {
+    id: number;
+    name: string;
+    displayName: string;
+    color: string;
+  };
   isAuthenticated: boolean;
 }
 
@@ -189,8 +201,9 @@ export function getCurrentUserFromToken(): CurrentUser | null {
 
     if (!token) return null;
 
-    // Check if token is expired
-    if (isTokenExpired(token)) {
+    // Check if token is expired (without buffer for initial check)
+    if (isTokenExpired(token, 0)) {
+      console.log('Token is expired, removing from storage');
       // Clean up expired token
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
@@ -202,16 +215,45 @@ export function getCurrentUserFromToken(): CurrentUser | null {
     const decodedToken = decodeJWT(token);
     if (!decodedToken) return null;
 
-    return {
+    const user: CurrentUser = {
       id: decodedToken.UserId || decodedToken.nameid,
       name: decodedToken.unique_name,
       email: decodedToken.email,
       role: decodedToken.role,
+      roleLevel: decodedToken.RoleLevel ? parseInt(decodedToken.RoleLevel) : getRoleLevelFromName(decodedToken.role),
       isAuthenticated: true,
     };
+    
+    // Add database role information if available
+    if (decodedToken.DatabaseRoleId && decodedToken.DatabaseRoleName) {
+      user.databaseRole = {
+        id: parseInt(decodedToken.DatabaseRoleId),
+        name: decodedToken.DatabaseRoleName,
+        displayName: decodedToken.DatabaseRoleDisplayName || decodedToken.DatabaseRoleName,
+        color: decodedToken.RoleColor || getRoleColor(decodedToken.DatabaseRoleName)
+      };
+    }
+    
+    return user;
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
+  }
+}
+
+// Get role level from role name (for backward compatibility)
+export function getRoleLevelFromName(roleName?: string | null): number {
+  if (!roleName) return 1;
+  
+  switch (roleName.toLowerCase()) {
+    case 'user':
+      return 1;
+    case 'admin':
+      return 2;
+    case 'developer':
+      return 3;
+    default:
+      return 1;
   }
 }
 
@@ -231,8 +273,14 @@ export function getRoleDisplayName(role?: string | null): string {
   }
 }
 
-// Get role color
-export function getRoleColor(role?: string | null): string {
+// Get role color (with database role support)
+export function getRoleColor(role?: string | null, user?: CurrentUser | null): string {
+  // Use database role color if available
+  if (user?.databaseRole?.color) {
+    return user.databaseRole.color;
+  }
+  
+  // Fallback to enum-based colors
   if (!role) return 'text-green-600 bg-green-100';
   
   switch (role.toLowerCase()) {
@@ -245,4 +293,12 @@ export function getRoleColor(role?: string | null): string {
     default:
       return 'text-gray-600 bg-gray-100';
   }
+}
+
+// Get effective role display name (database role takes precedence)
+export function getEffectiveRoleDisplayName(user?: CurrentUser | null): string {
+  if (user?.databaseRole?.displayName) {
+    return user.databaseRole.displayName;
+  }
+  return getRoleDisplayName(user?.role);
 }

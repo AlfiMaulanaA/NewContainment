@@ -19,6 +19,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { CalendarIcon, Settings, Plus, Edit2, Trash2, Eye, Filter, RefreshCw, Wrench, Clock, User, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { getCurrentUserFromToken } from "@/lib/auth-utils";
+import {
+  usePermissions,
+  PermissionWrapper,
+  CrudPermission,
+} from "@/lib/role-permissions";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { 
@@ -53,6 +58,7 @@ const TARGET_TYPES = [
 ];
 
 export default function MaintenancePage() {
+  const permissions = usePermissions();
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
   const [containments, setContainments] = useState<Containment[]>([]);
@@ -372,13 +378,14 @@ export default function MaintenancePage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Maintenance
-              </Button>
-            </DialogTrigger>
+          <CrudPermission module="maintenanceManagement" operation="create">
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Maintenance
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Maintenance</DialogTitle>
@@ -543,6 +550,7 @@ export default function MaintenancePage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </CrudPermission>
         </div>
       </header>
 
@@ -622,7 +630,9 @@ export default function MaintenancePage() {
                       <TableHead>Assigned To</TableHead>
                       <TableHead>Schedule</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <PermissionWrapper condition={permissions.maintenance.canUpdate || permissions.maintenance.canDelete}>
+                        <TableHead>Actions</TableHead>
+                      </PermissionWrapper>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -667,50 +677,57 @@ export default function MaintenancePage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openViewDialog(maintenance)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditDialog(maintenance)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Trash2 className="h-4 w-4" />
+                        <PermissionWrapper condition={permissions.maintenance.canUpdate || permissions.maintenance.canDelete}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openViewDialog(maintenance)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <CrudPermission module="maintenanceManagement" operation="update">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  onClick={() => openEditDialog(maintenance)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Maintenance</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this maintenance task? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(maintenance.id)}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
+                              </CrudPermission>
+                              <CrudPermission module="maintenanceManagement" operation="delete">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Maintenance</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this maintenance task? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(maintenance.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </CrudPermission>
+                            </div>
+                          </TableCell>
+                        </PermissionWrapper>
                       </TableRow>
                     ))}
                     {filteredMaintenances.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5 + (permissions.maintenance.canUpdate || permissions.maintenance.canDelete ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                           No maintenance tasks found
                         </TableCell>
                       </TableRow>
@@ -737,7 +754,9 @@ export default function MaintenancePage() {
                       <TableHead>Target</TableHead>
                       <TableHead>Schedule</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <PermissionWrapper condition={permissions.maintenance.canUpdate || permissions.maintenance.canDelete}>
+                        <TableHead>Actions</TableHead>
+                      </PermissionWrapper>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -776,22 +795,34 @@ export default function MaintenancePage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openViewDialog(maintenance)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        <PermissionWrapper condition={permissions.maintenance.canUpdate || permissions.maintenance.canDelete}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openViewDialog(maintenance)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <CrudPermission module="maintenanceManagement" operation="update">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  onClick={() => openEditDialog(maintenance)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              </CrudPermission>
+                            </div>
+                          </TableCell>
+                        </PermissionWrapper>
                       </TableRow>
                     ))}
                     {filteredMaintenances.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={4 + (permissions.maintenance.canUpdate || permissions.maintenance.canDelete ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                           No tasks assigned to you
                         </TableCell>
                       </TableRow>

@@ -75,6 +75,9 @@ builder.Services.AddScoped<Backend.Services.IAccessLogService, Backend.Services.
 builder.Services.AddScoped<Backend.Services.IMaintenanceNotificationService, Backend.Services.MaintenanceNotificationService>();
 builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
 
+// Add Role Mapping and Migration Services
+builder.Services.AddScoped<Backend.Services.IRoleMappingService, Backend.Services.RoleMappingService>();
+builder.Services.AddScoped<Backend.Services.IRoleMigrationService, Backend.Services.RoleMigrationService>();
 
 builder.Services.AddHttpClient();
 
@@ -189,10 +192,29 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
     var authService = scope.ServiceProvider.GetRequiredService<Backend.Services.IAuthService>();
+    var roleMappingService = scope.ServiceProvider.GetRequiredService<Backend.Services.IRoleMappingService>();
+    var roleMigrationService = scope.ServiceProvider.GetRequiredService<Backend.Services.IRoleMigrationService>();
     var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     logger.LogInformation("Migrating database...");
     await context.Database.MigrateAsync(); // Selalu migrasi
+
+    // Initialize default roles first
+    logger.LogInformation("Initializing role mapping system...");
+    await roleMappingService.InitializeDefaultRolesAsync();
+    
+    // Migrate existing users to new role system
+    logger.LogInformation("Checking and migrating existing users to new role system...");
+    var unmigratedCount = await roleMigrationService.GetUnmigratedUsersCountAsync();
+    if (unmigratedCount > 0)
+    {
+        logger.LogInformation("Found {Count} users that need migration to new role system", unmigratedCount);
+        await roleMigrationService.MigrateExistingUsersToNewRoleSystemAsync();
+    }
+    else
+    {
+        logger.LogInformation("All users are already using the new role system");
+    }
 
     // Enable/disable seed data dengan env variable
     var enableSeed = Environment.GetEnvironmentVariable("ENABLE_SEED_DATA") ?? "true";
@@ -204,6 +226,9 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("Seeding menu management data...");
         await Backend.Data.MenuSeedData.SeedMenuDataAsync(context);
         await Backend.Data.MenuSeedData.AssignUserRolesAsync(context);
+        
+        logger.LogInformation("Seeding dynamic menu data...");
+        await Backend.Data.DynamicMenuSeedData.SeedDynamicMenuAsync(context);
         
         logger.LogInformation("Database seeding completed");
     }

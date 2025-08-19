@@ -78,6 +78,11 @@ import {
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { toast } from "sonner";
+import {
+  usePermissions,
+  PermissionWrapper,
+  CrudPermission,
+} from "@/lib/role-permissions";
 
 const ITEMS_PER_PAGE = 10;
 const DEVICE_TYPES = Object.values(DeviceType);
@@ -95,6 +100,7 @@ const DEVICE_STATUSES = [
 function RackDevicesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const permissions = usePermissions();
   const rackId = searchParams.get("rackId");
   const rackName = searchParams.get("rackName") || "";
 
@@ -362,13 +368,14 @@ function RackDevicesContent() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Device
-              </Button>
-            </DialogTrigger>
+          <CrudPermission module="deviceManagement" operation="create">
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Device
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
@@ -558,6 +565,7 @@ function RackDevicesContent() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </CrudPermission>
         </div>
       </header>
 
@@ -699,7 +707,9 @@ function RackDevicesContent() {
                     <TableHead>MQTT Topic</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <PermissionWrapper condition={permissions.device.canUpdate || permissions.device.canDelete}>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </PermissionWrapper>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -734,48 +744,61 @@ function RackDevicesContent() {
                             ? new Date(device.createdAt).toLocaleDateString()
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditDevice(device)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <Trash2 className="h-4 w-4" />
+                        <PermissionWrapper condition={permissions.device.canUpdate || permissions.device.canDelete}>
+                          <TableCell className="text-right space-x-2">
+                            <CrudPermission
+                              module="deviceManagement"
+                              operation="update"
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                onClick={() => handleEditDevice(device)}
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete Device
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{device.name}
-                                  "? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteDevice(device.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
+                            </CrudPermission>
+                            <CrudPermission
+                              module="deviceManagement"
+                              operation="delete"
+                            >
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="destructive" className="text-red-600 bg-red-100 hover:bg-red-200">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete Device
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{device.name}
+                                      "? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteDevice(device.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </CrudPermission>
+                          </TableCell>
+                        </PermissionWrapper>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={9 + (permissions.device.canUpdate || permissions.device.canDelete ? 0 : -1)}
                         className="text-center py-8 text-muted-foreground"
                       >
                         {searchQuery

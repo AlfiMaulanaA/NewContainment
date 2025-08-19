@@ -26,6 +26,7 @@ export class ApiClient {
       headers.Authorization = `Bearer ${token}`;
     }
 
+
     const response = await fetch(`${BASE_URL}/api${endpoint}`, {
       ...options,
       headers,
@@ -33,14 +34,25 @@ export class ApiClient {
 
     // Handle authentication errors
     if (response.status === 401 || response.status === 403) {
-      this.clearAuthToken();
-      if (
-        typeof window !== "undefined" &&
-        !window.location.pathname.startsWith("/auth/")
-      ) {
-        this.redirectToLogin();
+      // Only clear token and redirect for critical auth endpoints
+      // Allow some endpoints to fail gracefully (like menu-management)
+      const isNonCriticalEndpoint = endpoint.includes('menu-management');
+      
+      if (!isNonCriticalEndpoint) {
+        this.clearAuthToken();
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.startsWith("/auth/")
+        ) {
+          this.redirectToLogin();
+        }
+        throw new Error("Session expired. Please login again.");
+      } else {
+        // For non-critical endpoints, log the error but don't throw
+        console.warn(`[API Client] Authentication failed for non-critical endpoint: ${endpoint}. Status: ${response.status}`);
+        // Still throw error but with different message to indicate this is expected
+        throw new Error("Menu authentication failed - will use fallback");
       }
-      throw new Error("Session expired. Please login again.");
     }
 
     if (!response.ok) {
@@ -71,8 +83,11 @@ export class ApiClient {
     }
   }
 
-  async get<T = any>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET" });
+  async get<T = any>(endpoint: string, customHeaders?: Record<string, string>): Promise<T> {
+    return this.request<T>(endpoint, { 
+      method: "GET",
+      headers: customHeaders 
+    });
   }
 
   async post<T = any>(endpoint: string, body?: any): Promise<T> {
@@ -91,6 +106,13 @@ export class ApiClient {
 
   async delete<T = any>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: "DELETE" });
+  }
+
+  async patch<T = any>(endpoint: string, body?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
   }
 }
 

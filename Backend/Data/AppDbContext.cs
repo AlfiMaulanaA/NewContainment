@@ -48,11 +48,19 @@ namespace Backend.Data
                         entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
                         entity.Property(e => e.PhoneNumber).HasMaxLength(20);
                         entity.Property(e => e.Role).IsRequired().HasDefaultValue(Backend.Enums.UserRole.User).HasSentinel(Backend.Enums.UserRole.None);
+                        entity.Property(e => e.RoleId);
                         entity.Property(e => e.CreatedAt).IsRequired();
                         entity.Property(e => e.UpdatedAt).IsRequired();
                         entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
 
                         entity.HasIndex(e => e.Email).IsUnique();
+                        entity.HasIndex(e => e.RoleId);
+                        
+                        // Foreign key relationship to database-based Role
+                        entity.HasOne(e => e.DatabaseRole)
+                              .WithMany()
+                              .HasForeignKey(e => e.RoleId)
+                              .OnDelete(DeleteBehavior.SetNull);
                   });
 
                   modelBuilder.Entity<Containment>(entity =>

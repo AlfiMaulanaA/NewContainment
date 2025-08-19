@@ -79,13 +79,20 @@ import {
 } from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
+import React from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import {
+  usePermissions,
+  PermissionWrapper,
+  CrudPermission,
+} from "@/lib/role-permissions";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function ContainmentManagementPage() {
   const router = useRouter();
+  const permissions = usePermissions();
   const [containments, setContainments] = useState<Containment[]>([]);
   const [rackCounts, setRackCounts] = useState<Map<number, number>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -365,19 +372,20 @@ export default function ContainmentManagementPage() {
           <h1 className="text-lg font-semibold">Containment Management</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <>
-              {shouldShowAddButton && (
-                <DialogTrigger asChild>
-                  <Button onClick={resetForm}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Containment
-                  </Button>
-                </DialogTrigger>
-              )}
-            </>
+          <CrudPermission module="containmentManagement" operation="create">
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <>
+                {shouldShowAddButton && (
+                  <DialogTrigger asChild>
+                    <Button onClick={resetForm}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Containment
+                    </Button>
+                  </DialogTrigger>
+                )}
+              </>
 
-            <DialogContent>
+              <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Containment</DialogTitle>
               </DialogHeader>
@@ -471,6 +479,7 @@ export default function ContainmentManagementPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </CrudPermission>
         </div>
       </header>
 
@@ -627,7 +636,9 @@ export default function ContainmentManagementPage() {
                     <TableHead>Total Racks</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <PermissionWrapper condition={permissions.containment.canUpdate || permissions.containment.canDelete}>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </PermissionWrapper>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -687,59 +698,72 @@ export default function ContainmentManagementPage() {
                               ).toLocaleDateString()
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleManageRacks(containment)}
-                            title="Manage Racks"
-                          >
-                            <HardDriveUpload className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditContainment(containment)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <Trash2 className="h-4 w-4" />
+                        <PermissionWrapper condition={permissions.containment.canUpdate || permissions.containment.canDelete}>
+                          <TableCell className="text-right space-x-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleManageRacks(containment)}
+                              title="Manage Racks"
+                            >
+                              <HardDriveUpload className="h-4 w-4" />
+                            </Button>
+                            <CrudPermission
+                              module="containmentManagement"
+                              operation="update"
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                onClick={() => handleEditContainment(containment)}
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete Containment
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "
-                                  {containment.name}"? This action cannot be
-                                  undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteContainment(containment.id)
-                                  }
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
+                            </CrudPermission>
+                            <CrudPermission
+                              module="containmentManagement"
+                              operation="delete"
+                            >
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="destructive" className="text-red-600 bg-red-100 hover:bg-red-200">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete Containment
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "
+                                      {containment.name}"? This action cannot be
+                                      undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleDeleteContainment(containment.id)
+                                      }
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </CrudPermission>
+                          </TableCell>
+                        </PermissionWrapper>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={permissions.containment.canUpdate || permissions.containment.canDelete ? 9 : 8}
                         className="text-center py-8 text-muted-foreground"
                       >
                         {searchQuery

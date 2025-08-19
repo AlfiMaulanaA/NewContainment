@@ -31,9 +31,19 @@ namespace Backend.Services
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()),
-                new Claim("UserId", user.Id.ToString())
+                new Claim(ClaimTypes.Role, user.RoleName), // Use RoleName property for compatibility
+                new Claim("UserId", user.Id.ToString()),
+                new Claim("RoleLevel", user.RoleLevel.ToString()) // Add role level for frontend
             };
+            
+            // Add database role information if available
+            if (user.DatabaseRole != null)
+            {
+                claims.Add(new Claim("DatabaseRoleId", user.DatabaseRole.Id.ToString()));
+                claims.Add(new Claim("DatabaseRoleName", user.DatabaseRole.Name));
+                claims.Add(new Claim("DatabaseRoleDisplayName", user.DatabaseRole.DisplayName));
+                claims.Add(new Claim("RoleColor", user.DatabaseRole.Color));
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

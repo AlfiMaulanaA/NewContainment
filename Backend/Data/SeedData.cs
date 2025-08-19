@@ -24,7 +24,7 @@ namespace Backend.Data
                 var racks = await SeedRacksAsync(context, containments, users);
 
                 // Seed Devices
-                // await SeedDevicesAsync(context, racks, users);
+                await SeedDevicesAsync(context, racks, users);
 
                 // Seed Default ContainmentStatus
                 await SeedContainmentStatusAsync(context, containments);
@@ -51,7 +51,7 @@ namespace Backend.Data
                 // await SeedAccessLogAsync(context, users);
 
                 // Seed DeviceSensorData  
-                await SeedDeviceSensorDataAsync(context);
+                // await SeedDeviceSensorDataAsync(context);
 
                 logger.LogInformation("Database seeding completed successfully");
             }
@@ -99,7 +99,7 @@ namespace Backend.Data
                 new User
                 {
                     Name = "Jane User",
-                    Email = "user@admin.com",
+                    Email = "user@gmail.com",
                     PhoneNumber = "555123456",
                     PasswordHash = authService.HashPassword("password123"),
                     Role = UserRole.User,

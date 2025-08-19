@@ -1,6 +1,8 @@
 "use client";
 
 import { useDeveloperMode } from "@/contexts/DeveloperModeContext";
+import { useDynamicMenu } from "@/hooks/useDynamicMenu";
+import { getIconComponent } from "@/lib/icon-mapping";
 import { DeveloperModeDialog } from "@/components/developer-mode-dialog";
 import JwtTokenInfo from "@/components/jwt-token-info";
 import {
@@ -262,6 +264,7 @@ const navigation: NavigationGroup[] = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { isDeveloperMode, getFormattedRemainingTime } = useDeveloperMode();
+  const { menuData, isLoading: menuLoading, error: menuError, refreshMenu } = useDynamicMenu();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -374,7 +377,7 @@ export function AppSidebar() {
           isScrollVisible ? "sidebar-scroll-visible" : "sidebar-scroll-hidden"
         }`}
       >
-        {navigation.map((group) => {
+        {(menuData?.menuGroups || navigation).map((group: any) => {
           // Hide Security & Access group items if Developer Mode is not enabled for access control
           if (group.title === "Security & Access" && !isDeveloperMode) {
             // Filter out access control items if developer mode is not enabled
@@ -398,7 +401,7 @@ export function AppSidebar() {
           }
 
           return (
-            <SidebarGroup key={group.title} className="sidebar-group-animate">
+            <SidebarGroup key={group.id || group.title} className="sidebar-group-animate">
               <SidebarGroupLabel className="text-sidebar-foreground/80 flex items-center justify-between group cursor-pointer hover:text-sidebar-foreground transition-colors">
                 <div className="flex items-center gap-2">
                   <span>{group.title}</span>
@@ -418,18 +421,23 @@ export function AppSidebar() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {group.items.map((item) => {
-                    // Check individual item role requirements
-                    if (item.requireRole && currentUser) {
+                  {group.items.map((item: NavigationItem | any) => {
+                    // For static menu items, check role requirements
+                    if (!menuData && item.requireRole && currentUser) {
                       const userRole = getRoleDisplayName(currentUser.role);
                       if (!item.requireRole.includes(userRole)) {
                         return null;
                       }
                     }
 
+                    // Get icon component
+                    const IconComponent = menuData 
+                      ? getIconComponent(item.icon) 
+                      : item.icon;
+
                     return (
                       <SidebarMenuItem
-                        key={item.title}
+                        key={item.id || item.title}
                         className="sidebar-menu-item"
                       >
                         <SidebarMenuButton
@@ -438,8 +446,13 @@ export function AppSidebar() {
                           className="group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm hover:scale-[1.01] data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-md data-[active=true]:scale-[1.01] data-[active=true]:border-l-3 data-[active=true]:border-primary sidebar-focus-ring"
                         >
                           <Link href={item.url}>
-                            <item.icon className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110 transition-all duration-200" />
+                            {IconComponent && <IconComponent className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110 transition-all duration-200" />}
                             <span className="truncate">{item.title}</span>
+                            {item.badgeText && (
+                              <SidebarMenuBadge className={`ml-auto text-xs ${item.badgeVariant === 'destructive' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {item.badgeText}
+                              </SidebarMenuBadge>
+                            )}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

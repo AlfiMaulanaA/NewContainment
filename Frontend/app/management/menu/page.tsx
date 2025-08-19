@@ -4,21 +4,48 @@ import { useState } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Menu, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Menu,
+  Plus,
+  Edit,
+  Trash2,
   Save,
   Settings,
   Users,
@@ -27,11 +54,25 @@ import {
   EyeOff,
   ArrowUp,
   ArrowDown,
+  ArrowUpDown,
   RefreshCw,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Code,
 } from "lucide-react";
-import { useMenuManagement, MenuGroupData, MenuItemData, UserRole } from "@/hooks/useDynamicMenu";
+import {
+  useMenuManagement,
+  useDynamicMenu,
+  MenuGroupData,
+  MenuItemData,
+  MenuUserRole,
+} from "@/hooks/useDynamicMenu";
+import { getIconComponent } from "@/lib/icon-mapping";
+import { IconSelector } from "@/components/icon-selector";
+import { usePermissions, PermissionWrapper, CrudPermission } from "@/lib/role-permissions";
 import { toast } from "sonner";
 
 export default function MenuManagementPage() {
@@ -41,52 +82,68 @@ export default function MenuManagementPage() {
     isLoading,
     error,
     createRole,
+    updateRole,
+    deleteRole,
     createMenuGroup,
-    createMenuItem,
     updateMenuGroup,
+    deleteMenuGroup,
+    createMenuItem,
     updateMenuItem,
     deleteMenuItem,
-    refreshData
+    toggleMenuItemActive,
+    toggleMenuGroupActive,
+    refreshData,
   } = useMenuManagement();
+
+  const { refreshMenu } = useDynamicMenu();
+  const permissions = usePermissions();
 
   // State for dialogs
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<UserRole | null>(null);
+  const [editingRole, setEditingRole] = useState<MenuUserRole | null>(null);
   const [editingGroup, setEditingGroup] = useState<MenuGroupData | null>(null);
   const [editingItem, setEditingItem] = useState<MenuItemData | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number>(0);
 
+  // State for pagination, search and sorting
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  const [sortField, setSortField] = useState<string>('title');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   // Form states
   const [roleForm, setRoleForm] = useState({
-    name: '',
-    displayName: '',
-    description: '',
+    name: "",
+    displayName: "",
+    description: "",
     level: 1,
-    color: 'text-gray-600 bg-gray-100',
-    isActive: true
+    color: "text-gray-600 bg-gray-100",
+    isActive: true,
   });
 
   const [groupForm, setGroupForm] = useState({
-    title: '',
-    icon: '',
+    title: "",
+    icon: "",
     sortOrder: 0,
     minRoleLevel: 1,
     isActive: true,
-    requiresDeveloperMode: false
+    requiresDeveloperMode: false,
   });
 
   const [itemForm, setItemForm] = useState({
-    title: '',
-    url: '',
-    icon: '',
+    title: "",
+    url: "",
+    icon: "",
     sortOrder: 0,
     minRoleLevel: 1,
+    isActive: true,
     requiresDeveloperMode: false,
-    badgeText: '',
-    badgeVariant: 'default',
-    menuGroupId: 0
+    badgeText: "",
+    badgeVariant: "default",
+    menuGroupId: 0,
   });
 
   const handleCreateRole = async () => {
@@ -94,16 +151,16 @@ export default function MenuManagementPage() {
       await createRole(roleForm);
       setIsRoleDialogOpen(false);
       setRoleForm({
-        name: '',
-        displayName: '',
-        description: '',
+        name: "",
+        displayName: "",
+        description: "",
         level: 1,
-        color: 'text-gray-600 bg-gray-100',
-        isActive: true
+        color: "text-gray-600 bg-gray-100",
+        isActive: true,
       });
-      toast.success('Role created successfully');
+      toast.success("Role created successfully");
     } catch (error) {
-      toast.error('Failed to create role');
+      toast.error("Failed to create role");
     }
   };
 
@@ -112,16 +169,17 @@ export default function MenuManagementPage() {
       await createMenuGroup(groupForm);
       setIsGroupDialogOpen(false);
       setGroupForm({
-        title: '',
-        icon: '',
+        title: "",
+        icon: "",
         sortOrder: 0,
         minRoleLevel: 1,
         isActive: true,
-        requiresDeveloperMode: false
+        requiresDeveloperMode: false,
       });
-      toast.success('Menu group created successfully');
+      toast.success("Menu group created successfully");
+      refreshMenu(); // Refresh sidebar menu
     } catch (error) {
-      toast.error('Failed to create menu group');
+      toast.error("Failed to create menu group");
     }
   };
 
@@ -130,41 +188,312 @@ export default function MenuManagementPage() {
       await createMenuItem({ ...itemForm });
       setIsItemDialogOpen(false);
       setItemForm({
-        title: '',
-        url: '',
-        icon: '',
+        title: "",
+        url: "",
+        icon: "",
         sortOrder: 0,
         minRoleLevel: 1,
+        isActive: true,
         requiresDeveloperMode: false,
-        badgeText: '',
-        badgeVariant: 'default',
-        menuGroupId: 0
+        badgeText: "",
+        badgeVariant: "default",
+        menuGroupId: 0,
       });
-      toast.success('Menu item created successfully');
+      toast.success("Menu item created successfully");
+      refreshMenu(); // Refresh sidebar menu
     } catch (error) {
-      toast.error('Failed to create menu item');
+      toast.error("Failed to create menu item");
     }
   };
 
   const handleDeleteItem = async (id: number) => {
-    if (confirm('Are you sure you want to delete this menu item?')) {
+    if (confirm("Are you sure you want to delete this menu item?")) {
       try {
         await deleteMenuItem(id);
-        toast.success('Menu item deleted successfully');
+        toast.success("Menu item deleted successfully");
+        refreshMenu(); // Refresh sidebar menu
       } catch (error) {
-        toast.error('Failed to delete menu item');
+        toast.error("Failed to delete menu item");
       }
     }
   };
 
+  const handleDeleteGroup = async (id: number) => {
+    if (
+      confirm(
+        "Are you sure you want to delete this menu group? This will only work if the group has no items."
+      )
+    ) {
+      try {
+        await deleteMenuGroup(id);
+        toast.success("Menu group deleted successfully");
+        refreshMenu(); // Refresh sidebar menu
+      } catch (error) {
+        toast.error("Failed to delete menu group");
+      }
+    }
+  };
+
+  const handleDeleteRole = async (id: number) => {
+    if (
+      confirm(
+        "Are you sure you want to delete this role? This will only work if no users are assigned to this role."
+      )
+    ) {
+      try {
+        await deleteRole(id);
+        toast.success("Role deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete role");
+      }
+    }
+  };
+
+  const handleToggleItemActive = async (id: number) => {
+    try {
+      const result = await toggleMenuItemActive(id);
+      toast.success(
+        `Menu item ${
+          result?.isActive ? "activated" : "deactivated"
+        } successfully`
+      );
+    } catch (error) {
+      toast.error("Failed to toggle menu item status");
+    }
+  };
+
+  const handleToggleGroupActive = async (id: number) => {
+    try {
+      const result = await toggleMenuGroupActive(id);
+      toast.success(
+        `Menu group ${
+          result?.isActive ? "activated" : "deactivated"
+        } successfully`
+      );
+    } catch (error) {
+      toast.error("Failed to toggle menu group status");
+    }
+  };
+
+  const handleEditItem = (item: MenuItemData, group: MenuGroupData) => {
+    setEditingItem(item);
+    setItemForm({
+      title: item.title,
+      url: item.url,
+      icon: item.icon,
+      sortOrder: item.sortOrder,
+      minRoleLevel: item.minRoleLevel || 1,
+      isActive: item.isActive,
+      requiresDeveloperMode: item.requiresDeveloperMode,
+      badgeText: item.badgeText || "",
+      badgeVariant: item.badgeVariant || "default",
+      menuGroupId: group.id,
+    });
+    setIsItemDialogOpen(true);
+  };
+
+  const handleEditGroup = (group: MenuGroupData) => {
+    setEditingGroup(group);
+    setGroupForm({
+      title: group.title,
+      icon: group.icon,
+      sortOrder: group.sortOrder,
+      minRoleLevel: group.minRoleLevel || 1,
+      isActive: group.isActive,
+      requiresDeveloperMode: group.requiresDeveloperMode,
+    });
+    setIsGroupDialogOpen(true);
+  };
+
+  const handleEditRole = (role: MenuUserRole) => {
+    setEditingRole(role);
+    setRoleForm({
+      name: role.name,
+      displayName: role.displayName,
+      description: role.description,
+      level: role.level,
+      color: role.color,
+      isActive: role.isActive,
+    });
+    setIsRoleDialogOpen(true);
+  };
+
+  const handleUpdateItem = async () => {
+    if (!editingItem) return;
+
+    try {
+      await updateMenuItem(editingItem.id, itemForm);
+      setIsItemDialogOpen(false);
+      setEditingItem(null);
+      setItemForm({
+        title: "",
+        url: "",
+        icon: "",
+        sortOrder: 0,
+        minRoleLevel: 1,
+        isActive: true,
+        requiresDeveloperMode: false,
+        badgeText: "",
+        badgeVariant: "default",
+        menuGroupId: 0,
+      });
+      toast.success("Menu item updated successfully");
+    } catch (error) {
+      toast.error("Failed to update menu item");
+    }
+  };
+
+  const handleUpdateGroup = async () => {
+    if (!editingGroup) return;
+
+    try {
+      await updateMenuGroup(editingGroup.id, groupForm);
+      setIsGroupDialogOpen(false);
+      setEditingGroup(null);
+      setGroupForm({
+        title: "",
+        icon: "",
+        sortOrder: 0,
+        minRoleLevel: 1,
+        isActive: true,
+        requiresDeveloperMode: false,
+      });
+      toast.success("Menu group updated successfully");
+      refreshMenu(); // Refresh sidebar menu
+    } catch (error) {
+      toast.error("Failed to update menu group");
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!editingRole) return;
+
+    try {
+      await updateRole(editingRole.id, roleForm);
+      setIsRoleDialogOpen(false);
+      setEditingRole(null);
+      setRoleForm({
+        name: "",
+        displayName: "",
+        description: "",
+        level: 1,
+        color: "text-gray-600 bg-gray-100",
+        isActive: true,
+      });
+      toast.success("Role updated successfully");
+    } catch (error) {
+      toast.error("Failed to update role");
+    }
+  };
+
   const getRoleName = (level?: number) => {
-    const role = roles.find(r => r.level === level);
-    return role?.displayName || 'Unknown';
+    const role = roles.find((r) => r.level === level);
+    return role?.displayName || "Unknown";
   };
 
   const getRoleColor = (level?: number) => {
-    const role = roles.find(r => r.level === level);
-    return role?.color || 'text-gray-600 bg-gray-100';
+    const role = roles.find((r) => r.level === level);
+    return role?.color || "text-gray-600 bg-gray-100";
+  };
+
+  // Get all menu items with search and pagination
+  const getAllMenuItems = () => {
+    if (!menuGroups || !Array.isArray(menuGroups)) return [];
+    
+    return menuGroups.flatMap(group => 
+      (group.items && Array.isArray(group.items)) 
+        ? group.items.map(item => ({ ...item, groupTitle: group.title, groupId: group.id }))
+        : []
+    );
+  };
+
+  const allMenuItems = getAllMenuItems();
+  
+  // Filter and sort items
+  const filteredItems = allMenuItems.filter(item => 
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.groupTitle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortField) {
+      case 'title':
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+        break;
+      case 'url':
+        aValue = a.url.toLowerCase();
+        bValue = b.url.toLowerCase();
+        break;
+      case 'group':
+        aValue = a.groupTitle.toLowerCase();
+        bValue = b.groupTitle.toLowerCase();
+        break;
+      case 'role':
+        aValue = a.minRoleLevel || 0;
+        bValue = b.minRoleLevel || 0;
+        break;
+      case 'order':
+        aValue = a.sortOrder;
+        bValue = b.sortOrder;
+        break;
+      case 'active':
+        aValue = a.isActive ? 1 : 0;
+        bValue = b.isActive ? 1 : 0;
+        break;
+      default:
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+    }
+    
+    if (typeof aValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue as string)
+        : (bValue as string).localeCompare(aValue);
+    } else {
+      return sortDirection === 'asc' 
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    }
+  });
+
+  // Calculate pagination
+  const totalItems = sortedItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = sortedItems.slice(startIndex, endIndex);
+
+  // Reset page when search changes
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 text-muted-foreground" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 text-primary" />
+      : <ArrowDown className="h-3 w-3 text-primary" />;
   };
 
   return (
@@ -194,140 +523,260 @@ export default function MenuManagementPage() {
 
         <Tabs defaultValue="menu-groups" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="menu-groups">Menu Groups</TabsTrigger>
-            <TabsTrigger value="menu-items">Menu Items</TabsTrigger>
-            <TabsTrigger value="roles">Roles</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <PermissionWrapper condition={permissions.menu.tabs.menuGroups}>
+              <TabsTrigger value="menu-groups">Menu Groups</TabsTrigger>
+            </PermissionWrapper>
+            <PermissionWrapper condition={permissions.menu.tabs.menuItems}>
+              <TabsTrigger value="menu-items">Menu Items</TabsTrigger>
+            </PermissionWrapper>
+            <PermissionWrapper condition={permissions.menu.tabs.roles}>
+              <TabsTrigger value="roles">Roles</TabsTrigger>
+            </PermissionWrapper>
+            <PermissionWrapper condition={permissions.menu.tabs.preview}>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+            </PermissionWrapper>
           </TabsList>
 
           {/* Menu Groups Tab */}
-          <TabsContent value="menu-groups" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Menu Groups</h2>
-              <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Group
-                  </Button>
-                </DialogTrigger>
+          <PermissionWrapper condition={permissions.menu.tabs.menuGroups}>
+            <TabsContent value="menu-groups" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Menu Groups</h2>
+                <CrudPermission module="menuManagement" operation="create">
+                  <Dialog
+                    open={isGroupDialogOpen}
+                    onOpenChange={setIsGroupDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Group
+                      </Button>
+                    </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create Menu Group</DialogTitle>
+                    <DialogTitle>
+                      {editingGroup ? "Edit Menu Group" : "Create Menu Group"}
+                    </DialogTitle>
                     <DialogDescription>
-                      Add a new menu group to organize navigation items.
+                      {editingGroup
+                        ? "Update the menu group information."
+                        : "Add a new menu group to organize navigation items."}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="group-title" className="text-right">Title</Label>
+                      <Label htmlFor="group-title" className="text-right">
+                        Title
+                      </Label>
                       <Input
                         id="group-title"
                         value={groupForm.title}
-                        onChange={(e) => setGroupForm({ ...groupForm, title: e.target.value })}
+                        onChange={(e) =>
+                          setGroupForm({ ...groupForm, title: e.target.value })
+                        }
                         className="col-span-3"
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="group-icon" className="text-right">Icon</Label>
-                      <Input
-                        id="group-icon"
-                        value={groupForm.icon}
-                        onChange={(e) => setGroupForm({ ...groupForm, icon: e.target.value })}
-                        placeholder="lucide-react icon name"
-                        className="col-span-3"
-                      />
+                      <div className="col-span-3">
+                        <IconSelector
+                          value={groupForm.icon}
+                          onChange={(iconName) =>
+                            setGroupForm({ ...groupForm, icon: iconName })
+                          }
+                          placeholder="Select group icon..."
+                        />
+                      </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="group-sort" className="text-right">Sort Order</Label>
+                      <Label htmlFor="group-sort" className="text-right">
+                        Sort Order
+                      </Label>
                       <Input
                         id="group-sort"
                         type="number"
                         value={groupForm.sortOrder}
-                        onChange={(e) => setGroupForm({ ...groupForm, sortOrder: parseInt(e.target.value) })}
+                        onChange={(e) =>
+                          setGroupForm({
+                            ...groupForm,
+                            sortOrder: parseInt(e.target.value),
+                          })
+                        }
                         className="col-span-3"
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="group-role" className="text-right">Min Role</Label>
-                      <Select value={groupForm.minRoleLevel.toString()} onValueChange={(value) => setGroupForm({ ...groupForm, minRoleLevel: parseInt(value) })}>
+                      <Label htmlFor="group-role" className="text-right">
+                        Min Role
+                      </Label>
+                      <Select
+                        value={groupForm.minRoleLevel.toString()}
+                        onValueChange={(value) =>
+                          setGroupForm({
+                            ...groupForm,
+                            minRoleLevel: parseInt(value),
+                          })
+                        }
+                      >
                         <SelectTrigger className="col-span-3">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {roles.map((role) => (
-                            <SelectItem key={role.id} value={role.level.toString()}>
-                              {role.displayName} (Level {role.level})
-                            </SelectItem>
-                          ))}
+                          {roles && Array.isArray(roles)
+                            ? roles.map((role) => (
+                                <SelectItem
+                                  key={role.id}
+                                  value={role.level.toString()}
+                                >
+                                  {role.displayName} (Level {role.level})
+                                </SelectItem>
+                              ))
+                            : null}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="group-dev" className="text-right">Developer Mode</Label>
+                      <Label htmlFor="group-active" className="text-right">
+                        Active
+                      </Label>
+                      <Switch
+                        id="group-active"
+                        checked={groupForm.isActive}
+                        onCheckedChange={(checked) =>
+                          setGroupForm({ ...groupForm, isActive: checked })
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="group-dev" className="text-right">
+                        Developer Mode
+                      </Label>
                       <Switch
                         id="group-dev"
                         checked={groupForm.requiresDeveloperMode}
-                        onCheckedChange={(checked) => setGroupForm({ ...groupForm, requiresDeveloperMode: checked })}
+                        onCheckedChange={(checked) =>
+                          setGroupForm({
+                            ...groupForm,
+                            requiresDeveloperMode: checked,
+                          })
+                        }
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleCreateGroup}>Create Group</Button>
+                    <Button
+                      onClick={
+                        editingGroup ? handleUpdateGroup : handleCreateGroup
+                      }
+                    >
+                      {editingGroup ? "Update Group" : "Create Group"}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
+                </CrudPermission>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {menuGroups.map((group) => (
-                <Card key={group.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span>{group.title}</span>
-                        {group.requiresDeveloperMode && (
-                          <Badge variant="secondary">Dev Mode</Badge>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </CardTitle>
-                    <CardDescription>
-                      <Badge className={getRoleColor(group.minRoleLevel)}>
-                        {getRoleName(group.minRoleLevel)}+
-                      </Badge>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      {group.items.length} items • Order: {group.sortOrder}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {menuGroups && Array.isArray(menuGroups)
+                ? menuGroups.map((group) => (
+                    <Card key={group.id}>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span>{group.title}</span>
+                            {group.requiresDeveloperMode && (
+                              <Badge variant="secondary">Dev Mode</Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Switch
+                              checked={group.isActive}
+                              onCheckedChange={() =>
+                                handleToggleGroupActive(group.id)
+                              }
+                              className="mr-2"
+                            />
+                            <CrudPermission module="menuManagement" operation="update">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditGroup(group)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </CrudPermission>
+                            <CrudPermission module="menuManagement" operation="delete">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteGroup(group.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </CrudPermission>
+                          </div>
+                        </CardTitle>
+                        <CardDescription>
+                          <Badge className={getRoleColor(group.minRoleLevel)}>
+                            {getRoleName(group.minRoleLevel)}+
+                          </Badge>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-sm text-muted-foreground">
+                          {group.items.length} items • Order: {group.sortOrder}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                : null}
             </div>
-          </TabsContent>
+            </TabsContent>
+          </PermissionWrapper>
 
           {/* Menu Items Tab */}
-          <TabsContent value="menu-items" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Menu Items</h2>
-              <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
-                  </Button>
-                </DialogTrigger>
+          <PermissionWrapper condition={permissions.menu.tabs.menuItems}>
+            <TabsContent value="menu-items" className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex flex-col gap-2">
+                <h2 className="text-xl font-semibold">Menu Items</h2>
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} items
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search menu items..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="pl-9 w-full sm:w-64"
+                  />
+                </div>
+                <CrudPermission module="menuManagement" operation="create">
+                  <Dialog
+                    open={isItemDialogOpen}
+                    onOpenChange={setIsItemDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Item
+                      </Button>
+                    </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Create Menu Item</DialogTitle>
+                    <DialogTitle>
+                      {editingItem ? "Edit Menu Item" : "Create Menu Item"}
+                    </DialogTitle>
                     <DialogDescription>
-                      Add a new menu item to a group.
+                      {editingItem
+                        ? "Update the menu item information."
+                        : "Add a new menu item to a group."}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -337,7 +786,9 @@ export default function MenuManagementPage() {
                         <Input
                           id="item-title"
                           value={itemForm.title}
-                          onChange={(e) => setItemForm({ ...itemForm, title: e.target.value })}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, title: e.target.value })
+                          }
                         />
                       </div>
                       <div>
@@ -345,32 +796,47 @@ export default function MenuManagementPage() {
                         <Input
                           id="item-url"
                           value={itemForm.url}
-                          onChange={(e) => setItemForm({ ...itemForm, url: e.target.value })}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, url: e.target.value })
+                          }
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="item-icon">Icon</Label>
-                        <Input
-                          id="item-icon"
+                        <IconSelector
                           value={itemForm.icon}
-                          onChange={(e) => setItemForm({ ...itemForm, icon: e.target.value })}
-                          placeholder="lucide-react icon name"
+                          onChange={(iconName) =>
+                            setItemForm({ ...itemForm, icon: iconName })
+                          }
+                          placeholder="Select menu icon..."
                         />
                       </div>
                       <div>
                         <Label htmlFor="item-group">Group</Label>
-                        <Select value={itemForm.menuGroupId.toString()} onValueChange={(value) => setItemForm({ ...itemForm, menuGroupId: parseInt(value) })}>
+                        <Select
+                          value={itemForm.menuGroupId.toString()}
+                          onValueChange={(value) =>
+                            setItemForm({
+                              ...itemForm,
+                              menuGroupId: parseInt(value),
+                            })
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select group" />
                           </SelectTrigger>
                           <SelectContent>
-                            {menuGroups.map((group) => (
-                              <SelectItem key={group.id} value={group.id.toString()}>
-                                {group.title}
-                              </SelectItem>
-                            ))}
+                            {menuGroups && Array.isArray(menuGroups)
+                              ? menuGroups.map((group) => (
+                                  <SelectItem
+                                    key={group.id}
+                                    value={group.id.toString()}
+                                  >
+                                    {group.title}
+                                  </SelectItem>
+                                ))
+                              : null}
                           </SelectContent>
                         </Select>
                       </div>
@@ -382,33 +848,70 @@ export default function MenuManagementPage() {
                           id="item-sort"
                           type="number"
                           value={itemForm.sortOrder}
-                          onChange={(e) => setItemForm({ ...itemForm, sortOrder: parseInt(e.target.value) })}
+                          onChange={(e) =>
+                            setItemForm({
+                              ...itemForm,
+                              sortOrder: parseInt(e.target.value),
+                            })
+                          }
                         />
                       </div>
                       <div>
                         <Label htmlFor="item-role">Min Role</Label>
-                        <Select value={itemForm.minRoleLevel.toString()} onValueChange={(value) => setItemForm({ ...itemForm, minRoleLevel: parseInt(value) })}>
+                        <Select
+                          value={itemForm.minRoleLevel.toString()}
+                          onValueChange={(value) =>
+                            setItemForm({
+                              ...itemForm,
+                              minRoleLevel: parseInt(value),
+                            })
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {roles.map((role) => (
-                              <SelectItem key={role.id} value={role.level.toString()}>
-                                {role.displayName}
-                              </SelectItem>
-                            ))}
+                            {roles && Array.isArray(roles)
+                              ? roles.map((role) => (
+                                  <SelectItem
+                                    key={role.id}
+                                    value={role.level.toString()}
+                                  >
+                                    {role.displayName}
+                                  </SelectItem>
+                                ))
+                              : null}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex items-end">
                         <div className="flex items-center space-x-2">
                           <Switch
-                            id="item-dev"
-                            checked={itemForm.requiresDeveloperMode}
-                            onCheckedChange={(checked) => setItemForm({ ...itemForm, requiresDeveloperMode: checked })}
+                            id="item-active"
+                            checked={itemForm.isActive}
+                            onCheckedChange={(checked) =>
+                              setItemForm({ ...itemForm, isActive: checked })
+                            }
                           />
-                          <Label htmlFor="item-dev">Dev Mode</Label>
+                          <Label htmlFor="item-active">Active</Label>
                         </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="item-dev"
+                          checked={itemForm.requiresDeveloperMode}
+                          onCheckedChange={(checked) =>
+                            setItemForm({
+                              ...itemForm,
+                              requiresDeveloperMode: checked,
+                            })
+                          }
+                        />
+                        <Label htmlFor="item-dev">
+                          Requires Developer Mode
+                        </Label>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -417,20 +920,34 @@ export default function MenuManagementPage() {
                         <Input
                           id="item-badge"
                           value={itemForm.badgeText}
-                          onChange={(e) => setItemForm({ ...itemForm, badgeText: e.target.value })}
+                          onChange={(e) =>
+                            setItemForm({
+                              ...itemForm,
+                              badgeText: e.target.value,
+                            })
+                          }
                           placeholder="Optional"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="item-badge-variant">Badge Variant</Label>
-                        <Select value={itemForm.badgeVariant} onValueChange={(value) => setItemForm({ ...itemForm, badgeVariant: value })}>
+                        <Label htmlFor="item-badge-variant">
+                          Badge Variant
+                        </Label>
+                        <Select
+                          value={itemForm.badgeVariant}
+                          onValueChange={(value) =>
+                            setItemForm({ ...itemForm, badgeVariant: value })
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="default">Default</SelectItem>
                             <SelectItem value="secondary">Secondary</SelectItem>
-                            <SelectItem value="destructive">Destructive</SelectItem>
+                            <SelectItem value="destructive">
+                              Destructive
+                            </SelectItem>
                             <SelectItem value="outline">Outline</SelectItem>
                           </SelectContent>
                         </Select>
@@ -438,165 +955,395 @@ export default function MenuManagementPage() {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleCreateItem}>Create Item</Button>
+                    <Button
+                      onClick={
+                        editingItem ? handleUpdateItem : handleCreateItem
+                      }
+                    >
+                      {editingItem ? "Update Item" : "Create Item"}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </CrudPermission>
+            </div>
             </div>
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>Group</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {menuGroups.flatMap(group => 
-                  group.items.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {item.title}
-                          {item.badgeText && (
-                            <Badge variant={item.badgeVariant as any}>{item.badgeText}</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{item.url}</TableCell>
-                      <TableCell>{group.title}</TableCell>
-                      <TableCell>
-                        <Badge className={getRoleColor(item.minRoleLevel)}>
-                          {getRoleName(item.minRoleLevel)}+
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.sortOrder}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {item.requiresDeveloperMode && (
-                            <Badge variant="secondary">Dev</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteItem(item.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">Icon</TableHead>
+                    <TableHead className="min-w-32">
+                      <Button 
+                        variant="ghost" 
+                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                        onClick={() => handleSort('title')}
+                      >
+                        Title
+                        {getSortIcon('title')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="min-w-32 hidden sm:table-cell">
+                      <Button 
+                        variant="ghost" 
+                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                        onClick={() => handleSort('url')}
+                      >
+                        URL
+                        {getSortIcon('url')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-24">
+                      <Button 
+                        variant="ghost" 
+                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                        onClick={() => handleSort('group')}
+                      >
+                        Group
+                        {getSortIcon('group')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-20">
+                      <Button 
+                        variant="ghost" 
+                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                        onClick={() => handleSort('role')}
+                      >
+                        Role
+                        {getSortIcon('role')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-16 text-center">
+                      <Button 
+                        variant="ghost" 
+                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                        onClick={() => handleSort('order')}
+                      >
+                        Order
+                        {getSortIcon('order')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-16 text-center">
+                      <Button 
+                        variant="ghost" 
+                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                        onClick={() => handleSort('active')}
+                      >
+                        Status
+                        {getSortIcon('active')}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-24 text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        {searchQuery ? 'No menu items found matching your search.' : 'No menu items available.'}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
+                  ) : (
+                    currentItems.map((item) => {
+                      const ItemIcon = getIconComponent(item.icon);
+                      const group = menuGroups.find(g => g.id === item.groupId);
+                      return (
+                        <TableRow key={item.id} className={item.requiresDeveloperMode ? "bg-blue-50/50" : ""}>
+                          <TableCell>
+                            <div className="flex items-center justify-center">
+                              <ItemIcon className="h-4 w-4 text-sidebar-foreground/60" />
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate max-w-32">{item.title}</span>
+                                {item.requiresDeveloperMode && (
+                                  <div title="Developer Mode Required">
+                                    <Code className="h-3 w-3 text-blue-600" />
+                                  </div>
+                                )}
+                              </div>
+                              {item.badgeText && (
+                                <Badge variant={item.badgeVariant as any} className="text-xs w-fit">
+                                  {item.badgeText}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">
+                            <span className="truncate max-w-32 block">{item.url}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs text-muted-foreground truncate max-w-20 block">{item.groupTitle}</span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`text-xs ${getRoleColor(item.minRoleLevel)}`}>
+                              {getRoleName(item.minRoleLevel)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="text-sm font-mono text-muted-foreground">
+                              {item.sortOrder}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <Switch
+                                checked={item.isActive}
+                                onCheckedChange={() => handleToggleItemActive(item.id)}
+                              />
+                              {!item.isActive && (
+                                <EyeOff className="h-3 w-3 text-red-500" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex justify-center gap-1">
+                              <CrudPermission module="menuManagement" operation="update">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditItem(item, group!)}
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </CrudPermission>
+                              <CrudPermission module="menuManagement" operation="delete">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </CrudPermission>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2">
+                <div className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = currentPage <= 3 
+                        ? i + 1 
+                        : currentPage >= totalPages - 2
+                        ? totalPages - 4 + i
+                        : currentPage - 2 + i;
+                      
+                      if (page < 1 || page > totalPages) return null;
+                      
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            </TabsContent>
+          </PermissionWrapper>
 
           {/* Roles Tab */}
-          <TabsContent value="roles" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Roles</h2>
-              <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Role
-                  </Button>
-                </DialogTrigger>
+          <PermissionWrapper condition={permissions.menu.tabs.roles}>
+            <TabsContent value="roles" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Roles</h2>
+                <CrudPermission module="menuManagement" operation="create">
+                  <Dialog
+                    open={isRoleDialogOpen}
+                    onOpenChange={setIsRoleDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Role
+                      </Button>
+                    </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create Role</DialogTitle>
+                    <DialogTitle>
+                      {editingRole ? "Edit Role" : "Create Role"}
+                    </DialogTitle>
                     <DialogDescription>
-                      Add a new role with specific permissions.
+                      {editingRole
+                        ? "Update the role information."
+                        : "Add a new role with specific permissions."}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="role-name" className="text-right">Name</Label>
+                      <Label htmlFor="role-name" className="text-right">
+                        Name
+                      </Label>
                       <Input
                         id="role-name"
                         value={roleForm.name}
-                        onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
+                        onChange={(e) =>
+                          setRoleForm({ ...roleForm, name: e.target.value })
+                        }
                         className="col-span-3"
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="role-display" className="text-right">Display Name</Label>
+                      <Label htmlFor="role-display" className="text-right">
+                        Display Name
+                      </Label>
                       <Input
                         id="role-display"
                         value={roleForm.displayName}
-                        onChange={(e) => setRoleForm({ ...roleForm, displayName: e.target.value })}
+                        onChange={(e) =>
+                          setRoleForm({
+                            ...roleForm,
+                            displayName: e.target.value,
+                          })
+                        }
                         className="col-span-3"
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="role-desc" className="text-right">Description</Label>
+                      <Label htmlFor="role-desc" className="text-right">
+                        Description
+                      </Label>
                       <Input
                         id="role-desc"
                         value={roleForm.description}
-                        onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
+                        onChange={(e) =>
+                          setRoleForm({
+                            ...roleForm,
+                            description: e.target.value,
+                          })
+                        }
                         className="col-span-3"
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="role-level" className="text-right">Level</Label>
+                      <Label htmlFor="role-level" className="text-right">
+                        Level
+                      </Label>
                       <Input
                         id="role-level"
                         type="number"
                         value={roleForm.level}
-                        onChange={(e) => setRoleForm({ ...roleForm, level: parseInt(e.target.value) })}
+                        onChange={(e) =>
+                          setRoleForm({
+                            ...roleForm,
+                            level: parseInt(e.target.value),
+                          })
+                        }
                         className="col-span-3"
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleCreateRole}>Create Role</Button>
+                    <Button
+                      onClick={
+                        editingRole ? handleUpdateRole : handleCreateRole
+                      }
+                    >
+                      {editingRole ? "Update Role" : "Create Role"}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </CrudPermission>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {roles.map((role) => (
-                <Card key={role.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge className={role.color}>
-                          Level {role.level}
-                        </Badge>
-                        <span>{role.displayName}</span>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </CardTitle>
-                    <CardDescription>{role.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      {role.permissions.length} permissions
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {roles && Array.isArray(roles)
+                ? roles.map((role) => (
+                    <Card key={role.id}>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge className={role.color}>
+                              Level {role.level}
+                            </Badge>
+                            <span>{role.displayName}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            <CrudPermission module="menuManagement" operation="update">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditRole(role)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </CrudPermission>
+                            <CrudPermission module="menuManagement" operation="delete">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteRole(role.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </CrudPermission>
+                          </div>
+                        </CardTitle>
+                        <CardDescription>{role.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-sm text-muted-foreground">
+                          {role.permissions.length} permissions
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                : null}
             </div>
-          </TabsContent>
+            </TabsContent>
+          </PermissionWrapper>
 
           {/* Preview Tab */}
-          <TabsContent value="preview" className="space-y-4">
+          <PermissionWrapper condition={permissions.menu.tabs.preview}>
+            <TabsContent value="preview" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Menu Preview</h2>
               <div className="text-sm text-muted-foreground">
@@ -605,53 +1352,102 @@ export default function MenuManagementPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {roles.map((role) => (
-                <Card key={role.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Badge className={role.color}>
-                        {role.displayName}
-                      </Badge>
-                      <span>Menu View</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {menuGroups
-                        .filter(group => !group.minRoleLevel || group.minRoleLevel <= role.level)
-                        .map(group => (
-                          <div key={group.id} className="border rounded-lg p-3">
-                            <div className="font-medium text-sm flex items-center gap-2">
-                              {group.title}
-                              {group.requiresDeveloperMode && (
-                                <Badge variant="outline" className="text-xs">Dev</Badge>
-                              )}
-                            </div>
-                            <div className="ml-4 mt-2 space-y-1">
-                              {group.items
-                                .filter(item => !item.minRoleLevel || item.minRoleLevel <= role.level)
-                                .map(item => (
-                                  <div key={item.id} className="text-sm text-muted-foreground flex items-center gap-2">
-                                    • {item.title}
-                                    {item.requiresDeveloperMode && (
-                                      <Badge variant="outline" className="text-xs">Dev</Badge>
-                                    )}
-                                    {item.badgeText && (
-                                      <Badge variant={item.badgeVariant as any} className="text-xs">
-                                        {item.badgeText}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {roles && Array.isArray(roles)
+                ? roles.map((role) => (
+                    <Card key={role.id}>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Badge className={role.color}>
+                            {role.displayName}
+                          </Badge>
+                          <span>Menu View</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {menuGroups && Array.isArray(menuGroups)
+                            ? menuGroups
+                                .filter(
+                                  (group) =>
+                                    !group.minRoleLevel ||
+                                    group.minRoleLevel <= role.level
+                                )
+                                .map((group) => {
+                                  const GroupIcon = getIconComponent(
+                                    group.icon
+                                  );
+                                  return (
+                                    <div
+                                      key={group.id}
+                                      className="border rounded-lg p-3"
+                                    >
+                                      <div className="font-medium text-sm flex items-center gap-2">
+                                        <GroupIcon className="h-4 w-4 text-sidebar-foreground/60" />
+                                        {group.title}
+                                        {group.requiresDeveloperMode && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs"
+                                          >
+                                            Dev
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="ml-6 mt-2 space-y-1">
+                                        {group.items &&
+                                        Array.isArray(group.items)
+                                          ? group.items
+                                              .filter(
+                                                (item) =>
+                                                  !item.minRoleLevel ||
+                                                  item.minRoleLevel <=
+                                                    role.level
+                                              )
+                                              .map((item) => {
+                                                const ItemIcon =
+                                                  getIconComponent(item.icon);
+                                                return (
+                                                  <div
+                                                    key={item.id}
+                                                    className="text-sm text-muted-foreground flex items-center gap-2"
+                                                  >
+                                                    <ItemIcon className="h-3 w-3 text-sidebar-foreground/60" />
+                                                    • {item.title}
+                                                    {item.requiresDeveloperMode && (
+                                                      <Badge
+                                                        variant="outline"
+                                                        className="text-xs"
+                                                      >
+                                                        Dev
+                                                      </Badge>
+                                                    )}
+                                                    {item.badgeText && (
+                                                      <Badge
+                                                        variant={
+                                                          item.badgeVariant as any
+                                                        }
+                                                        className="text-xs"
+                                                      >
+                                                        {item.badgeText}
+                                                      </Badge>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })
+                                          : null}
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                            : null}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                : null}
             </div>
-          </TabsContent>
+            </TabsContent>
+          </PermissionWrapper>
         </Tabs>
       </div>
     </SidebarInset>

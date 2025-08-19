@@ -17,7 +17,9 @@ namespace Backend.Services
 
         public async Task<User?> AuthenticateAsync(string email, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+            var user = await _context.Users
+                .Include(u => u.DatabaseRole)
+                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
             
             if (user == null || !VerifyPassword(password, user.PasswordHash))
                 return null;
@@ -31,13 +33,17 @@ namespace Backend.Services
             if (existingUser != null)
                 throw new InvalidOperationException("User with this email already exists");
 
+            // Get default user role from database
+            var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Level == 1 && r.IsActive);
+
             var user = new User
             {
                 Name = name,
                 Email = email,
                 PhoneNumber = phoneNumber,
                 PasswordHash = HashPassword(password),
-                Role = UserRole.User,
+                Role = UserRole.User, // Keep for backward compatibility
+                RoleId = defaultRole?.Id, // Use database role
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsActive = true
@@ -45,6 +51,10 @@ namespace Backend.Services
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+            
+            // Load the role relationship
+            await _context.Entry(user).Reference(u => u.DatabaseRole).LoadAsync();
+            
             return user;
         }
 

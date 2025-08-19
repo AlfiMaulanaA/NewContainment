@@ -22,19 +22,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const refreshUser = useCallback(() => {
-    const currentUser = getCurrentUserFromToken();
-    if (!currentUser && typeof window !== 'undefined') {
-      // If no valid user found and we're not on login page, redirect to login
-      const pathname = window.location.pathname;
-      if (!pathname.startsWith('/auth/')) {
-        setUser(null);
-        setIsLoading(false);
-        router.replace('/auth/login');
-        return;
+    try {
+      const currentUser = getCurrentUserFromToken();
+      setUser(currentUser);
+      setIsLoading(false);
+      
+      // Only redirect to login if we're sure there's no valid token AND we're not already on auth pages
+      if (!currentUser && typeof window !== 'undefined') {
+        const pathname = window.location.pathname;
+        const authToken = localStorage.getItem('authToken');
+        
+        // Give a small delay before redirecting to avoid race conditions
+        setTimeout(() => {
+          // Double-check conditions after delay
+          const recheckUser = getCurrentUserFromToken();
+          const recheckToken = localStorage.getItem('authToken');
+          const currentPathname = window.location.pathname;
+          
+          // Only redirect if:
+          // 1. Still no valid user after recheck
+          // 2. Still no token after recheck
+          // 3. We're not on an auth page
+          if (!recheckUser && !recheckToken && !currentPathname.startsWith('/auth/')) {
+            console.log('No auth token found after recheck, redirecting to login');
+            router.replace('/auth/login');
+          }
+        }, 100);
       }
+    } catch (error) {
+      console.error('Error in refreshUser:', error);
+      setIsLoading(false);
     }
-    setUser(currentUser);
-    setIsLoading(false);
   }, [router]);
 
   const logout = useCallback(async (): Promise<void> => {
@@ -59,7 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await authApi.login({ email, password });
       if (result.success) {
-        refreshUser();
+        // Small delay to ensure token is stored, then refresh user
+        setTimeout(() => {
+          refreshUser();
+        }, 50);
         return true;
       }
       return false;

@@ -59,6 +59,7 @@ interface PublishHistory {
 }
 
 export default function ContainmentControlPage() {
+  const [containmentId, setContainmentId] = useState<number | null>(null);
   const [controlState, setControlState] = useState<ControlState>({
     frontDoorAlwaysOpen: false,
     backDoorAlwaysOpen: false,
@@ -108,8 +109,25 @@ export default function ContainmentControlPage() {
     }
   };
 
-  // Load access logs on component mount and periodically
+  // Load containment data and access logs on component mount
   useEffect(() => {
+    // Load containment ID from URL params, localStorage, or API
+    const urlParams = new URLSearchParams(window.location.search);
+    const containmentIdFromUrl = urlParams.get('containmentId');
+    
+    if (containmentIdFromUrl) {
+      setContainmentId(parseInt(containmentIdFromUrl));
+    } else {
+      // Try to get from localStorage or API
+      const storedContainmentId = localStorage.getItem('selectedContainmentId');
+      if (storedContainmentId) {
+        setContainmentId(parseInt(storedContainmentId));
+      } else {
+        // Default to 1 if not found
+        setContainmentId(1);
+      }
+    }
+    
     loadAccessLogs();
 
     // Refresh logs every 30 seconds
@@ -285,7 +303,14 @@ export default function ContainmentControlPage() {
         <Separator orientation="vertical" className="mr-2 h-4" />
         <div className="flex items-center gap-2">
           <Gamepad2 className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Containment Control</h1>
+          <h1 className="text-lg font-semibold">
+            Containment Control
+            {containmentId && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - ID: {containmentId}
+              </span>
+            )}
+          </h1>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <MQTTConnectionBadge />
@@ -449,61 +474,65 @@ export default function ContainmentControlPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                Ceiling & System Controls
+                {containmentId === 1 ? 'System Controls' : 'Ceiling & System Controls'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Ceiling Control */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Ceiling Control
-                </h3>
+              {/* Ceiling Control - Hide for containment ID 1 */}
+              {containmentId !== 1 && (
+                <>
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Ceiling Control
+                    </h3>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {controlState.ceilingState ? (
-                      <ArrowDown className="h-4 w-4 text-blue-500" />
-                    ) : (
-                      <ArrowUp className="h-4 w-4 text-gray-500" />
-                    )}
-                    <div>
-                      <Label className="font-medium">Ceiling Position</Label>
-                      <div className="text-xs text-muted-foreground">
-                        Current:{" "}
-                        {controlState.ceilingState
-                          ? "Open (Down)"
-                          : "Closed (Up)"}
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {controlState.ceilingState ? (
+                          <ArrowDown className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4 text-gray-500" />
+                        )}
+                        <div>
+                          <Label className="font-medium">Ceiling Position</Label>
+                          <div className="text-xs text-muted-foreground">
+                            Current:{" "}
+                            {controlState.ceilingState
+                              ? "Open (Down)"
+                              : "Closed (Up)"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={
+                            controlState.ceilingState ? "default" : "outline"
+                          }
+                          onClick={() => handleCeilingControl(true)}
+                          disabled={!isConnected || isPublishing}
+                        >
+                          <ArrowDown className="h-3 w-3 mr-1" />
+                          Open (Down)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={
+                            !controlState.ceilingState ? "default" : "outline"
+                          }
+                          onClick={() => handleCeilingControl(false)}
+                          disabled={!isConnected || isPublishing}
+                        >
+                          <ArrowUp className="h-3 w-3 mr-1" />
+                          Close (Up)
+                        </Button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={
-                        controlState.ceilingState ? "default" : "outline"
-                      }
-                      onClick={() => handleCeilingControl(true)}
-                      disabled={!isConnected || isPublishing}
-                    >
-                      <ArrowDown className="h-3 w-3 mr-1" />
-                      Open (Down)
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={
-                        !controlState.ceilingState ? "default" : "outline"
-                      }
-                      onClick={() => handleCeilingControl(false)}
-                      disabled={!isConnected || isPublishing}
-                    >
-                      <ArrowUp className="h-3 w-3 mr-1" />
-                      Close (Up)
-                    </Button>
-                  </div>
-                </div>
-              </div>
 
-              <Separator />
+                  <Separator />
+                </>
+              )}
 
               {/* Containment Status */}
               <div className="space-y-4">

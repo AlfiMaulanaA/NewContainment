@@ -1,14 +1,14 @@
 // hooks/useDynamicMenu.ts
 "use client";
 
-import { useState, useEffect } from 'react';
-import { 
+import { useState, useEffect } from "react";
+import {
   menuApi,
-  type MenuItemData, 
-  type MenuGroupData, 
+  type MenuItemData,
+  type MenuGroupData,
   type UserMenuResponse,
-  type MenuUserRole 
-} from '@/lib/api';
+  type MenuUserRole,
+} from "@/lib/api";
 
 // Re-export types for convenience
 export type { MenuItemData, MenuGroupData, UserMenuResponse, MenuUserRole };
@@ -23,13 +23,13 @@ export function useDynamicMenu() {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const data = await menuApi.getUserMenu();
       setMenuData(data);
       setLastUpdate(Date.now());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      console.error('Error fetching user menu:', err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -49,18 +49,21 @@ export function useDynamicMenu() {
 
     // Listen for developer mode changes
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'developer_mode_enabled' || e.key === 'developer_mode_expiry') {
+      if (
+        e.key === "developer_mode_enabled" ||
+        e.key === "developer_mode_expiry"
+      ) {
         setTimeout(() => {
           fetchUserMenu();
         }, 100); // Small delay to ensure storage is updated
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -83,12 +86,17 @@ export function useMenuManagement() {
   const fetchRoles = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await menuApi.getRoles();
-      if (response.success) {
+      if (response.success && response.data) {
         setRoles(response.data);
+      } else {
+        setError(response.message || "Failed to fetch roles");
+        setRoles([]); // Ensure roles is always an array
       }
     } catch (err) {
-      setError('Failed to fetch roles');
+      setError("Failed to fetch roles");
+      setRoles([]); // Ensure roles is always an array
     } finally {
       setIsLoading(false);
     }
@@ -97,12 +105,17 @@ export function useMenuManagement() {
   const fetchMenuGroups = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await menuApi.getMenuGroups();
-      if (response.success) {
+      if (response.success && response.data) {
         setMenuGroups(response.data);
+      } else {
+        setError(response.message || "Failed to fetch menu groups");
+        setMenuGroups([]); // Ensure menuGroups is always an array
       }
     } catch (err) {
-      setError('Failed to fetch menu groups');
+      setError("Failed to fetch menu groups");
+      setMenuGroups([]); // Ensure menuGroups is always an array
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +128,7 @@ export function useMenuManagement() {
         await fetchRoles();
         return response.data;
       }
-      throw new Error('Failed to create role');
+      throw new Error("Failed to create role");
     } catch (err) {
       throw err;
     }
@@ -128,46 +141,54 @@ export function useMenuManagement() {
         await fetchMenuGroups();
         return response.data;
       }
-      throw new Error('Failed to create menu group');
+      throw new Error("Failed to create menu group");
     } catch (err) {
       throw err;
     }
   };
 
-  const createMenuItem = async (itemData: Partial<MenuItemData> & { menuGroupId: number }) => {
+  const createMenuItem = async (
+    itemData: Partial<MenuItemData> & { menuGroupId: number }
+  ) => {
     try {
       const response = await menuApi.createMenuItem(itemData);
       if (response.success) {
         await fetchMenuGroups();
         return response.data;
       }
-      throw new Error('Failed to create menu item');
+      throw new Error("Failed to create menu item");
     } catch (err) {
       throw err;
     }
   };
 
-  const updateMenuGroup = async (id: number, groupData: Partial<MenuGroupData>) => {
+  const updateMenuGroup = async (
+    id: number,
+    groupData: Partial<MenuGroupData>
+  ) => {
     try {
       const response = await menuApi.updateMenuGroup(id, groupData);
       if (response.success) {
         await fetchMenuGroups();
         return true;
       }
-      throw new Error('Failed to update menu group');
+      throw new Error("Failed to update menu group");
     } catch (err) {
       throw err;
     }
   };
 
-  const updateMenuItem = async (id: number, itemData: Partial<MenuItemData>) => {
+  const updateMenuItem = async (
+    id: number,
+    itemData: Partial<MenuItemData>
+  ) => {
     try {
       const response = await menuApi.updateMenuItem(id, itemData);
       if (response.success) {
         await fetchMenuGroups();
         return true;
       }
-      throw new Error('Failed to update menu item');
+      throw new Error("Failed to update menu item");
     } catch (err) {
       throw err;
     }
@@ -180,7 +201,72 @@ export function useMenuManagement() {
         await fetchMenuGroups();
         return true;
       }
-      throw new Error('Failed to delete menu item');
+      throw new Error("Failed to delete menu item");
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const toggleMenuItemActive = async (id: number) => {
+    try {
+      const response = await menuApi.toggleMenuItemActive(id);
+      if (response.success) {
+        await fetchMenuGroups();
+        return response.data;
+      }
+      throw new Error("Failed to toggle menu item active status");
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const toggleMenuGroupActive = async (id: number) => {
+    try {
+      const response = await menuApi.toggleMenuGroupActive(id);
+      if (response.success) {
+        await fetchMenuGroups();
+        return response.data;
+      }
+      throw new Error("Failed to toggle menu group active status");
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const deleteMenuGroup = async (id: number) => {
+    try {
+      const response = await menuApi.deleteMenuGroup(id);
+      if (response.success) {
+        await fetchMenuGroups();
+        return true;
+      }
+      throw new Error("Failed to delete menu group");
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const updateRole = async (id: number, roleData: Partial<MenuUserRole>) => {
+    try {
+      const response = await menuApi.updateRole(id, roleData);
+      if (response.success) {
+        await fetchRoles();
+        return true;
+      }
+      throw new Error("Failed to update role");
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const deleteRole = async (id: number) => {
+    try {
+      const response = await menuApi.deleteRole(id);
+      if (response.success) {
+        await fetchRoles();
+        return true;
+      }
+      throw new Error("Failed to delete role");
     } catch (err) {
       throw err;
     }
@@ -197,11 +283,16 @@ export function useMenuManagement() {
     isLoading,
     error,
     createRole,
+    updateRole,
+    deleteRole,
     createMenuGroup,
-    createMenuItem,
     updateMenuGroup,
+    deleteMenuGroup,
+    toggleMenuGroupActive,
+    createMenuItem,
     updateMenuItem,
     deleteMenuItem,
+    toggleMenuItemActive,
     refreshData: () => {
       fetchRoles();
       fetchMenuGroups();

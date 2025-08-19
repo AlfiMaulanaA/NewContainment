@@ -76,10 +76,16 @@ import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { getRoleDisplayName, getRoleColor } from "@/lib/auth-utils";
 import { toast } from "sonner";
+import {
+  usePermissions,
+  PermissionWrapper,
+  CrudPermission,
+} from "@/lib/role-permissions";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function UserManagementPage() {
+  const permissions = usePermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -287,15 +293,19 @@ export default function UserManagementPage() {
 
       if (result.success) {
         toast.success(result.message || "Photo uploaded successfully");
-        
+
         // Update editingUser state to reflect new photo
-        if (editingUser && editingUser.id === userId && result.data?.photoPath) {
+        if (
+          editingUser &&
+          editingUser.id === userId &&
+          result.data?.photoPath
+        ) {
           setEditingUser({
             ...editingUser,
-            photoPath: result.data.photoPath
+            photoPath: result.data.photoPath,
           });
         }
-        
+
         setSelectedFile(null);
         setPreviewUrl(null);
         loadUsers(); // Reload users to get updated photo path
@@ -317,15 +327,15 @@ export default function UserManagementPage() {
 
       if (result.success) {
         toast.success(result.message || "Photo deleted successfully");
-        
+
         // Update editingUser state to reflect photo removal
         if (editingUser && editingUser.id === userId) {
           setEditingUser({
             ...editingUser,
-            photoPath: "/images/avatar-user.png"
+            photoPath: "/images/avatar-user.png",
           });
         }
-        
+
         loadUsers(); // Reload users to get updated photo path
       } else {
         toast.error(result.message || "Failed to delete photo");
@@ -378,94 +388,99 @@ export default function UserManagementPage() {
           <h1 className="text-lg font-semibold">User Management</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add User
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="Enter full name"
-                  />
+          <CrudPermission module="userManagement" operation="create">
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New User</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="Enter full name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      value={formData.phoneNumber}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phoneNumber: e.target.value,
+                        })
+                      }
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="role">Role</Label>
+                    <Select
+                      value={formData.role.toString()}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          role: parseInt(value) as UserRole,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={UserRole.User.toString()}>
+                          User
+                        </SelectItem>
+                        <SelectItem value={UserRole.Developer.toString()}>
+                          Developer
+                        </SelectItem>
+                        <SelectItem value={UserRole.Admin.toString()}>
+                          Admin
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    placeholder="Enter email address"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phoneNumber: e.target.value })
-                    }
-                    placeholder="Enter phone number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={formData.role.toString()}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        role: parseInt(value) as UserRole,
-                      })
-                    }
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCreateDialog(false)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={UserRole.User.toString()}>
-                        User
-                      </SelectItem>
-                      <SelectItem value={UserRole.Developer.toString()}>
-                        Developer
-                      </SelectItem>
-                      <SelectItem value={UserRole.Admin.toString()}>
-                        Admin
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateUser} disabled={actionLoading}>
-                  {actionLoading ? "Creating..." : "Create User"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateUser} disabled={actionLoading}>
+                    {actionLoading ? "Creating..." : "Create User"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CrudPermission>
         </div>
       </header>
 
@@ -589,7 +604,9 @@ export default function UserManagementPage() {
                     </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <PermissionWrapper condition={permissions.user.canUpdate || permissions.user.canDelete}>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </PermissionWrapper>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -623,9 +640,7 @@ export default function UserManagementPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={user.isActive ? "default" : "secondary"}
-                          >
+                          <Badge variant={user.isActive ? "success" : "danger"}>
                             {user.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
@@ -634,46 +649,65 @@ export default function UserManagementPage() {
                             ? new Date(user.createdAt).toLocaleDateString()
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <Trash2 className="h-4 w-4" />
+                        <PermissionWrapper condition={permissions.user.canUpdate || permissions.user.canDelete}>
+                          <TableCell className="text-right space-x-2">
+                            <CrudPermission
+                              module="userManagement"
+                              operation="update"
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                onClick={() => handleEditUser(user)}
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{user.name}"?
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteUser(user.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
+                            </CrudPermission>
+                            <CrudPermission
+                              module="userManagement"
+                              operation="delete"
+                            >
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="text-red-600 bg-red-100 hover:bg-red-200"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete User
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{user.name}
+                                      "? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteUser(user.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </CrudPermission>
+                          </TableCell>
+                        </PermissionWrapper>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={8}
+                        colSpan={permissions.user.canUpdate || permissions.user.canDelete ? 8 : 7}
                         className="text-center py-8 text-muted-foreground"
                       >
                         {searchQuery

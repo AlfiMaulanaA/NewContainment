@@ -2,7 +2,7 @@
 
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { SensorDashboard } from "@/components/sensor-dashboard";
+// import { SensorDashboard } from "@/components/sensor-dashboard";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -32,9 +32,9 @@ export default function SensorsPage() {
           </Breadcrumb>
         </div>
       </header>
-      
+
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <SensorDashboard />
+        {/* <SensorDashboard /> */}
       </div>
     </SidebarInset>
   );

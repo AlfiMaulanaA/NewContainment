@@ -7,39 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import Swal from "sweetalert2";
-import { 
-  Plus, 
-  RefreshCw, 
-  TestTube, 
-  Wifi,
-  Loader2,
-  Edit2
-} from "lucide-react";
-import { 
-  MqttConfiguration, 
-  CreateMqttConfigurationRequest, 
+import { Plus, RefreshCw, TestTube, Wifi, Loader2, Edit2 } from "lucide-react";
+import {
+  MqttConfiguration,
+  CreateMqttConfigurationRequest,
   UpdateMqttConfigurationRequest,
   TestMqttConnectionRequest,
-  mqttConfigurationApi
+  mqttConfigurationApi,
 } from "@/lib/api-service";
 import { PageSkeleton } from "@/components/loading-skeleton";
 
 // Optimized lazy loading with preload
-const MQTTOverview = React.lazy(() => 
-  import("@/components/mqtt/mqtt-overview").then(module => ({
-    default: module.default
+const MQTTOverview = React.lazy(() =>
+  import("@/components/mqtt/mqtt-overview").then((module) => ({
+    default: module.default,
   }))
 );
 
-const MQTTManagement = React.lazy(() => 
-  import("@/components/mqtt/mqtt-management").then(module => ({
-    default: module.default
+const MQTTManagement = React.lazy(() =>
+  import("@/components/mqtt/mqtt-management").then((module) => ({
+    default: module.default,
   }))
 );
 
@@ -48,7 +49,9 @@ const ComponentLoader = () => (
   <div className="space-y-4">
     <div className="flex items-center justify-center py-6">
       <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-      <span className="ml-2 text-sm text-muted-foreground">Loading component...</span>
+      <span className="ml-2 text-sm text-muted-foreground">
+        Loading component...
+      </span>
     </div>
     <div className="space-y-3">
       <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
@@ -60,17 +63,23 @@ const ComponentLoader = () => (
 export default function UnifiedMqttPage() {
   // State management
   const [configurations, setConfigurations] = useState<MqttConfiguration[]>([]);
-  const [activeConfiguration, setActiveConfiguration] = useState<MqttConfiguration | null>(null);
-  const [effectiveConfiguration, setEffectiveConfiguration] = useState<Record<string, any>>({});
+  const [activeConfiguration, setActiveConfiguration] =
+    useState<MqttConfiguration | null>(null);
+  const [effectiveConfiguration, setEffectiveConfiguration] = useState<
+    Record<string, any>
+  >({});
   const [loading, setLoading] = useState(true);
-  const [selectedConfiguration, setSelectedConfiguration] = useState<MqttConfiguration | null>(null);
+  const [selectedConfiguration, setSelectedConfiguration] =
+    useState<MqttConfiguration | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, boolean>>({});
+  const [connectionStatuses, setConnectionStatuses] = useState<
+    Record<string, boolean>
+  >({});
 
   // Form state
   const [formData, setFormData] = useState<CreateMqttConfigurationRequest>({
@@ -85,7 +94,7 @@ export default function UnifiedMqttPage() {
     keepAliveInterval: 60,
     reconnectDelay: 5,
     topicPrefix: "containment",
-    description: ""
+    description: "",
   });
 
   const loadData = useCallback(async () => {
@@ -94,24 +103,29 @@ export default function UnifiedMqttPage() {
       // Load essential data first (fastest APIs)
       const [effectiveConfigRes, activeConfigRes] = await Promise.all([
         mqttConfigurationApi.getEffectiveConfiguration(),
-        mqttConfigurationApi.getActiveConfiguration()
+        mqttConfigurationApi.getActiveConfiguration(),
       ]);
 
-      if (effectiveConfigRes.success) setEffectiveConfiguration(effectiveConfigRes.data || {});
-      if (activeConfigRes.success) setActiveConfiguration(activeConfigRes.data || null);
+      if (effectiveConfigRes.success)
+        setEffectiveConfiguration(effectiveConfigRes.data || {});
+      if (activeConfigRes.success)
+        setActiveConfiguration(activeConfigRes.data || null);
 
       // Load secondary data in background (slower APIs)
       Promise.all([
         mqttConfigurationApi.getConfigurations(),
-        mqttConfigurationApi.getAllConnectionStatus()
-      ]).then(([configurationsRes, connectionStatusRes]) => {
-        if (configurationsRes.success) setConfigurations(configurationsRes.data || []);
-        if (connectionStatusRes.success) setConnectionStatuses(connectionStatusRes.data || {});
-      }).catch(() => {
-        // Non-critical error, don't show toast
-        console.warn('Failed to load secondary MQTT data');
-      });
-
+        mqttConfigurationApi.getAllConnectionStatus(),
+      ])
+        .then(([configurationsRes, connectionStatusRes]) => {
+          if (configurationsRes.success)
+            setConfigurations(configurationsRes.data || []);
+          if (connectionStatusRes.success)
+            setConnectionStatuses(connectionStatusRes.data || {});
+        })
+        .catch(() => {
+          // Non-critical error, don't show toast
+          console.warn("Failed to load secondary MQTT data");
+        });
     } catch (error) {
       toast.error("Failed to load MQTT configurations");
     } finally {
@@ -136,13 +150,15 @@ export default function UnifiedMqttPage() {
       keepAliveInterval: 60,
       reconnectDelay: 5,
       topicPrefix: "containment",
-      description: ""
+      description: "",
     });
   }, []);
 
   const handleCreate = async () => {
     if (!formData.brokerHost && !formData.useEnvironmentConfig) {
-      toast.error("Please provide broker host or use environment configuration");
+      toast.error(
+        "Please provide broker host or use environment configuration"
+      );
       return;
     }
 
@@ -168,15 +184,20 @@ export default function UnifiedMqttPage() {
     if (!selectedConfiguration) return;
 
     if (!formData.brokerHost && !formData.useEnvironmentConfig) {
-      toast.error("Please provide broker host or use environment configuration");
+      toast.error(
+        "Please provide broker host or use environment configuration"
+      );
       return;
     }
 
     setActionLoading(true);
     try {
       const updateData: UpdateMqttConfigurationRequest = { ...formData };
-      const response = await mqttConfigurationApi.updateConfiguration(selectedConfiguration.id, updateData);
-      
+      const response = await mqttConfigurationApi.updateConfiguration(
+        selectedConfiguration.id,
+        updateData
+      );
+
       if (response.success) {
         toast.success("MQTT configuration updated successfully");
         setIsEditDialogOpen(false);
@@ -199,10 +220,16 @@ export default function UnifiedMqttPage() {
       const response = await mqttConfigurationApi.testConnection(config.id);
       if (response.success && response.data) {
         Swal.fire({
-          icon: response.data.success ? 'success' : 'error',
-          title: response.data.success ? 'Connection Successful!' : 'Connection Failed',
-          text: response.data.message || (response.data.success ? 'MQTT broker connection test passed successfully.' : 'Failed to connect to MQTT broker.'),
-          position: 'top-end',
+          icon: response.data.success ? "success" : "error",
+          title: response.data.success
+            ? "Connection Successful!"
+            : "Connection Failed",
+          text:
+            response.data.message ||
+            (response.data.success
+              ? "MQTT broker connection test passed successfully."
+              : "Failed to connect to MQTT broker."),
+          position: "top-end",
           timer: 3000,
           timerProgressBar: true,
           toast: true,
@@ -211,10 +238,10 @@ export default function UnifiedMqttPage() {
       }
     } catch (error) {
       Swal.fire({
-        icon: 'error',
-        title: 'Test Failed',
-        text: 'An error occurred while testing the connection.',
-        position: 'top-end',
+        icon: "error",
+        title: "Test Failed",
+        text: "An error occurred while testing the connection.",
+        position: "top-end",
         timer: 3000,
         toast: true,
         showConfirmButton: false,
@@ -227,10 +254,10 @@ export default function UnifiedMqttPage() {
   const handleTestFormConnection = async () => {
     if (!formData.brokerHost) {
       Swal.fire({
-        icon: 'warning',
-        title: 'Missing Information',
-        text: 'Please provide broker host address.',
-        position: 'top-end',
+        icon: "warning",
+        title: "Missing Information",
+        text: "Please provide broker host address.",
+        position: "top-end",
         timer: 3000,
         toast: true,
         showConfirmButton: false,
@@ -247,16 +274,24 @@ export default function UnifiedMqttPage() {
         password: formData.password,
         clientId: formData.clientId,
         useSsl: formData.useSsl,
-        keepAliveInterval: formData.keepAliveInterval
+        keepAliveInterval: formData.keepAliveInterval,
       };
 
-      const response = await mqttConfigurationApi.testConnectionWithConfig(testRequest);
+      const response = await mqttConfigurationApi.testConnectionWithConfig(
+        testRequest
+      );
       if (response.success && response.data) {
         Swal.fire({
-          icon: response.data.success ? 'success' : 'error',
-          title: response.data.success ? 'Connection Successful!' : 'Connection Failed',
-          text: response.data.message || (response.data.success ? 'MQTT broker connection test passed successfully.' : 'Failed to connect to MQTT broker.'),
-          position: 'top-end',
+          icon: response.data.success ? "success" : "error",
+          title: response.data.success
+            ? "Connection Successful!"
+            : "Connection Failed",
+          text:
+            response.data.message ||
+            (response.data.success
+              ? "MQTT broker connection test passed successfully."
+              : "Failed to connect to MQTT broker."),
+          position: "top-end",
           timer: 3000,
           toast: true,
           showConfirmButton: false,
@@ -264,10 +299,10 @@ export default function UnifiedMqttPage() {
       }
     } catch (error) {
       Swal.fire({
-        icon: 'error',
-        title: 'Test Failed',
-        text: 'An error occurred while testing the connection.',
-        position: 'top-end',
+        icon: "error",
+        title: "Test Failed",
+        text: "An error occurred while testing the connection.",
+        position: "top-end",
         timer: 3000,
         toast: true,
         showConfirmButton: false,
@@ -291,7 +326,7 @@ export default function UnifiedMqttPage() {
       keepAliveInterval: configuration.keepAliveInterval,
       reconnectDelay: configuration.reconnectDelay,
       topicPrefix: configuration.topicPrefix || "",
-      description: configuration.description || ""
+      description: configuration.description || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -359,9 +394,17 @@ export default function UnifiedMqttPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
+              <Button
+                onClick={() => {
+                  resetForm();
+                  setIsCreateDialogOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 New Configuration
               </Button>
@@ -379,7 +422,9 @@ export default function UnifiedMqttPage() {
                     <Switch
                       id="isEnabled"
                       checked={formData.isEnabled}
-                      onCheckedChange={(checked) => setFormData({ ...formData, isEnabled: checked })}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, isEnabled: checked })
+                      }
                     />
                     <Label htmlFor="isEnabled">Enable MQTT</Label>
                   </div>
@@ -387,9 +432,16 @@ export default function UnifiedMqttPage() {
                     <Switch
                       id="useEnvironmentConfig"
                       checked={formData.useEnvironmentConfig}
-                      onCheckedChange={(checked) => setFormData({ ...formData, useEnvironmentConfig: checked })}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          useEnvironmentConfig: checked,
+                        })
+                      }
                     />
-                    <Label htmlFor="useEnvironmentConfig">Use Environment Config</Label>
+                    <Label htmlFor="useEnvironmentConfig">
+                      Use Environment Config
+                    </Label>
                   </div>
                 </div>
 
@@ -401,7 +453,12 @@ export default function UnifiedMqttPage() {
                         <Input
                           id="brokerHost"
                           value={formData.brokerHost}
-                          onChange={(e) => setFormData({ ...formData, brokerHost: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brokerHost: e.target.value,
+                            })
+                          }
                           placeholder="localhost"
                         />
                       </div>
@@ -411,7 +468,12 @@ export default function UnifiedMqttPage() {
                           id="brokerPort"
                           type="number"
                           value={formData.brokerPort}
-                          onChange={(e) => setFormData({ ...formData, brokerPort: parseInt(e.target.value) || 1883 })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              brokerPort: parseInt(e.target.value) || 1883,
+                            })
+                          }
                           placeholder="1883"
                         />
                       </div>
@@ -423,7 +485,12 @@ export default function UnifiedMqttPage() {
                         <Input
                           id="username"
                           value={formData.username}
-                          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              username: e.target.value,
+                            })
+                          }
                           placeholder="Optional"
                         />
                       </div>
@@ -433,7 +500,12 @@ export default function UnifiedMqttPage() {
                           id="password"
                           type="password"
                           value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              password: e.target.value,
+                            })
+                          }
                           placeholder="Optional"
                         />
                       </div>
@@ -445,7 +517,12 @@ export default function UnifiedMqttPage() {
                         <Input
                           id="clientId"
                           value={formData.clientId}
-                          onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              clientId: e.target.value,
+                            })
+                          }
                           placeholder="ContainmentSystem"
                         />
                       </div>
@@ -454,7 +531,12 @@ export default function UnifiedMqttPage() {
                         <Input
                           id="topicPrefix"
                           value={formData.topicPrefix}
-                          onChange={(e) => setFormData({ ...formData, topicPrefix: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              topicPrefix: e.target.value,
+                            })
+                          }
                           placeholder="containment"
                         />
                       </div>
@@ -465,7 +547,9 @@ export default function UnifiedMqttPage() {
                         <Switch
                           id="useSsl"
                           checked={formData.useSsl}
-                          onCheckedChange={(checked) => setFormData({ ...formData, useSsl: checked })}
+                          onCheckedChange={(checked) =>
+                            setFormData({ ...formData, useSsl: checked })
+                          }
                         />
                         <Label htmlFor="useSsl">Use SSL</Label>
                       </div>
@@ -475,17 +559,29 @@ export default function UnifiedMqttPage() {
                           id="keepAlive"
                           type="number"
                           value={formData.keepAliveInterval}
-                          onChange={(e) => setFormData({ ...formData, keepAliveInterval: parseInt(e.target.value) || 60 })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              keepAliveInterval: parseInt(e.target.value) || 60,
+                            })
+                          }
                           placeholder="60"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="reconnectDelay">Reconnect Delay (sec)</Label>
+                        <Label htmlFor="reconnectDelay">
+                          Reconnect Delay (sec)
+                        </Label>
                         <Input
                           id="reconnectDelay"
                           type="number"
                           value={formData.reconnectDelay}
-                          onChange={(e) => setFormData({ ...formData, reconnectDelay: parseInt(e.target.value) || 5 })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              reconnectDelay: parseInt(e.target.value) || 5,
+                            })
+                          }
                           placeholder="5"
                         />
                       </div>
@@ -496,7 +592,12 @@ export default function UnifiedMqttPage() {
                       <Textarea
                         id="description"
                         value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            description: e.target.value,
+                          })
+                        }
                         placeholder="Optional description for this configuration"
                         rows={3}
                       />
@@ -517,7 +618,11 @@ export default function UnifiedMqttPage() {
                 )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={actionLoading}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                  disabled={actionLoading}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleCreate} disabled={actionLoading}>
@@ -539,13 +644,13 @@ export default function UnifiedMqttPage() {
       <div className="flex flex-1 flex-col gap-4 p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger 
+            <TabsTrigger
               value="overview"
               onMouseEnter={() => preloadComponent("overview")}
             >
               Configuration & Settings
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="management"
               onMouseEnter={() => preloadComponent("management")}
             >
@@ -579,7 +684,10 @@ export default function UnifiedMqttPage() {
                 onEdit={openEditDialog}
                 onView={openViewDialog}
                 onTest={handleTestConnection}
-                onCreate={() => { resetForm(); setIsCreateDialogOpen(true); }}
+                onCreate={() => {
+                  resetForm();
+                  setIsCreateDialogOpen(true);
+                }}
                 testingConnection={testingConnection}
                 onRefresh={loadData}
               />
@@ -595,7 +703,9 @@ export default function UnifiedMqttPage() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Edit MQTT Configuration</DialogTitle>
-                  <DialogDescription>Update MQTT broker configuration.</DialogDescription>
+                  <DialogDescription>
+                    Update MQTT broker configuration.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -603,7 +713,9 @@ export default function UnifiedMqttPage() {
                       <Switch
                         id="edit-isEnabled"
                         checked={formData.isEnabled}
-                        onCheckedChange={(checked) => setFormData({ ...formData, isEnabled: checked })}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, isEnabled: checked })
+                        }
                       />
                       <Label htmlFor="edit-isEnabled">Enable MQTT</Label>
                     </div>
@@ -611,9 +723,16 @@ export default function UnifiedMqttPage() {
                       <Switch
                         id="edit-useEnvironmentConfig"
                         checked={formData.useEnvironmentConfig}
-                        onCheckedChange={(checked) => setFormData({ ...formData, useEnvironmentConfig: checked })}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            useEnvironmentConfig: checked,
+                          })
+                        }
                       />
-                      <Label htmlFor="edit-useEnvironmentConfig">Use Environment Config</Label>
+                      <Label htmlFor="edit-useEnvironmentConfig">
+                        Use Environment Config
+                      </Label>
                     </div>
                   </div>
 
@@ -625,7 +744,12 @@ export default function UnifiedMqttPage() {
                           <Input
                             id="edit-brokerHost"
                             value={formData.brokerHost}
-                            onChange={(e) => setFormData({ ...formData, brokerHost: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                brokerHost: e.target.value,
+                              })
+                            }
                             placeholder="localhost"
                           />
                         </div>
@@ -635,7 +759,12 @@ export default function UnifiedMqttPage() {
                             id="edit-brokerPort"
                             type="number"
                             value={formData.brokerPort}
-                            onChange={(e) => setFormData({ ...formData, brokerPort: parseInt(e.target.value) || 1883 })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                brokerPort: parseInt(e.target.value) || 1883,
+                              })
+                            }
                             placeholder="1883"
                           />
                         </div>
@@ -647,7 +776,12 @@ export default function UnifiedMqttPage() {
                           <Input
                             id="edit-username"
                             value={formData.username}
-                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                username: e.target.value,
+                              })
+                            }
                             placeholder="Optional"
                           />
                         </div>
@@ -657,7 +791,12 @@ export default function UnifiedMqttPage() {
                             id="edit-password"
                             type="password"
                             value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                password: e.target.value,
+                              })
+                            }
                             placeholder="Optional"
                           />
                         </div>
@@ -669,7 +808,12 @@ export default function UnifiedMqttPage() {
                           <Input
                             id="edit-clientId"
                             value={formData.clientId}
-                            onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                clientId: e.target.value,
+                              })
+                            }
                             placeholder="ContainmentSystem"
                           />
                         </div>
@@ -678,7 +822,12 @@ export default function UnifiedMqttPage() {
                           <Input
                             id="edit-topicPrefix"
                             value={formData.topicPrefix}
-                            onChange={(e) => setFormData({ ...formData, topicPrefix: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                topicPrefix: e.target.value,
+                              })
+                            }
                             placeholder="containment"
                           />
                         </div>
@@ -689,27 +838,44 @@ export default function UnifiedMqttPage() {
                           <Switch
                             id="edit-useSsl"
                             checked={formData.useSsl}
-                            onCheckedChange={(checked) => setFormData({ ...formData, useSsl: checked })}
+                            onCheckedChange={(checked) =>
+                              setFormData({ ...formData, useSsl: checked })
+                            }
                           />
                           <Label htmlFor="edit-useSsl">Use SSL</Label>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="edit-keepAlive">Keep Alive (sec)</Label>
+                          <Label htmlFor="edit-keepAlive">
+                            Keep Alive (sec)
+                          </Label>
                           <Input
                             id="edit-keepAlive"
                             type="number"
                             value={formData.keepAliveInterval}
-                            onChange={(e) => setFormData({ ...formData, keepAliveInterval: parseInt(e.target.value) || 60 })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                keepAliveInterval:
+                                  parseInt(e.target.value) || 60,
+                              })
+                            }
                             placeholder="60"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="edit-reconnectDelay">Reconnect Delay (sec)</Label>
+                          <Label htmlFor="edit-reconnectDelay">
+                            Reconnect Delay (sec)
+                          </Label>
                           <Input
                             id="edit-reconnectDelay"
                             type="number"
                             value={formData.reconnectDelay}
-                            onChange={(e) => setFormData({ ...formData, reconnectDelay: parseInt(e.target.value) || 5 })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                reconnectDelay: parseInt(e.target.value) || 5,
+                              })
+                            }
                             placeholder="5"
                           />
                         </div>
@@ -720,7 +886,12 @@ export default function UnifiedMqttPage() {
                         <Textarea
                           id="edit-description"
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              description: e.target.value,
+                            })
+                          }
                           placeholder="Optional description for this configuration"
                           rows={3}
                         />
@@ -741,7 +912,13 @@ export default function UnifiedMqttPage() {
                   )}
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={actionLoading}>Cancel</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditDialogOpen(false)}
+                    disabled={actionLoading}
+                  >
+                    Cancel
+                  </Button>
                   <Button onClick={handleUpdate} disabled={actionLoading}>
                     {actionLoading ? (
                       <>
@@ -764,15 +941,21 @@ export default function UnifiedMqttPage() {
                     <Wifi className="h-5 w-5" />
                     MQTT Configuration Details
                   </DialogTitle>
-                  <DialogDescription>View detailed MQTT configuration information.</DialogDescription>
+                  <DialogDescription>
+                    View detailed MQTT configuration information.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
                   {/* Status Information */}
                   <div className="p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">Status Information</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                      Status Information
+                    </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Status
+                        </Label>
                         <div className="mt-1">
                           {selectedConfiguration.isEnabled ? (
                             <Badge className="bg-green-500">Enabled</Badge>
@@ -782,7 +965,9 @@ export default function UnifiedMqttPage() {
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Active</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Active
+                        </Label>
                         <div className="mt-1">
                           {selectedConfiguration.isActive ? (
                             <Badge className="bg-blue-500">Active</Badge>
@@ -792,68 +977,97 @@ export default function UnifiedMqttPage() {
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Config Source</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Config Source
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.useEnvironmentConfig ? "Environment" : "Database"}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "Environment"
+                            : "Database"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">ID</Label>
-                        <p className="text-sm mt-1 font-mono">#{selectedConfiguration.id}</p>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          ID
+                        </Label>
+                        <p className="text-sm mt-1 font-mono">
+                          #{selectedConfiguration.id}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Connection Settings */}
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">Connection Settings</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                      Connection Settings
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Broker Host</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Broker Host
+                        </Label>
                         <p className="text-sm mt-1 font-mono">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.brokerHost || "Not set")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.brokerHost || "Not set"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Broker Port</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Broker Port
+                        </Label>
                         <p className="text-sm mt-1 font-mono">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.brokerPort || "1883")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.brokerPort || "1883"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Client ID</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Client ID
+                        </Label>
                         <p className="text-sm mt-1 font-mono">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.clientId || "ContainmentSystem")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.clientId ||
+                              "ContainmentSystem"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Username</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Username
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.username ? "••••••" : "Not set")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.username
+                            ? "••••••"
+                            : "Not set"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Password</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Password
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.password ? "••••••" : "Not set")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.password
+                            ? "••••••"
+                            : "Not set"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Use SSL</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Use SSL
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.useSsl ? "Yes" : "No")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.useSsl
+                            ? "Yes"
+                            : "No"}
                         </p>
                       </div>
                     </div>
@@ -861,30 +1075,43 @@ export default function UnifiedMqttPage() {
 
                   {/* Advanced Settings */}
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">Advanced Settings</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                      Advanced Settings
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Keep Alive Interval</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Keep Alive Interval
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : `${selectedConfiguration.keepAliveInterval || 60} seconds`}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : `${
+                                selectedConfiguration.keepAliveInterval || 60
+                              } seconds`}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Reconnect Delay</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Reconnect Delay
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : `${selectedConfiguration.reconnectDelay || 5} seconds`}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : `${
+                                selectedConfiguration.reconnectDelay || 5
+                              } seconds`}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Topic Prefix</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Topic Prefix
+                        </Label>
                         <p className="text-sm mt-1 font-mono">
-                          {selectedConfiguration.useEnvironmentConfig 
-                            ? "From Environment" 
-                            : (selectedConfiguration.topicPrefix || "containment")}
+                          {selectedConfiguration.useEnvironmentConfig
+                            ? "From Environment"
+                            : selectedConfiguration.topicPrefix ||
+                              "containment"}
                         </p>
                       </div>
                     </div>
@@ -892,32 +1119,54 @@ export default function UnifiedMqttPage() {
 
                   {/* Metadata */}
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">Metadata</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                      Metadata
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Description</Label>
-                        <p className="text-sm mt-1">{selectedConfiguration.description || "No description provided"}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Created At</Label>
-                        <p className="text-sm mt-1">{new Date(selectedConfiguration.createdAt).toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Updated At</Label>
-                        <p className="text-sm mt-1">{new Date(selectedConfiguration.updatedAt).toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground">Created By</Label>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Description
+                        </Label>
                         <p className="text-sm mt-1">
-                          {selectedConfiguration.createdByUser?.name || `User ID: ${selectedConfiguration.createdBy}`}
+                          {selectedConfiguration.description ||
+                            "No description provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Created At
+                        </Label>
+                        <p className="text-sm mt-1">
+                          {new Date(
+                            selectedConfiguration.createdAt
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Updated At
+                        </Label>
+                        <p className="text-sm mt-1">
+                          {new Date(
+                            selectedConfiguration.updatedAt
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Created By
+                        </Label>
+                        <p className="text-sm mt-1">
+                          {selectedConfiguration.createdByUser?.name ||
+                            `User ID: ${selectedConfiguration.createdBy}`}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
                 <DialogFooter className="flex gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       if (selectedConfiguration) {
                         openEditDialog(selectedConfiguration);
@@ -928,8 +1177,8 @@ export default function UnifiedMqttPage() {
                     <Edit2 className="h-4 w-4 mr-2" />
                     Edit
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       if (selectedConfiguration) {
                         handleTestConnection(selectedConfiguration);
@@ -940,7 +1189,10 @@ export default function UnifiedMqttPage() {
                     <TestTube className="h-4 w-4 mr-2" />
                     {testingConnection ? "Testing..." : "Test Connection"}
                   </Button>
-                  <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsViewDialogOpen(false)}
+                  >
                     Close
                   </Button>
                 </DialogFooter>

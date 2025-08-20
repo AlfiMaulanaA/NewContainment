@@ -8,6 +8,7 @@ namespace Backend.Services
         Task<IEnumerable<Maintenance>> GetAllMaintenancesAsync();
         Task<IEnumerable<Maintenance>> GetMaintenancesByTargetAsync(MaintenanceTarget targetType, int targetId);
         Task<IEnumerable<Maintenance>> GetMaintenancesByAssigneeAsync(int userId);
+        Task<IEnumerable<Maintenance>> GetMaintenancesForCalendarAsync(int currentUserId, bool isAdmin);
         Task<Maintenance?> GetMaintenanceByIdAsync(int id);
         Task<Maintenance> CreateMaintenanceAsync(Maintenance maintenance, int userId);
         Task<Maintenance?> UpdateMaintenanceAsync(int id, Maintenance maintenance, int userId);

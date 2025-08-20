@@ -14,6 +14,11 @@ import {
   Factory,
   Activity,
   Computer,
+  Search,
+  RefreshCw,
+  Loader2,
+  Globe,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -97,95 +102,159 @@ export default function IpScannerPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
+      <header className="flex h-16 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Network Scanner</h1>
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="h-4" />
+          <Search className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-semibold tracking-tight">Network Scanner</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleScan} 
+            variant="outline" 
+            size="sm" 
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4 mr-1" />
+            )}
+            {loading ? 'Scanning...' : 'Start Scan'}
+          </Button>
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <Card className="w-full shadow-xl rounded-lg border border-gray-200">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2 text-primary">
-              <Wifi className="h-8 w-8" />
-              Local Network Scanner
+      <div className="p-4 space-y-6">
+        <Card className="border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-blue-600" />
+              Network Discovery
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
             </CardTitle>
-            <CardDescription className="text-lg mt-2 text-gray-600">
-              Discover active devices and detailed information on your network.
+            <CardDescription>
+              Scan your local network to discover active devices and their information
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center gap-4">
-              <Button
-                onClick={handleScan}
-                disabled={loading}
-                className="w-full text-lg font-semibold h-12"
-              >
-                {loading ? "Scanning..." : "Start Network Scan"}
-              </Button>
-              {loading && (
-                <div className="w-full">
-                  <Progress value={progress} className="h-2" />
-                  <p className="text-sm text-center text-gray-500 mt-2">
-                    Scanning IP addresses from 1 to 255. Please wait...
-                  </p>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handleScan}
+                    disabled={loading}
+                    className="h-11 min-w-[140px]"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Start Network Scan
+                      </>
+                    )}
+                  </Button>
+                  {activeDevices.length > 0 && !loading && (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Found {activeDevices.length} devices
+                    </div>
+                  )}
                 </div>
-              )}
+                {loading && (
+                  <div className="space-y-2">
+                    <Progress value={progress} className="h-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Scanning IP addresses (192.168.x.1-255)... {Math.round(progress)}% complete
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start gap-2">
+                  <Globe className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-800 mb-1">Scan Information</p>
+                    <ul className="text-blue-700 space-y-1 text-xs">
+                      <li>• Discovers devices on local subnet</li>
+                      <li>• Shows IP, MAC, and manufacturer data</li>
+                      <li>• Identifies open network ports</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-8 border-t border-gray-200 pt-6">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-                <Router className="h-6 w-6 text-primary" />
-                Active Devices ({activeDevices.length})
-              </h3>
-              {activeDevices.length > 0 ? (
-                <div className="rounded-md border overflow-x-auto">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+                <span className="text-lg text-blue-500">Scanning network devices...</span>
+                <p className="text-sm text-muted-foreground mt-2">Discovering active devices on your network</p>
+              </div>
+            ) : activeDevices.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Router className="w-5 h-5 text-green-600" />
+                    Discovered Devices
+                  </h3>
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {activeDevices.length} devices found
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg overflow-hidden">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-muted/50">
                       <TableRow>
-                        <TableHead>IP Address</TableHead>
-                        <TableHead>MAC Address</TableHead>
-                        <TableHead>Manufacturer</TableHead>
-                        <TableHead>Open Ports</TableHead>
+                        <TableHead className="font-semibold">IP Address</TableHead>
+                        <TableHead className="font-semibold">MAC Address</TableHead>
+                        <TableHead className="font-semibold">Manufacturer</TableHead>
+                        <TableHead className="font-semibold">Open Ports</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {activeDevices.map((device, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
+                        <TableRow key={index} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                          <TableCell>
                             <div className="flex items-center gap-2">
-                              <Computer className="h-4 w-4 text-green-500" />
+                              <Computer className="w-4 h-4 text-green-600" />
                               <a
                                 href={`http://${device.ipAddress}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline"
+                                className="font-mono text-blue-600 hover:underline font-medium"
                               >
                                 {device.ipAddress}
                               </a>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="font-mono text-sm">
                             <div className="flex items-center gap-2">
-                              <Network className="h-4 w-4 text-indigo-500" />
-                              {device.macAddress || "-"}
+                              <Network className="w-4 h-4 text-blue-600" />
+                              {device.macAddress || <span className="text-muted-foreground">Unknown</span>}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Factory className="h-4 w-4 text-blue-500" />
-                              {device.manufacturer || "-"}
+                              <Factory className="w-4 h-4 text-purple-600" />
+                              {device.manufacturer || <span className="text-muted-foreground">Unknown</span>}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Server className="h-4 w-4 text-purple-500" />
-                              {device.openPorts && device.openPorts.length > 0
-                                ? device.openPorts.join(", ")
-                                : "-"}
+                              <Server className="w-4 h-4 text-orange-600" />
+                              {device.openPorts && device.openPorts.length > 0 ? (
+                                <span className="font-mono text-sm">{device.openPorts.join(", ")}</span>
+                              ) : (
+                                <span className="text-muted-foreground">None detected</span>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -193,16 +262,16 @@ export default function IpScannerPage() {
                     </TableBody>
                   </Table>
                 </div>
-              ) : (
-                <div className="text-center text-gray-500 p-4 bg-gray-50 rounded-md border border-gray-200">
-                  <p>
-                    {loading
-                      ? "Loading data..."
-                      : "Click the button to start the network scan."}
-                  </p>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="p-4 bg-slate-50 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                  <Search className="w-12 h-12 text-slate-400" />
                 </div>
-              )}
-            </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No devices found</h3>
+                <p className="text-gray-500 mb-6">Start a network scan to discover active devices on your network</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

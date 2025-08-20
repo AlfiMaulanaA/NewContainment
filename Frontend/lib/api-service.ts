@@ -1604,6 +1604,21 @@ export const maintenanceApi = {
       };
     }
   },
+
+  async getMaintenancesForCalendar(): Promise<ApiResponse<Maintenance[]>> {
+    try {
+      const data = await client.get<Maintenance[]>("/maintenance/calendar");
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get calendar maintenances",
+      };
+    }
+  },
 };
 
 // Network Configuration types and interfaces

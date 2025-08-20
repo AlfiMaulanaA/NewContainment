@@ -426,7 +426,8 @@ namespace Backend.Controllers
             try
             {
                 var role = await _context.Roles
-                    .Include(r => r.Users)
+                    .Include(r => r.UserRoles)
+                        .ThenInclude(ur => ur.User)
                     .FirstOrDefaultAsync(r => r.Id == id);
                     
                 if (role == null)
@@ -435,7 +436,7 @@ namespace Backend.Controllers
                 }
 
                 // Check if role is being used by users
-                if (role.Users.Any())
+                if (role.UserRoles.Any())
                 {
                     return BadRequest(new { 
                         success = false, 

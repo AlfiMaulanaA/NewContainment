@@ -20,6 +20,10 @@ import {
   Clock,
   Wifi,
   WifiOff,
+  Sparkles,
+  TrendingUp,
+  Shield,
+  Cpu,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,49 +55,73 @@ import {
 import { toast } from "sonner";
 import { mqttClient } from "@/lib/mqtt";
 
-// Enhanced sensor type visuals with better colors and icons
+// Enhanced sensor type visuals with modern design and better colors
 const SENSOR_TYPE_VISUALS = {
   Temperature: {
     icon: Thermometer,
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-    name: "Temp",
+    color: "text-rose-700",
+    bgColor: "bg-gradient-to-br from-rose-100 to-red-50",
+    borderColor: "border-rose-200/70",
+    glowColor: "shadow-rose-100/50",
+    name: "Temperature",
+    shortName: "TEMP",
     unit: "°C",
+    gradient: "from-rose-500 to-red-600",
   },
   "Air Flow": {
     icon: Wind,
-    color: "text-cyan-600",
-    bgColor: "bg-cyan-50",
-    name: "Airflow",
+    color: "text-sky-700",
+    bgColor: "bg-gradient-to-br from-sky-100 to-cyan-50",
+    borderColor: "border-sky-200/70",
+    glowColor: "shadow-sky-100/50",
+    name: "Air Flow",
+    shortName: "FLOW",
     unit: "L/min",
+    gradient: "from-sky-500 to-cyan-600",
   },
   Vibration: {
-    icon: Activity,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    icon: Waves,
+    color: "text-violet-700",
+    bgColor: "bg-gradient-to-br from-violet-100 to-purple-50",
+    borderColor: "border-violet-200/70",
+    glowColor: "shadow-violet-100/50",
     name: "Vibration",
+    shortName: "VIB",
     unit: "m/s²",
+    gradient: "from-violet-500 to-purple-600",
   },
   "Dust Sensor": {
     icon: Filter,
-    color: "text-amber-600",
-    bgColor: "bg-amber-50",
-    name: "Dust",
+    color: "text-amber-700",
+    bgColor: "bg-gradient-to-br from-amber-100 to-orange-50",
+    borderColor: "border-amber-200/70",
+    glowColor: "shadow-amber-100/50",
+    name: "Dust Level",
+    shortName: "DUST",
     unit: "µg/m³",
+    gradient: "from-amber-500 to-orange-600",
   },
   Humidity: {
     icon: Droplets,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    color: "text-blue-700",
+    bgColor: "bg-gradient-to-br from-blue-100 to-indigo-50",
+    borderColor: "border-blue-200/70",
+    glowColor: "shadow-blue-100/50",
     name: "Humidity",
+    shortName: "HUM",
     unit: "%",
+    gradient: "from-blue-500 to-indigo-600",
   },
   Pressure: {
     icon: Gauge,
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50",
+    color: "text-emerald-700",
+    bgColor: "bg-gradient-to-br from-emerald-100 to-teal-50",
+    borderColor: "border-emerald-200/70",
+    glowColor: "shadow-emerald-100/50",
     name: "Pressure",
+    shortName: "PRESS",
     unit: "hPa",
+    gradient: "from-emerald-500 to-teal-600",
   },
 };
 
@@ -432,36 +460,42 @@ export default function RackManagementPage({
     }
   };
 
-  // Enhanced status styling with better colors and gradients
+  // Enhanced status styling with modern glassmorphism and better colors
   const getStatusColor = (status: string) => {
     switch (status) {
       case "normal":
-        return "text-emerald-700 bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200";
+        return "text-emerald-800 bg-gradient-to-br from-emerald-50/90 to-green-100/60 border-emerald-300/50 shadow-lg shadow-emerald-100/30 backdrop-blur-sm";
       case "warning":
-        return "text-amber-700 bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300";
+        return "text-amber-800 bg-gradient-to-br from-amber-50/90 to-orange-100/60 border-amber-300/50 shadow-lg shadow-amber-100/30 backdrop-blur-sm";
       case "critical":
-        return "text-red-700 bg-gradient-to-br from-red-50 to-rose-50 border-red-300";
+        return "text-red-800 bg-gradient-to-br from-red-50/90 to-rose-100/60 border-red-300/50 shadow-lg shadow-red-100/30 backdrop-blur-sm";
       case "offline":
-        return "text-slate-500 bg-gradient-to-br from-slate-50 to-gray-50 border-slate-300";
+        return "text-slate-600 bg-gradient-to-br from-slate-100/90 to-gray-100/60 border-slate-300/50 shadow-lg shadow-slate-100/30 backdrop-blur-sm";
       default:
-        return "text-slate-600 bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200";
+        return "text-slate-700 bg-gradient-to-br from-slate-50/90 to-gray-100/60 border-slate-300/50 shadow-lg shadow-slate-100/30 backdrop-blur-sm";
     }
   };
 
-  // Modern status icons with Lucide components
-  const getStatusIcon = (status: string) => {
-    const iconClass = "h-3 w-3";
+  // Modern status icons with better visual hierarchy
+  const getStatusIcon = (status: string, size: "sm" | "md" | "lg" = "sm") => {
+    const iconSizes = {
+      sm: "h-3.5 w-3.5",
+      md: "h-4 w-4", 
+      lg: "h-5 w-5"
+    };
+    const iconClass = iconSizes[size];
+    
     switch (status) {
       case "normal":
-        return <CheckCircle className={`${iconClass} text-emerald-600`} />;
+        return <CheckCircle className={`${iconClass} text-emerald-600 drop-shadow-sm`} />;
       case "warning":
-        return <AlertTriangle className={`${iconClass} text-amber-600`} />;
+        return <AlertTriangle className={`${iconClass} text-amber-600 drop-shadow-sm`} />;
       case "critical":
-        return <AlertTriangle className={`${iconClass} text-red-600`} />;
+        return <AlertTriangle className={`${iconClass} text-red-600 drop-shadow-sm animate-pulse`} />;
       case "offline":
-        return <WifiOff className={`${iconClass} text-slate-500`} />;
+        return <WifiOff className={`${iconClass} text-slate-500 drop-shadow-sm`} />;
       default:
-        return <Wifi className={`${iconClass} text-slate-400`} />;
+        return <Clock className={`${iconClass} text-slate-400 drop-shadow-sm`} />;
     }
   };
 
@@ -559,17 +593,38 @@ export default function RackManagementPage({
                   {racks.map((rack) => (
                     <Card
                       key={rack.id}
-                      className="group flex flex-col justify-between"
+                      className="group flex flex-col justify-between bg-gradient-to-br from-white to-slate-50/30 border-2 border-slate-200/50 hover:border-blue-300/50 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 backdrop-blur-sm"
                     >
-                      <CardHeader className="pb-2">
+                      <CardHeader className="pb-3 bg-gradient-to-r from-slate-50/80 to-gray-50/40 rounded-t-lg border-b border-slate-100/50">
                         <CardTitle className="text-lg flex items-center justify-between">
-                          <span>{rack.name}</span>
-                          <Badge
-                            variant={rack.isActive ? "success" : "secondary"}
-                            className="text-xs ml-2"
-                          >
-                            {rack.isActive ? "Active" : "Inactive"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-200/30">
+                              <Server className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <span className="font-bold text-gray-900">{rack.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={rack.isActive ? "default" : "secondary"}
+                              className={`text-xs font-semibold px-3 py-1 rounded-full shadow-sm ${
+                                rack.isActive 
+                                  ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white border-emerald-400" 
+                                  : "bg-gradient-to-r from-gray-400 to-slate-500 text-white"
+                              }`}
+                            >
+                              {rack.isActive ? (
+                                <>
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  Active
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Inactive
+                                </>
+                              )}
+                            </Badge>
+                          </div>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -594,102 +649,132 @@ export default function RackManagementPage({
                                   return (
                                     <div
                                       key={device.id}
-                                      className={`relative p-2.5 rounded-xl border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${getStatusColor(
+                                      className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 ${getStatusColor(
                                         formattedData.status
-                                      )}`}
+                                      )} ${visual?.glowColor || ""}`}
                                     >
-                                      {/* Compact header with icon and status */}
-                                      <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-1">
-                                          {IconComponent && (
-                                            <div
-                                              className={`p-1 rounded-md ${visual?.bgColor}`}
-                                            >
-                                              <IconComponent
-                                                className={`h-4 w-4 ${visual?.color}`}
-                                              />
-                                            </div>
-                                          )}
-                                          <span className="font-medium text-xs text-gray-800">
-                                            {visual?.name || device.name}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          {getStatusIcon(formattedData.status)}
-                                        </div>
-                                      </div>
-
-                                      <div className="text-center mb-2">
-                                        <div className="text-lg font-bold text-gray-900 leading-tight">
-                                          {formattedData.display}
-                                        </div>
-                                      </div>
-
-                                      {/* Compact metrics grid */}
-                                      {formattedData.values.length > 1 && (
-                                        <div className="grid grid-cols-2 gap-1 mb-2">
-                                          {formattedData.values
-                                            .slice(0, 4)
-                                            .map((value, idx) => (
-                                              <div
-                                                key={idx}
-                                                className="bg-white/60 rounded-md px-1 py-0.5 text-center border"
-                                              >
-                                                <div className="text-xs font-semibold text-gray-800">
-                                                  {value.value}
-                                                </div>
-                                                <div className="text-[10px] text-gray-600 leading-none">
-                                                  {value.label}
-                                                </div>
-                                              </div>
-                                            ))}
+                                      {/* Modern gradient background overlay */}
+                                      <div className={`absolute inset-0 opacity-5 bg-gradient-to-br ${visual?.gradient || "from-gray-500 to-gray-600"}`} />
+                                      
+                                      {/* Status indicator pulse */}
+                                      {formattedData.status === "critical" && (
+                                        <div className="absolute top-2 right-2">
+                                          <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
                                         </div>
                                       )}
 
-                                      {/* Timestamp */}
-                                      {formattedData.timestamp &&
-                                        formattedData.timestamp !== "N/A" && (
-                                          <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500">
-                                            <Clock className="h-2.5 w-2.5" />
-                                            <span>
-                                              {formattedData.timestamp}
-                                            </span>
+                                      <div className="relative p-3">
+                                        {/* Enhanced header with modern typography */}
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            {IconComponent && (
+                                              <div className={`relative p-2 rounded-xl shadow-lg ${visual?.bgColor} ${visual?.borderColor || ""} border`}>
+                                                <IconComponent
+                                                  className={`h-4 w-4 ${visual?.color} drop-shadow-sm`}
+                                                />
+                                              </div>
+                                            )}
+                                            <div className="flex flex-col">
+                                              <span className="font-bold text-xs tracking-wide text-gray-900 uppercase">
+                                                {visual?.shortName || visual?.name || device.name}
+                                              </span>
+                                              <span className="text-[10px] text-gray-600 font-medium">
+                                                {device.name.length > 15 ? device.name.substring(0, 15) + "..." : device.name}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            {getStatusIcon(formattedData.status, "md")}
+                                          </div>
+                                        </div>
+
+                                        {/* Primary value display with enhanced styling */}
+                                        <div className="text-center mb-3">
+                                          <div className="text-2xl font-black text-gray-900 leading-none tracking-tight mb-1">
+                                            {formattedData.display}
+                                          </div>
+                                          <div className="h-0.5 w-12 bg-gradient-to-r from-transparent via-gray-400 to-transparent mx-auto opacity-30"></div>
+                                        </div>
+
+                                        {/* Enhanced metrics grid with glassmorphism */}
+                                        {formattedData.values.length > 1 && (
+                                          <div className="grid grid-cols-2 gap-1.5 mb-3">
+                                            {formattedData.values
+                                              .slice(0, 4)
+                                              .map((value, idx) => (
+                                                <div
+                                                  key={idx}
+                                                  className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center backdrop-blur-sm border shadow-sm ${getStatusColor(value.status)} transition-all duration-300 hover:shadow-md`}
+                                                >
+                                                  <div className="text-xs font-bold text-gray-900">
+                                                    {value.value}
+                                                  </div>
+                                                  <div className="text-[9px] text-gray-700 font-medium uppercase tracking-wider opacity-80">
+                                                    {value.label}
+                                                  </div>
+                                                </div>
+                                              ))}
                                           </div>
                                         )}
+
+                                        {/* Elegant timestamp with better spacing */}
+                                        {formattedData.timestamp &&
+                                          formattedData.timestamp !== "N/A" && (
+                                            <div className="flex items-center justify-center gap-1 text-[10px] text-gray-600 bg-white/40 rounded-full px-3 py-1 backdrop-blur-sm border border-white/30">
+                                              <Clock className="h-2.5 w-2.5 text-gray-500" />
+                                              <span className="font-medium">
+                                                {formattedData.timestamp}
+                                              </span>
+                                            </div>
+                                          )}
+                                      </div>
                                     </div>
                                   );
                                 })}
                               {rackDevices[rack.id].filter(
                                 (device) => device.type === "Sensor"
                               ).length === 0 && (
-                                <div className="text-center py-3 text-gray-500 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200">
-                                  <Activity className="h-5 w-5 mx-auto mb-1 opacity-40" />
-                                  <span className="text-xs font-medium">
-                                    No sensors
+                                <div className="text-center py-4 text-gray-500 bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300/50 backdrop-blur-sm">
+                                  <div className="relative">
+                                    <Activity className="h-8 w-8 mx-auto mb-2 text-gray-400 opacity-60" />
+                                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-600">
+                                    No Sensors Available
                                   </span>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Install sensors to monitor
+                                  </p>
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <div className="text-center py-4 text-gray-500 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200">
-                              <HardDrive className="h-6 w-6 mx-auto mb-1 opacity-40" />
-                              <span className="text-xs font-medium">
-                                No devices
+                            <div className="text-center py-6 text-gray-500 bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300/50 backdrop-blur-sm">
+                              <div className="relative">
+                                <HardDrive className="h-10 w-10 mx-auto mb-3 text-gray-400 opacity-60" />
+                                <div className="absolute -top-1 -right-1 h-4 w-4 bg-blue-400 rounded-full animate-ping"></div>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-600">
+                                No Devices Connected
                               </span>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Add devices to get started
+                              </p>
                             </div>
                           )}
 
-                          {/* Compact footer with device count and actions */}
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                          {/* Enhanced footer with gradient and better styling */}
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gradient-to-r from-transparent via-gray-200 to-transparent">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleShowRackDevices(rack)}
-                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 h-auto text-xs font-medium rounded-lg"
-                              title="View devices"
+                              className="group flex-1 mr-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 hover:from-blue-500/20 hover:to-indigo-500/20 text-blue-700 hover:text-blue-900 border border-blue-200/50 hover:border-blue-300 px-3 py-2 h-auto text-xs font-semibold rounded-xl transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
+                              title="View all devices in this rack"
                             >
-                              <HardDrive className="h-3 w-3 mr-1" />
-                              {deviceCounts[rack.id] || 0} Devices
+                              <HardDrive className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                              <span>{deviceCounts[rack.id] || 0} Devices</span>
+                              <Zap className="h-2.5 w-2.5 ml-2 opacity-60" />
                             </Button>
                             {(deviceCounts[rack.id] || 0) > 0 && (
                               <Button
@@ -702,10 +787,10 @@ export default function RackManagementPage({
                                     }&rackName=${encodeURIComponent(rack.name)}`
                                   )
                                 }
-                                className="text-gray-500 hover:text-gray-700 hover:bg-gray-50 p-1.5 h-auto rounded-lg"
-                                title="Manage"
+                                className="group bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-700 hover:text-emerald-900 border border-emerald-200/50 hover:border-emerald-300 p-2.5 h-auto rounded-xl transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
+                                title="Manage devices"
                               >
-                                <Server className="h-3 w-3" />
+                                <Server className="h-3.5 w-3.5 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300" />
                               </Button>
                             )}
                           </div>
@@ -791,47 +876,58 @@ export default function RackManagementPage({
                             );
                             return (
                               <div className="space-y-2">
-                                {/* Main display value with status */}
+                                {/* Enhanced main display with visual improvements */}
                                 <div
-                                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${getStatusColor(
+                                  className={`relative inline-flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg ${getStatusColor(
                                     formattedData.status
                                   )}`}
                                 >
-                                  <span className="text-sm">
-                                    {getStatusIcon(formattedData.status)}
-                                  </span>
-                                  <span className="font-bold text-sm">
-                                    {formattedData.display}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(formattedData.status, "md")}
+                                    <span className="font-black text-base tracking-tight">
+                                      {formattedData.display}
+                                    </span>
+                                  </div>
+                                  {formattedData.status === "critical" && (
+                                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
+                                  )}
                                 </div>
 
-                                {/* Detailed values */}
+                                {/* Enhanced detailed values grid */}
                                 {formattedData.values.length > 0 && (
-                                  <div className="grid grid-cols-2 gap-1">
+                                  <div className="grid grid-cols-2 gap-2">
                                     {formattedData.values.map((value, idx) => (
                                       <div
                                         key={idx}
-                                        className={`px-2 py-1 rounded text-xs border ${getStatusColor(
+                                        className={`relative overflow-hidden px-3 py-2 rounded-lg text-sm border shadow-sm transition-all duration-300 hover:shadow-md ${getStatusColor(
                                           value.status
                                         )}`}
                                       >
-                                        <div className="font-medium">
+                                        <div className="font-bold text-gray-900">
                                           {value.value}
                                         </div>
-                                        <div className="text-xs opacity-75">
+                                        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide opacity-80">
                                           {value.label}
                                         </div>
+                                        {value.status === "warning" && (
+                                          <div className="absolute top-1 right-1 h-2 w-2 bg-amber-400 rounded-full"></div>
+                                        )}
+                                        {value.status === "critical" && (
+                                          <div className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
+                                        )}
                                       </div>
                                     ))}
                                   </div>
                                 )}
 
-                                {/* Timestamp */}
+                                {/* Enhanced timestamp display */}
                                 {formattedData.timestamp &&
                                   formattedData.timestamp !== "N/A" && (
-                                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                                      <span>🕒</span>
-                                      <span>{formattedData.timestamp}</span>
+                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-600 bg-gradient-to-r from-gray-100/50 to-slate-100/50 rounded-full px-4 py-2 border border-gray-200/50 backdrop-blur-sm">
+                                      <Clock className="h-3 w-3 text-gray-500" />
+                                      <span className="font-medium">
+                                        Last updated: {formattedData.timestamp}
+                                      </span>
                                     </div>
                                   )}
                               </div>

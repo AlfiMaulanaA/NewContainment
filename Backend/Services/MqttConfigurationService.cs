@@ -199,7 +199,7 @@ namespace Backend.Services
             }
 
             effectiveConfig["Source"] = source;
-            effectiveConfig["ConfigurationId"] = activeConfig?.Id ?? (object?)null;
+            effectiveConfig["ConfigurationId"] = activeConfig?.Id is not null ? (object)activeConfig.Id : null!;
             effectiveConfig["LastUpdated"] = activeConfig?.UpdatedAt ?? DateTime.UtcNow;
 
             _logger.LogInformation("MQTT Configuration loaded from: {Source}", source);

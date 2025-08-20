@@ -21,7 +21,7 @@ namespace Backend.Services
 
         // Qontak API Configuration
         private readonly string _apiBaseUrl = "https://service-chat.qontak.com/api/open/v1";
-        private readonly string _bearerToken;
+        private readonly string? _bearerToken;
         private readonly string _defaultTemplateId;
         private readonly string _channelIntegrationId;
 

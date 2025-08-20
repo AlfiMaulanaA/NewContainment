@@ -16,10 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { RefreshCw, Save, Settings2, Wifi, Loader2 } from "lucide-react";
-import { connectMQTT, getMQTTClient } from "@/lib/mqttClient";
+import { RefreshCw, Save, Settings2, Wifi, Loader2, CheckCircle2, XCircle, Activity } from "lucide-react";
+import { mqttClient } from "@/lib/mqtt";
 import MqttStatus from "@/components/mqtt-status";
-import type { MqttClient } from "mqtt";
 
 // --- MQTT Topics ---
 const SNMP_SETTING_TOPIC_COMMAND = "IOT/Containment/snmp/setting/command";
@@ -79,7 +78,7 @@ export default function SNMPSettingPage() {
   const [snmpStatus, setSnmpStatus] = useState<string>("Unknown");
   const [isLoading, setIsLoading] = useState(true); // Loading state for initial fetch
   const [isSaving, setIsSaving] = useState(false); // New state for save operation
-  const clientRef = useRef<MqttClient | null>(null);
+  const [isConnected, setIsConnected] = useState(false); // MQTT connection status
 
   // --- Utility Functions ---
 
@@ -120,7 +119,7 @@ export default function SNMPSettingPage() {
    * @returns Promise<boolean> indicating if the command was proceeded (after confirmation)
    */
   const sendCommandRestartService = useCallback(async (serviceName: string, action: string, confirmMessage?: string): Promise<boolean> => {
-    if (!clientRef.current || !clientRef.current.connected) {
+    if (!isConnected) {
       toast.error("MQTT not connected. Please wait for connection or refresh.");
       return false;
     }
@@ -144,194 +143,248 @@ export default function SNMPSettingPage() {
     }
 
     if (proceed) {
-      const payload = JSON.stringify({ services: [serviceName], action: action });
-
-      clientRef.current.publish(SERVICE_COMMAND_TOPIC, payload, (err) => {
-        if (err) {
-          toast.error(`Failed to send command: ${err.message}`);
-          console.error("Publish error:", err);
-          setIsSaving(false); // Stop saving state on publish error
-        } else {
-          toast.loading(`${action.toUpperCase()} ${serviceName} initiated...`, { id: "serviceCommand" });
+      setIsSaving(true);
+      toast.loading(`${action.toUpperCase()} ${serviceName} initiated...`, { id: "serviceCommand" });
+      
+      try {
+        const payload = JSON.stringify({ services: [serviceName], action: action });
+        const success = await mqttClient.publish(SERVICE_COMMAND_TOPIC, payload);
+        
+        if (!success) {
+          toast.dismiss("serviceCommand");
+          toast.error("Failed to send service command");
+          setIsSaving(false);
         }
-      });
+        return success;
+      } catch (error) {
+        console.error("Error sending service command:", error);
+        toast.dismiss("serviceCommand");
+        toast.error("Failed to send service command");
+        setIsSaving(false);
+        return false;
+      }
     }
-    return proceed;
-  }, []);
+    return false;
+  }, [isConnected]);
 
   /**
    * Requests the current SNMP settings from the backend via MQTT.
    */
-  const getConfig = useCallback(() => {
-    if (!clientRef.current || !clientRef.current.connected) {
+  const getConfig = useCallback(async () => {
+    if (!isConnected) {
       toast.warning("MQTT not connected. Cannot retrieve SNMP settings.");
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    // Add a small delay to ensure MQTT is ready to publish after connection
-    setTimeout(() => {
-      clientRef.current?.publish(SNMP_SETTING_TOPIC_COMMAND, JSON.stringify({ command: "read" }), {}, (err) => {
-        if (err) {
-          toast.error(`Failed to request config: ${err.message}`);
-          console.error("Publish error (read command):", err);
-          setIsLoading(false); // Stop loading if publish fails
-        } else {
-          toast.info("Requesting SNMP settings...");
-        }
-      });
-    }, 300);
-  }, []);
+    toast.info("Requesting SNMP settings...");
+    
+    try {
+      const success = await mqttClient.publish(
+        SNMP_SETTING_TOPIC_COMMAND, 
+        JSON.stringify({ command: "read" })
+      );
+      
+      if (!success) {
+        toast.error("Failed to request SNMP settings");
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error requesting SNMP settings:", error);
+      toast.error("Failed to request SNMP settings");
+      setIsLoading(false);
+    }
+  }, [isConnected]);
 
   /**
    * Requests the current SNMP service status from the backend via MQTT.
    */
-  const checkStatus = useCallback(() => {
-    if (!clientRef.current || !clientRef.current.connected) {
+  const checkStatus = useCallback(async () => {
+    if (!isConnected) {
       toast.warning("MQTT not connected. Cannot check SNMP status.");
       return;
     }
-    clientRef.current.publish(SNMP_STATUS_COMMAND_TOPIC, JSON.stringify({ command: "check status" }), {}, (err) => {
-      if (err) {
-        toast.error(`Failed to request status: ${err.message}`);
-        console.error("Publish error (check status command):", err);
-      } else {
+    
+    try {
+      const success = await mqttClient.publish(
+        SNMP_STATUS_COMMAND_TOPIC, 
+        JSON.stringify({ command: "check status" })
+      );
+      
+      if (success) {
         toast.info("Checking SNMP service status...");
+      } else {
+        toast.error("Failed to request SNMP status");
       }
-    });
-  }, []);
+    } catch (error) {
+      console.error("Error checking SNMP status:", error);
+      toast.error("Failed to request SNMP status");
+    }
+  }, [isConnected]);
 
   // --- useEffect for MQTT Connection and Message Handling ---
   useEffect(() => {
-    const mqttClientInstance = connectMQTT();
-    clientRef.current = mqttClientInstance;
+    let isSubscribed = true;
 
-    const topicsToSubscribe = [
-      SNMP_SETTING_TOPIC_DATA,
-      SNMP_STATUS_TOPIC,
-      SERVICE_RESPONSE_TOPIC,
-    ];
-
-    // Initial subscription attempt
-    topicsToSubscribe.forEach((topic) => {
-      mqttClientInstance.subscribe(topic, (err) => {
-        if (err) console.error(`Failed to subscribe to ${topic}:`, err);
-      });
-    });
-
-    // If already connected on mount, fetch config and status
-    if (mqttClientInstance.connected) {
-      getConfig();
-      checkStatus();
-    }
-
-    // MQTT 'connect' event handler
-    const handleConnect = () => {
-      topicsToSubscribe.forEach((topic) => {
-        mqttClientInstance.subscribe(topic, (err) => {
-          if (err) console.error(`Failed to re-subscribe to ${topic} on reconnect:`, err);
-        });
-      });
-      getConfig();
-      checkStatus();
-      toast.success("MQTT Connected for SNMP settings. Fetching data...");
-    };
-
-    // MQTT 'message' event handler
-    const handleMessage = (topic: string, message: Buffer) => {
+    const initializeMqtt = async () => {
       try {
-        const payload = JSON.parse(message.toString());
-        console.log(`Received message on topic ${topic}:`, payload); // Debugging log
-
-        if (topic === SNMP_SETTING_TOPIC_DATA) {
-          // Ensure all incoming data is correctly mapped and converted to string for Select components
-          const updatedFormData: SnmpConfig = {
-            snmpIPaddress: payload.snmpIPaddress || "",
-            snmpNetmask: payload.snmpNetmask || "",
-            snmpGateway: payload.snmpGateway || "",
-            snmpVersion: String(payload.snmpVersion || "3"), // Explicitly convert to string
-            authKey: payload.authKey || "",
-            privKey: payload.privKey || "",
-            securityName: payload.securityName || "",
-            securityLevel: String(payload.securityLevel || "authPriv"), // Explicitly convert to string
-            snmpCommunity: payload.snmpCommunity || "",
-            snmpPort: String(payload.snmpPort || "161"), // Explicitly convert to string
-            sysOID: payload.sysOID || "",
-            DeviceName: payload.DeviceName || "",
-            Site: payload.Site || "",
-            snmpTrapEnabled: typeof payload.snmpTrapEnabled === 'boolean' ? payload.snmpTrapEnabled : true,
-            ipSnmpManager: payload.ipSnmpManager || "",
-            portSnmpManager: String(payload.portSnmpManager || "162"), // Explicitly convert to string
-            snmpTrapComunity: payload.snmpTrapComunity || "",
-            snmpTrapVersion: String(payload.snmpTrapVersion || "2"), // Explicitly convert to string
-            timeDelaySnmpTrap: String(payload.timeDelaySnmpTrap || "30"), // Explicitly convert to string
-          };
-          setFormData(updatedFormData);
-          toast.success("SNMP settings loaded! 🎉");
-          setIsLoading(false); // Stop loading after data is received
-        } else if (topic === SNMP_STATUS_TOPIC) {
-          setSnmpStatus(payload.snmpStatus || "Unknown");
-          toast.info(`SNMP Status: ${payload.snmpStatus || "Unknown"}`);
-        } else if (topic === SERVICE_RESPONSE_TOPIC) {
-          toast.dismiss("serviceCommand"); // Dismiss loading toast for service command
-          setIsSaving(false); // Stop saving state after service response
-
-          if (payload.result === "success") {
-            Swal.fire({
-              position: 'top-end',
-              icon: 'success',
-              title: payload.message || 'Service command executed successfully!',
-              showConfirmButton: false,
-              timer: 3000,
-              toast: true
-            });
-            // After a successful service restart, re-check SNMP status
-            if (payload.action === "restart" && Array.isArray(payload.services) && payload.services.includes("protocol_out.service")) {
-                checkStatus(); // Re-check SNMP status
-                // Optionally, if restarting might affect displayed config (e.g., reset to defaults), call getConfig()
-                // getConfig();
-            }
-          } else {
-            Swal.fire({
-              position: 'top-end',
-              icon: 'error',
-              title: payload.message || 'Failed to execute service command.',
-              showConfirmButton: false,
-              timer: 3000,
-              toast: true
-            });
-          }
+        // Connect to MQTT broker
+        await mqttClient.connect();
+        
+        if (isSubscribed) {
+          setIsConnected(true);
+          toast.success("MQTT Connected for SNMP settings. Fetching data...");
         }
-      } catch (e) {
-        toast.error("Invalid response from MQTT. Check backend payload.");
-        console.error("Error parsing MQTT message:", message.toString(), e);
-        setIsLoading(false); // Stop loading on parse error
-        setIsSaving(false); // Stop saving on parse error
+      } catch (error) {
+        console.error("MQTT connection error:", error);
+        if (isSubscribed) {
+          setIsConnected(false);
+          toast.error("MQTT connection error. Please check broker settings.");
+          setIsLoading(false);
+        }
       }
     };
 
-    // Attach event listeners
-    mqttClientInstance.on("connect", handleConnect);
-    mqttClientInstance.on("message", handleMessage);
-    mqttClientInstance.on("error", (err) => {
-        console.error("MQTT Client error:", err);
-        toast.error(`MQTT connection error: ${err.message}`);
+    // Message handlers for different topics
+    const handleSnmpSettingData = (topic: string, message: string) => {
+      try {
+        const payload = JSON.parse(message);
+        console.log(`Received SNMP settings:`, payload);
+        
+        // Ensure all incoming data is correctly mapped and converted to string for Select components
+        const updatedFormData: SnmpConfig = {
+          snmpIPaddress: payload.snmpIPaddress || "",
+          snmpNetmask: payload.snmpNetmask || "",
+          snmpGateway: payload.snmpGateway || "",
+          snmpVersion: String(payload.snmpVersion || "3"), // Explicitly convert to string
+          authKey: payload.authKey || "",
+          privKey: payload.privKey || "",
+          securityName: payload.securityName || "",
+          securityLevel: String(payload.securityLevel || "authPriv"), // Explicitly convert to string
+          snmpCommunity: payload.snmpCommunity || "",
+          snmpPort: String(payload.snmpPort || "161"), // Explicitly convert to string
+          sysOID: payload.sysOID || "",
+          DeviceName: payload.DeviceName || "",
+          Site: payload.Site || "",
+          snmpTrapEnabled: typeof payload.snmpTrapEnabled === 'boolean' ? payload.snmpTrapEnabled : true,
+          ipSnmpManager: payload.ipSnmpManager || "",
+          portSnmpManager: String(payload.portSnmpManager || "162"), // Explicitly convert to string
+          snmpTrapComunity: payload.snmpTrapComunity || "",
+          snmpTrapVersion: String(payload.snmpTrapVersion || "2"), // Explicitly convert to string
+          timeDelaySnmpTrap: String(payload.timeDelaySnmpTrap || "30"), // Explicitly convert to string
+        };
+        setFormData(updatedFormData);
+        toast.success("SNMP settings loaded! 🎉");
         setIsLoading(false);
+      } catch (error) {
+        console.error("Error parsing SNMP settings data:", error);
+        toast.error("Failed to parse SNMP settings data");
+        setIsLoading(false);
+      }
+    };
+
+    const handleSnmpStatus = (topic: string, message: string) => {
+      try {
+        const payload = JSON.parse(message);
+        setSnmpStatus(payload.snmpStatus || "Unknown");
+        toast.info(`SNMP Status: ${payload.snmpStatus || "Unknown"}`);
+      } catch (error) {
+        console.error("Error parsing SNMP status:", error);
+      }
+    };
+
+    const handleServiceResponse = (topic: string, message: string) => {
+      try {
+        const payload = JSON.parse(message);
+        
+        toast.dismiss("serviceCommand");
         setIsSaving(false);
+
+        if (payload.result === "success") {
+          Swal.fire({
+            position: 'top-end',
+            icon: 'success',
+            title: payload.message || 'Service command executed successfully!',
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+          });
+          
+          // After a successful service restart, re-check SNMP status
+          if (payload.action === "restart" && Array.isArray(payload.services) && payload.services.includes("protocol_out.service")) {
+            setTimeout(() => {
+              checkStatus(); // Re-check SNMP status
+            }, 1000);
+          }
+        } else {
+          Swal.fire({
+            position: 'top-end',
+            icon: 'error',
+            title: payload.message || 'Failed to execute service command.',
+            showConfirmButton: false,
+            timer: 3000,
+            toast: true
+          });
+        }
+      } catch (error) {
+        console.error("Error parsing service response:", error);
+        toast.dismiss("serviceCommand");
+        setIsSaving(false);
+        toast.error("Failed to parse service response");
+      }
+    };
+
+    // Connection status listener
+    const handleConnectionChange = (connected: boolean) => {
+      if (isSubscribed) {
+        setIsConnected(connected);
+        if (!connected) {
+          setIsLoading(false);
+          setIsSaving(false);
+        }
+      }
+    };
+
+    // Subscribe to topics and set up listeners
+    const setupSubscriptions = async () => {
+      try {
+        await mqttClient.subscribe(SNMP_SETTING_TOPIC_DATA, handleSnmpSettingData);
+        await mqttClient.subscribe(SNMP_STATUS_TOPIC, handleSnmpStatus);
+        await mqttClient.subscribe(SERVICE_RESPONSE_TOPIC, handleServiceResponse);
+        
+        mqttClient.addConnectionListener(handleConnectionChange);
+        
+        // Fetch initial settings and status if connected
+        if (mqttClient.isConnected()) {
+          getConfig();
+          checkStatus();
+        }
+      } catch (error) {
+        console.error("Error setting up MQTT subscriptions:", error);
+        if (isSubscribed) {
+          setIsLoading(false);
+          toast.error("Failed to set up MQTT subscriptions");
+        }
+      }
+    };
+
+    // Initialize MQTT connection and subscriptions
+    initializeMqtt().then(() => {
+      if (isSubscribed) {
+        setupSubscriptions();
+      }
     });
 
-    // Cleanup function for unmounting
+    // Cleanup function
     return () => {
-      if (clientRef.current) {
-        topicsToSubscribe.forEach((topic) => {
-          clientRef.current?.unsubscribe(topic);
-        });
-        clientRef.current.off("connect", handleConnect);
-        clientRef.current.off("message", handleMessage);
-        clientRef.current.off("error", () => {}); // Remove error listener cleanly
-      }
-    }
+      isSubscribed = false;
+      // Unsubscribe from topics
+      mqttClient.unsubscribe(SNMP_SETTING_TOPIC_DATA, handleSnmpSettingData);
+      mqttClient.unsubscribe(SNMP_STATUS_TOPIC, handleSnmpStatus);
+      mqttClient.unsubscribe(SERVICE_RESPONSE_TOPIC, handleServiceResponse);
+      mqttClient.removeConnectionListener(handleConnectionChange);
+    };
   }, []); // Empty dependency array to avoid infinite loops
 
   // --- Event Handlers for Form Inputs ---
@@ -364,7 +417,7 @@ export default function SNMPSettingPage() {
    * Validates input, publishes to MQTT, and then triggers a service restart.
    */
   const writeConfig = async () => {
-    if (!clientRef.current || !clientRef.current.connected) {
+    if (!isConnected) {
       toast.error("MQTT client not connected. Cannot save configuration. 😔");
       return;
     }
@@ -414,24 +467,37 @@ export default function SNMPSettingPage() {
       timeDelaySnmpTrap: parsedTimeDelay,
     };
 
-    setIsSaving(true); // Set saving state
-    toast.loading("Sending configuration...", { id: "snmpConfigSave" });
+    setIsSaving(true);
+    toast.loading("Configuration sent. Verifying update...", { id: "snmpConfigSave" });
 
-    clientRef.current.publish(SNMP_SETTING_TOPIC_COMMAND, JSON.stringify(payloadToSend), {}, async (err) => {
-      if (err) {
+    try {
+      const success = await mqttClient.publish(SNMP_SETTING_TOPIC_COMMAND, JSON.stringify(payloadToSend));
+      
+      if (success) {
         toast.dismiss("snmpConfigSave");
-        toast.error(`Failed to send write command: ${err.message} 😭`);
-        setIsSaving(false);
-      } else {
-        toast.success("SNMP configuration sent to device.", { id: "snmpConfigSave" });
+        toast.success("SNMP configuration sent to device.");
+        
         // Ask for confirmation to restart service after successful config write
-        const proceedRestart = await sendCommandRestartService("protocol_out.service", "restart", "SNMP settings updated. Do you want to restart the SNMP service to apply changes?");
+        const proceedRestart = await sendCommandRestartService(
+          "protocol_out.service", 
+          "restart", 
+          "SNMP settings updated. Do you want to restart the SNMP service to apply changes?"
+        );
         if (!proceedRestart) {
-            setIsSaving(false); // If user cancels restart, stop saving state
+          setIsSaving(false); // If user cancels restart, stop saving state
         }
         // If proceedRestart is true, setIsSaving will be handled by SERVICE_RESPONSE_TOPIC listener
+      } else {
+        toast.dismiss("snmpConfigSave");
+        toast.error("Failed to send SNMP configuration");
+        setIsSaving(false);
       }
-    });
+    } catch (error) {
+      console.error("Error sending SNMP configuration:", error);
+      toast.dismiss("snmpConfigSave");
+      toast.error("Failed to send SNMP configuration");
+      setIsSaving(false);
+    }
   };
 
   // --- Rendered Component (JSX) ---
@@ -445,12 +511,26 @@ export default function SNMPSettingPage() {
           <Settings2 className="w-5 h-5 text-primary" />
           <h1 className="text-lg font-semibold tracking-tight">SNMP Communication</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {/* Connection Status Indicator */}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium">
+            {isConnected ? (
+              <>
+                <CheckCircle2 className="w-3 h-3 text-green-600" />
+                <span className="text-green-700">Connected</span>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-3 h-3 text-red-600" />
+                <span className="text-red-700">Disconnected</span>
+              </>
+            )}
+          </div>
           <MqttStatus />
-          <Button variant="outline" size="sm" onClick={getConfig} disabled={isLoading || isSaving}>
+          <Button variant="outline" size="sm" onClick={getConfig} disabled={isLoading || isSaving || !isConnected}>
             {isLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />} Get Config
           </Button>
-          <Button variant="outline" size="sm" onClick={checkStatus} disabled={isLoading || isSaving}>
+          <Button variant="outline" size="sm" onClick={checkStatus} disabled={isLoading || isSaving || !isConnected}>
             <Wifi className="w-4 h-4 mr-1" /> Check Status
           </Button>
         </div>
@@ -458,20 +538,37 @@ export default function SNMPSettingPage() {
 
       {/* Main Content Area */}
       <div className="p-4">
-        <Card className="mb-4"> {/* Added mb-4 for spacing */}
-          <CardHeader>
-            <CardTitle className="text-md">SNMP Service Status</CardTitle>
+        <Card className="border-2 mb-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-green-600" />
+              SNMP Service Status
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Real-time status of SNMP communication service
+            </p>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Current Status: <strong className={snmpStatus === "RUNNING" ? "text-green-600" : "text-red-600"}>{snmpStatus}</strong>
-            </p>
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${snmpStatus === "RUNNING" ? "bg-green-500" : "bg-red-500"}`}></div>
+              <span className="text-sm font-medium">Service Status:</span>
+              <strong className={`${snmpStatus === "RUNNING" ? "text-green-600" : "text-red-600"}`}>
+                {snmpStatus}
+              </strong>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-md">SNMP Configuration Details</CardTitle>
+        <Card className="border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <Settings2 className="w-5 h-5 text-blue-600" />
+              SNMP Configuration Details
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Configure SNMP settings including authentication, encryption, and network parameters
+            </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             {/* Loading State */}
@@ -553,10 +650,23 @@ export default function SNMPSettingPage() {
 
             {/* Save Button */}
             {!isLoading && (
-              <div className="col-span-full">
-                <Button className="w-full" onClick={writeConfig} disabled={isSaving}>
+              <div className="col-span-full space-y-3">
+                <Button className="w-full" onClick={writeConfig} disabled={isSaving || !isConnected}>
                   {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Save Config
                 </Button>
+                
+                {/* Connection Warning */}
+                {!isConnected && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-800">
+                      <XCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">MQTT Not Connected</span>
+                    </div>
+                    <p className="text-xs text-red-600 mt-1">
+                      Cannot save configuration. Please check MQTT connection.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

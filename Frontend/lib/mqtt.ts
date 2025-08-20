@@ -183,7 +183,7 @@ class EnhancedMQTTClient {
     }
 
     this.isConnecting = false;
-    toast.error(`❌ MQTT ${connectionType} connection failed`);
+    toast.error(`MQTT ${connectionType} connection failed`);
     return false;
   }
 

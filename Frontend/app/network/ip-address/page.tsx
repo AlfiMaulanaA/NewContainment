@@ -33,7 +33,9 @@ import {
   Loader2,
   Search,
   FileText,
-  Trash2
+  Trash2,
+  CheckCircle2,
+  Globe
 } from "lucide-react";
 
 import { 
@@ -580,180 +582,212 @@ export default function NetworkIPAddressPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
+      <header className="flex h-16 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2">
-          <Network className="w-5 h-5" />
-          <h1 className="text-lg font-semibold">IP Address Management</h1>
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="h-4" />
+          <Globe className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-semibold tracking-tight">IP Address Management</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={fetchConfigurations} variant="outline" size="sm" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-1" />
+            )}
+            Refresh All Data
+          </Button>
+          <Button onClick={() => openEditDialog()} size="sm" disabled={isLoading}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add Configuration
+          </Button>
         </div>
       </header>
 
-      <div className="flex-1 p-4 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Network Configuration</h2>
-            <p className="text-muted-foreground">
-              Manage network interfaces, IP addresses, and network settings
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={fetchConfigurations} variant="outline" disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button onClick={() => openEditDialog()} disabled={isLoading}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Configuration
-            </Button>
-          </div>
-        </div>
+      <div className="p-4 space-y-6">
 
         <Tabs defaultValue="configurations" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="configurations">Configurations</TabsTrigger>
-            <TabsTrigger value="status">Interface Status</TabsTrigger>
-            <TabsTrigger value="connectivity">Connectivity Test</TabsTrigger>
-            <TabsTrigger value="interfaces-file">Interfaces File</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 h-10">
+            <TabsTrigger value="configurations" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Configurations
+            </TabsTrigger>
+            <TabsTrigger value="status" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Interface Status
+            </TabsTrigger>
+            <TabsTrigger value="connectivity" className="flex items-center gap-2">
+              <TestTube className="w-4 h-4" />
+              Connectivity Test
+            </TabsTrigger>
+            <TabsTrigger value="interfaces-file" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Interfaces File
+            </TabsTrigger>
           </TabsList>
 
           {/* Configurations Tab */}
           <TabsContent value="configurations" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Network Configurations</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-blue-600" />
+                  Network Configurations
+                  {isLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+                </CardTitle>
                 <CardDescription>
                   Manage static IP configurations for network interfaces
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                    <span className="ml-2">Loading configurations...</span>
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+                    <span className="text-lg text-blue-500">Loading configurations...</span>
+                    <p className="text-sm text-muted-foreground mt-2">Please wait while we fetch network settings</p>
                   </div>
                 ) : configurations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Network className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">No network configurations found</p>
-                    <Button onClick={() => openEditDialog()} className="mt-4">
+                  <div className="text-center py-12">
+                    <div className="p-4 bg-slate-50 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                      <Network className="w-12 h-12 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No configurations found</h3>
+                    <p className="text-gray-500 mb-6">Start by creating your first network configuration</p>
+                    <Button onClick={() => openEditDialog()} className="h-11">
                       <Plus className="w-4 h-4 mr-2" />
                       Create First Configuration
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <div className="mb-4 space-y-2">
-                      <div className="flex gap-2 flex-wrap">
+                    <div className="mb-6">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                         <Button 
                           onClick={handleApplyConfigurations} 
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 h-10"
                           disabled={isLoading}
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          Apply to Interfaces File
+                          Apply Changes
                         </Button>
                         <Button 
                           onClick={parseInterfacesFile} 
                           variant="outline"
                           disabled={isLoading}
+                          className="h-10"
                         >
                           <Download className="w-4 h-4 mr-2" />
-                          Parse from Interfaces File
+                          Parse File
                         </Button>
                         <Button 
                           onClick={handleBackupConfiguration} 
                           variant="outline"
                           disabled={isLoading}
+                          className="h-10"
                         >
                           <Save className="w-4 h-4 mr-2" />
-                          Backup Configuration
+                          Backup
                         </Button>
                         <Button 
                           onClick={handleRestoreConfiguration} 
                           variant="outline"
                           disabled={isLoading}
-                          className="text-orange-600 hover:text-orange-700"
+                          className="text-orange-600 hover:text-orange-700 border-orange-200 hover:bg-orange-50 h-10"
                         >
                           <RefreshCw className="w-4 h-4 mr-2" />
-                          Restore Configuration
+                          Restore
                         </Button>
                         <Button 
                           onClick={handleClearAllStatic} 
                           variant="outline"
                           disabled={isLoading}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 h-10"
                         >
                           <Power className="w-4 h-4 mr-2" />
-                          Clear All Static
+                          Clear All
                         </Button>
                       </div>
                     </div>
                     
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Interface</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead>IP Address</TableHead>
-                          <TableHead>Subnet Mask</TableHead>
-                          <TableHead>Gateway</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {configurations.map((config) => (
-                          <TableRow key={config.id}>
-                            <TableCell className="font-medium">
-                              {config.interfaceType === 1 ? "ETH0" : config.interfaceType === 2 ? "ETH1" : `Interface ${config.interfaceType}`}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={config.configMethod === 2 ? "default" : "secondary"}>
-                                {config.configMethod === 1 ? "DHCP" : config.configMethod === 2 ? "Static" : `Method ${config.configMethod}`}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{config.ipAddress || "Auto"}</TableCell>
-                            <TableCell>{config.subnetMask || "Auto"}</TableCell>
-                            <TableCell>{config.gateway || "Auto"}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditDialog(config)}
-                                  disabled={isLoading}
-                                  title="Edit Configuration"
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </Button>
-                                {config.configMethod === 2 && (
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow>
+                            <TableHead className="font-semibold">Interface</TableHead>
+                            <TableHead className="font-semibold">Method</TableHead>
+                            <TableHead className="font-semibold">IP Address</TableHead>
+                            <TableHead className="font-semibold">Subnet Mask</TableHead>
+                            <TableHead className="font-semibold">Gateway</TableHead>
+                            <TableHead className="font-semibold">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {configurations.map((config, index) => (
+                            <TableRow key={config.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Network className="w-4 h-4 text-blue-600" />
+                                  <span className="font-medium">
+                                    {config.interfaceType === 1 ? "ETH0" : config.interfaceType === 2 ? "ETH1" : `Interface ${config.interfaceType}`}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={config.configMethod === 2 ? "default" : "secondary"} className="font-medium">
+                                  {config.configMethod === 1 ? "DHCP" : config.configMethod === 2 ? "Static" : `Method ${config.configMethod}`}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {config.ipAddress || <span className="text-muted-foreground">Auto</span>}
+                              </TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {config.subnetMask || <span className="text-muted-foreground">Auto</span>}
+                              </TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {config.gateway || <span className="text-muted-foreground">Auto</span>}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleRevertToDhcp(config.interfaceType)}
+                                    onClick={() => openEditDialog(config)}
                                     disabled={isLoading}
-                                    title="Revert to DHCP"
-                                    className="text-orange-600 hover:text-orange-700"
+                                    title="Edit Configuration"
+                                    className="h-8 w-8 p-0"
                                   >
-                                    <RefreshCw className="w-3 h-3" />
+                                    <Edit2 className="w-3 h-3" />
                                   </Button>
-                                )}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteConfiguration(config.id)}
-                                  disabled={isLoading}
-                                  title="Delete Configuration"
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                                  {config.configMethod === 2 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleRevertToDhcp(config.interfaceType)}
+                                      disabled={isLoading}
+                                      title="Revert to DHCP"
+                                      className="text-orange-600 hover:text-orange-700 border-orange-200 hover:bg-orange-50 h-8 w-8 p-0"
+                                    >
+                                      <RefreshCw className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeleteConfiguration(config.id)}
+                                    disabled={isLoading}
+                                    title="Delete Configuration"
+                                    className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </>
                 )}
               </CardContent>
@@ -762,27 +796,31 @@ export default function NetworkIPAddressPage() {
 
           {/* Interface Status Tab */}
           <TabsContent value="status" className="space-y-4">
-            <Card>
-              <CardHeader>
+            <Card className="border-2">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Interface Status</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-green-600" />
+                      Interface Status
+                    </CardTitle>
                     <CardDescription>
                       Real-time status of network interfaces
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={fetchNetworkStatus} variant="outline" disabled={isLoading}>
-                      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                    <Button onClick={fetchNetworkStatus} variant="outline" size="sm" disabled={isLoading}>
+                      <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
                       Refresh
                     </Button>
                     <Button 
                       onClick={handleRestartNetworking} 
                       variant="outline"
+                      size="sm"
                       disabled={isLoading}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
                     >
-                      <Power className="w-4 h-4 mr-2" />
+                      <Power className="w-4 h-4 mr-1" />
                       Restart Networking
                     </Button>
                   </div>
@@ -790,43 +828,59 @@ export default function NetworkIPAddressPage() {
               </CardHeader>
               <CardContent>
                 {networkStatus.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Activity className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">No interface status available</p>
-                    <Button onClick={fetchNetworkStatus} className="mt-4">
+                  <div className="text-center py-12">
+                    <div className="p-4 bg-slate-50 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                      <Activity className="w-12 h-12 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No interface status available</h3>
+                    <p className="text-gray-500 mb-6">Check network interfaces and refresh status</p>
+                    <Button onClick={fetchNetworkStatus} className="h-11">
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh Status
                     </Button>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Interface</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>IP Address</TableHead>
-                        <TableHead>MAC Address</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Last Updated</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {networkStatus.map((status, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{status.interfaceName}</TableCell>
-                          <TableCell>{getStatusBadge(status)}</TableCell>
-                          <TableCell>{status.currentIpAddress || "N/A"}</TableCell>
-                          <TableCell>{status.macAddress || "N/A"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {status.configMethod === 1 ? "DHCP" : status.configMethod === 2 ? "Static" : `Method ${status.configMethod}`}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{new Date(status.lastUpdated).toLocaleString()}</TableCell>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="font-semibold">Interface</TableHead>
+                          <TableHead className="font-semibold">Status</TableHead>
+                          <TableHead className="font-semibold">IP Address</TableHead>
+                          <TableHead className="font-semibold">MAC Address</TableHead>
+                          <TableHead className="font-semibold">Method</TableHead>
+                          <TableHead className="font-semibold">Last Updated</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {networkStatus.map((status, index) => (
+                          <TableRow key={index} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Network className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium">{status.interfaceName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(status)}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {status.currentIpAddress || <span className="text-muted-foreground">N/A</span>}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {status.macAddress || <span className="text-muted-foreground">N/A</span>}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-medium">
+                                {status.configMethod === 1 ? "DHCP" : status.configMethod === 2 ? "Static" : `Method ${status.configMethod}`}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {new Date(status.lastUpdated).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -834,85 +888,159 @@ export default function NetworkIPAddressPage() {
 
           {/* Connectivity Test Tab */}
           <TabsContent value="connectivity" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Connectivity Test</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <TestTube className="w-5 h-5 text-purple-600" />
+                  Connectivity Test
+                </CardTitle>
                 <CardDescription>
-                  Test network connectivity to specific IP addresses
+                  Test network connectivity to specific IP addresses using ping
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="testIp">IP Address to Test</Label>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-3 space-y-2">
+                    <Label htmlFor="testIp" className="text-sm font-semibold">IP Address to Test</Label>
                     <Input
                       id="testIp"
                       placeholder="192.168.1.1"
                       value={testIpAddress}
                       onChange={(e) => setTestIpAddress(e.target.value)}
-                      className={testIpAddress && !isValidIP(testIpAddress) ? "border-red-500" : ""}
+                      className={`h-11 ${testIpAddress && !isValidIP(testIpAddress) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                     />
                     {testIpAddress && !isValidIP(testIpAddress) && (
-                      <p className="text-xs text-red-500 mt-1">Invalid IP address format</p>
+                      <p className="text-xs text-red-500 mt-1">Invalid IP address format (e.g., 192.168.1.1)</p>
                     )}
                   </div>
                   <div className="flex items-end">
                     <Button 
                       onClick={handleTestConnectivity} 
-                      disabled={isLoading || !testIpAddress}
+                      disabled={isLoading || !testIpAddress || !isValidIP(testIpAddress)}
+                      className="w-full h-11"
                     >
-                      <TestTube className="w-4 h-4 mr-2" />
-                      Test Connectivity
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <TestTube className="w-4 h-4 mr-2" />
+                          Test Connectivity
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
 
                 {connectivityResult && (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>{connectivityResult.ipAddress}</strong> is{" "}
-                      <span className={connectivityResult.isReachable ? "text-green-600" : "text-red-600"}>
-                        {connectivityResult.isReachable ? "reachable" : "not reachable"}
-                      </span>
-                    </AlertDescription>
+                  <Alert className={`border-2 ${connectivityResult.isReachable ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                    <div className="flex items-center gap-2">
+                      {connectivityResult.isReachable ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <AlertDescription className="font-medium">
+                        <strong className="font-mono">{connectivityResult.ipAddress}</strong> is{" "}
+                        <span className={`font-semibold ${connectivityResult.isReachable ? "text-green-600" : "text-red-600"}`}>
+                          {connectivityResult.isReachable ? "reachable" : "not reachable"}
+                        </span>
+                      </AlertDescription>
+                    </div>
                   </Alert>
                 )}
+
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800 mb-1">Connectivity Test Information</p>
+                      <ul className="text-blue-700 space-y-1 text-xs">
+                        <li>• This test uses ICMP ping to check if the target IP is reachable</li>
+                        <li>• Some devices may block ping requests while still being accessible</li>
+                        <li>• Test results depend on network configuration and firewall settings</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Interfaces File Tab */}
           <TabsContent value="interfaces-file" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Network Interfaces File</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-orange-600" />
+                  Network Interfaces File
+                </CardTitle>
                 <CardDescription>
                   View and manage /etc/network/interfaces file content
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Button onClick={fetchInterfacesFile} variant="outline">
-                    <RefreshCw className="w-4 h-4 mr-2" />
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Button 
+                    onClick={fetchInterfacesFile} 
+                    variant="outline" 
+                    disabled={isLoading}
+                    className="h-10"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
                     Refresh File Content
                   </Button>
-                  <Button onClick={parseInterfacesFile} variant="outline">
+                  <Button 
+                    onClick={parseInterfacesFile} 
+                    variant="outline"
+                    disabled={isLoading}
+                    className="h-10"
+                  >
                     <FileText className="w-4 h-4 mr-2" />
                     Parse to Configurations
                   </Button>
                 </div>
                 
-                <div>
-                  <Label htmlFor="interfacesContent">File Content</Label>
-                  <Textarea
-                    id="interfacesContent"
-                    value={interfacesFileContent}
-                    readOnly
-                    rows={15}
-                    className="font-mono text-sm"
-                    placeholder="No interfaces file content available"
-                  />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="interfacesContent" className="text-sm font-semibold">
+                      File Content (/etc/network/interfaces)
+                    </Label>
+                    <div className="text-xs text-muted-foreground">
+                      Read-only view
+                    </div>
+                  </div>
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-1">
+                    <Textarea
+                      id="interfacesContent"
+                      value={interfacesFileContent}
+                      readOnly
+                      rows={15}
+                      className="font-mono text-sm border-0 resize-none focus-visible:ring-0 bg-slate-50"
+                      placeholder="No interfaces file content available. Click 'Refresh File Content' to load..."
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-orange-800 mb-1">Interfaces File Information</p>
+                      <ul className="text-orange-700 space-y-1 text-xs">
+                        <li>• This displays the current content of /etc/network/interfaces</li>
+                        <li>• Use "Parse to Configurations" to load settings from this file</li>
+                        <li>• Changes made in the UI will be applied to this file when you click "Apply Changes"</li>
+                        <li>• Always backup before making changes to network configuration</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -921,49 +1049,79 @@ export default function NetworkIPAddressPage() {
 
         {/* Configuration Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedConfig ? 'Edit Network Configuration' : 'Create Network Configuration'}
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="flex items-center gap-2">
+                {selectedConfig ? (
+                  <>
+                    <Edit2 className="w-5 h-5 text-blue-600" />
+                    Edit Network Configuration
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 text-green-600" />
+                    Create Network Configuration
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription>
-                Configure network interface settings for static IP or DHCP
+                Configure network interface settings for static IP or DHCP. Make sure to apply changes after saving.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="interfaceType">Interface Type</Label>
+                  <Label htmlFor="interfaceType" className="text-sm font-semibold">Interface Type</Label>
                   <Select
                     value={editConfig.interfaceType === 1 ? "ETH0" : "ETH1"}
                     onValueChange={(value) => 
                       handleInputChange("interfaceType", value === "ETH0" ? 1 : 2)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select interface" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ETH0">ETH0</SelectItem>
-                      <SelectItem value="ETH1">ETH1</SelectItem>
+                      <SelectItem value="ETH0">
+                        <div className="flex items-center gap-2">
+                          <Network className="w-4 h-4" />
+                          ETH0 (Primary Interface)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="ETH1">
+                        <div className="flex items-center gap-2">
+                          <Network className="w-4 h-4" />
+                          ETH1 (Secondary Interface)
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="configMethod">Configuration Method</Label>
+                  <Label htmlFor="configMethod" className="text-sm font-semibold">Configuration Method</Label>
                   <Select
                     value={editConfig.configMethod === 1 ? "DHCP" : "Static"}
                     onValueChange={(value) => 
                       handleInputChange("configMethod", value === "DHCP" ? 1 : 2)
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DHCP">DHCP</SelectItem>
-                      <SelectItem value="Static">Static</SelectItem>
+                      <SelectItem value="DHCP">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-4 h-4" />
+                          DHCP (Automatic)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Static">
+                        <div className="flex items-center gap-2">
+                          <Settings className="w-4 h-4" />
+                          Static (Manual)
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -971,85 +1129,97 @@ export default function NetworkIPAddressPage() {
 
               {editConfig.configMethod === 2 && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Settings className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Static IP Configuration</span>
+                    </div>
+                    <p className="text-xs text-blue-700">
+                      Configure manual network settings. All required fields must be valid IP addresses.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="ipAddress">IP Address</Label>
+                      <Label htmlFor="ipAddress" className="text-sm font-semibold">IP Address *</Label>
                       <Input
                         id="ipAddress"
                         placeholder="192.168.1.100"
                         value={editConfig.ipAddress}
                         onChange={(e) => handleInputChange("ipAddress", e.target.value)}
-                        className={editConfig.ipAddress && !isValidIP(editConfig.ipAddress) ? "border-red-500" : ""}
+                        className={`h-11 font-mono ${editConfig.ipAddress && !isValidIP(editConfig.ipAddress) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       />
                       {editConfig.ipAddress && !isValidIP(editConfig.ipAddress) && (
-                        <p className="text-xs text-red-500">Invalid IP address format</p>
+                        <p className="text-xs text-red-500">Invalid IP address format (e.g., 192.168.1.100)</p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="subnetMask">Subnet Mask</Label>
+                      <Label htmlFor="subnetMask" className="text-sm font-semibold">Subnet Mask *</Label>
                       <Input
                         id="subnetMask"
                         placeholder="255.255.255.0"
                         value={editConfig.subnetMask}
                         onChange={(e) => handleInputChange("subnetMask", e.target.value)}
-                        className={editConfig.subnetMask && !isValidNetmask(editConfig.subnetMask) ? "border-red-500" : ""}
+                        className={`h-11 font-mono ${editConfig.subnetMask && !isValidNetmask(editConfig.subnetMask) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       />
                       {editConfig.subnetMask && !isValidNetmask(editConfig.subnetMask) && (
-                        <p className="text-xs text-red-500">Invalid subnet mask format</p>
+                        <p className="text-xs text-red-500">Invalid subnet mask format (e.g., 255.255.255.0)</p>
                       )}
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="gateway">Gateway</Label>
+                      <Label htmlFor="gateway" className="text-sm font-semibold">Gateway *</Label>
                       <Input
                         id="gateway"
                         placeholder="192.168.1.1"
                         value={editConfig.gateway}
                         onChange={(e) => handleInputChange("gateway", e.target.value)}
-                        className={editConfig.gateway && !isValidIP(editConfig.gateway) ? "border-red-500" : ""}
+                        className={`h-11 font-mono ${editConfig.gateway && !isValidIP(editConfig.gateway) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       />
                       {editConfig.gateway && !isValidIP(editConfig.gateway) && (
-                        <p className="text-xs text-red-500">Invalid gateway IP address</p>
+                        <p className="text-xs text-red-500">Invalid gateway IP address (e.g., 192.168.1.1)</p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="metric">Metric (Optional)</Label>
+                      <Label htmlFor="metric" className="text-sm font-semibold">Metric <span className="text-muted-foreground">(Optional)</span></Label>
                       <Input
                         id="metric"
                         placeholder="100"
                         value={editConfig.metric}
                         onChange={(e) => handleInputChange("metric", e.target.value)}
+                        className="h-11"
                       />
+                      <p className="text-xs text-muted-foreground">Network route metric (default: auto)</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="primaryDns">Primary DNS (Optional)</Label>
+                      <Label htmlFor="primaryDns" className="text-sm font-semibold">Primary DNS <span className="text-muted-foreground">(Optional)</span></Label>
                       <Input
                         id="primaryDns"
                         placeholder="8.8.8.8"
                         value={editConfig.primaryDns}
                         onChange={(e) => handleInputChange("primaryDns", e.target.value)}
-                        className={editConfig.primaryDns && !isValidIP(editConfig.primaryDns) ? "border-red-500" : ""}
+                        className={`h-11 font-mono ${editConfig.primaryDns && !isValidIP(editConfig.primaryDns) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       />
                       {editConfig.primaryDns && !isValidIP(editConfig.primaryDns) && (
-                        <p className="text-xs text-red-500">Invalid DNS IP address</p>
+                        <p className="text-xs text-red-500">Invalid DNS IP address (e.g., 8.8.8.8)</p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="secondaryDns">Secondary DNS (Optional)</Label>
+                      <Label htmlFor="secondaryDns" className="text-sm font-semibold">Secondary DNS <span className="text-muted-foreground">(Optional)</span></Label>
                       <Input
                         id="secondaryDns"
                         placeholder="8.8.4.4"
                         value={editConfig.secondaryDns}
                         onChange={(e) => handleInputChange("secondaryDns", e.target.value)}
-                        className={editConfig.secondaryDns && !isValidIP(editConfig.secondaryDns) ? "border-red-500" : ""}
+                        className={`h-11 font-mono ${editConfig.secondaryDns && !isValidIP(editConfig.secondaryDns) ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       />
                       {editConfig.secondaryDns && !isValidIP(editConfig.secondaryDns) && (
-                        <p className="text-xs text-red-500">Invalid DNS IP address</p>
+                        <p className="text-xs text-red-500">Invalid DNS IP address (e.g., 8.8.4.4)</p>
                       )}
                     </div>
                   </div>
@@ -1057,11 +1227,13 @@ export default function NetworkIPAddressPage() {
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-3 pt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
+                className="h-11"
+                disabled={isLoading}
               >
                 Cancel
               </Button>
@@ -1069,9 +1241,28 @@ export default function NetworkIPAddressPage() {
                 type="button"
                 onClick={handleSaveConfiguration}
                 disabled={isLoading}
+                className="h-11 min-w-[150px]"
               >
-                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {selectedConfig ? 'Update Configuration' : 'Create Configuration'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    {selectedConfig ? (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Update Configuration
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Configuration
+                      </>
+                    )}
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

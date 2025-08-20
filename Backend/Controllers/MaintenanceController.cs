@@ -5,6 +5,8 @@ using Backend.Services;
 using Backend.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Backend.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers
 {
@@ -14,10 +16,12 @@ namespace Backend.Controllers
     public class MaintenanceController : ControllerBase
     {
         private readonly IMaintenanceService _maintenanceService;
+        private readonly AppDbContext _context;
 
-        public MaintenanceController(IMaintenanceService maintenanceService)
+        public MaintenanceController(IMaintenanceService maintenanceService, AppDbContext context)
         {
             _maintenanceService = maintenanceService;
+            _context = context;
         }
 
         [HttpGet]
@@ -51,6 +55,21 @@ namespace Backend.Controllers
             }
 
             var maintenances = await _maintenanceService.GetMaintenancesByAssigneeAsync(userId);
+            return Ok(maintenances);
+        }
+
+        [HttpGet("calendar")]
+        public async Task<ActionResult<IEnumerable<Maintenance>>> GetMaintenancesForCalendar()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                return Unauthorized();
+            }
+
+            // Check if user is admin by checking role level
+            var isAdmin = await IsUserAdminAsync(userId);
+            var maintenances = await _maintenanceService.GetMaintenancesForCalendarAsync(userId, isAdmin);
             return Ok(maintenances);
         }
 
@@ -187,6 +206,22 @@ namespace Backend.Controllers
                 return userId;
             }
             return 0;
+        }
+
+        private async Task<bool> IsUserAdminAsync(int userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.DatabaseRole)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user?.DatabaseRole != null)
+            {
+                // Admin level is typically 2 or higher (based on Role.Level)
+                return user.DatabaseRole.Level >= 2;
+            }
+
+            // Fallback to legacy enum role
+            return user?.Role == UserRole.Admin || user?.Role == UserRole.Developer;
         }
     }
 

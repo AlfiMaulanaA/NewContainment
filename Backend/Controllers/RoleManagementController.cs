@@ -141,7 +141,7 @@ namespace Backend.Controllers
             try
             {
                 var user = await _context.Users
-                    .Include(u => u.DatabaseRole)
+                    .Include(u => u.DatabaseRole!)
                         .ThenInclude(r => r.RolePermissions)
                             .ThenInclude(rp => rp.Permission)
                     .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);

@@ -23,10 +23,6 @@ Networks
 
 6283116297507
 
-Fungsi dan fitur untuk UI berdasarkan data containment dari data containment dengan id 1, jika containment data id 1 maka pada halaman control/containment/page.tsx maka Hide menu control ceiling selenoid
-
-analisa component containment-card-rack-tabs.tsx modifikasi UI untuk fungsi menampilkan data device sensor, perbaiki agar lebih simpen dan baik untuk tampilannya dan gunakan ICON dan pemilihan warna yang baik.
 
 Remember me, reset password
 
-fitur untuk filter maintanance kalender berdasarkan user yg login, atau berdasarkan atasiknta sendiri

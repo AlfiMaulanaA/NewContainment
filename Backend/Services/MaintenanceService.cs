@@ -64,6 +64,28 @@ namespace Backend.Services
             return maintenances;
         }
 
+        public async Task<IEnumerable<Maintenance>> GetMaintenancesForCalendarAsync(int currentUserId, bool isAdmin)
+        {
+            IQueryable<Maintenance> query = _context.Maintenances
+                .Include(m => m.AssignedToUser)
+                .Include(m => m.CreatedByUser)
+                .Include(m => m.UpdatedByUser)
+                .Where(m => m.IsActive);
+
+            // If user is not admin, only show maintenance tasks assigned to them
+            if (!isAdmin)
+            {
+                query = query.Where(m => m.AssignTo == currentUserId);
+            }
+
+            var maintenances = await query
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+            await PopulateTargetNavigationPropertiesAsync(maintenances);
+            return maintenances;
+        }
+
         public async Task<Maintenance?> GetMaintenanceByIdAsync(int id)
         {
             var maintenance = await _context.Maintenances

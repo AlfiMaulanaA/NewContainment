@@ -179,7 +179,7 @@ namespace Backend.Services
             return topics.Where(t => !string.IsNullOrEmpty(t)).Distinct().ToList();
         }
 
-        private async Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs e)
+        private Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs e)
         {
             try
             {
@@ -193,7 +193,7 @@ namespace Backend.Services
                 if (deviceId == null)
                 {
                     _logger.LogWarning("Could not extract device ID from topic: {Topic}", topic);
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 // Store sensor data
@@ -207,6 +207,8 @@ namespace Backend.Services
             {
                 _logger.LogError(ex, "Error processing MQTT message from topic: {Topic}", e.ApplicationMessage.Topic);
             }
+            
+            return Task.CompletedTask;
         }
 
         private int? ExtractDeviceIdFromTopic(string topic)

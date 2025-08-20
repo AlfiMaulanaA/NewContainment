@@ -60,11 +60,13 @@ const TARGET_TYPES = [
 export default function MaintenancePage() {
   const permissions = usePermissions();
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
+  const [calendarMaintenances, setCalendarMaintenances] = useState<Maintenance[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
   const [containments, setContainments] = useState<Containment[]>([]);
   const [racks, setRacks] = useState<Rack[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
+  const [calendarLoading, setCalendarLoading] = useState(false);
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -121,6 +123,21 @@ export default function MaintenancePage() {
       toast.error("Failed to load data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCalendarData = async () => {
+    try {
+      const response = await maintenanceApi.getMaintenancesForCalendar();
+      if (response.success) {
+        return response.data || [];
+      } else {
+        toast.error("Failed to load calendar data");
+        return [];
+      }
+    } catch (error) {
+      toast.error("Failed to load calendar data");
+      return [];
     }
   };
 
@@ -189,6 +206,11 @@ export default function MaintenancePage() {
       setIsCreateDialogOpen(false);
       resetForm();
       loadData();
+      // Refresh calendar data if we're on calendar tab
+      if (activeTab === "calendar") {
+        const calendarData = await loadCalendarData();
+        setCalendarMaintenances(calendarData);
+      }
     } else {
       toast.error(response.message || "Failed to create maintenance");
     }
@@ -210,6 +232,11 @@ export default function MaintenancePage() {
       setIsEditDialogOpen(false);
       resetForm();
       loadData();
+      // Refresh calendar data if we're on calendar tab
+      if (activeTab === "calendar") {
+        const calendarData = await loadCalendarData();
+        setCalendarMaintenances(calendarData);
+      }
     } else {
       toast.error(response.message || "Failed to update maintenance");
     }
@@ -221,6 +248,11 @@ export default function MaintenancePage() {
     if (response.success) {
       toast.success("Status updated successfully");
       loadData();
+      // Refresh calendar data if we're on calendar tab
+      if (activeTab === "calendar") {
+        const calendarData = await loadCalendarData();
+        setCalendarMaintenances(calendarData);
+      }
     } else {
       toast.error(response.message || "Failed to update status");
     }
@@ -231,6 +263,11 @@ export default function MaintenancePage() {
     if (response.success) {
       toast.success("Maintenance deleted successfully");
       loadData();
+      // Refresh calendar data if we're on calendar tab
+      if (activeTab === "calendar") {
+        const calendarData = await loadCalendarData();
+        setCalendarMaintenances(calendarData);
+      }
     } else {
       toast.error(response.message || "Failed to delete maintenance");
     }
@@ -300,6 +337,17 @@ export default function MaintenancePage() {
     }
   };
 
+  // Handle tab changes with calendar data loading
+  const handleTabChange = async (value: string) => {
+    setActiveTab(value);
+    if (value === "calendar" && calendarMaintenances.length === 0) {
+      setCalendarLoading(true);
+      const calendarData = await loadCalendarData();
+      setCalendarMaintenances(calendarData);
+      setCalendarLoading(false);
+    }
+  };
+
   // Calendar helper functions
   const generateCalendarDays = () => {
     const monthStart = startOfMonth(currentMonth);
@@ -319,7 +367,9 @@ export default function MaintenancePage() {
   };
 
   const getMaintenancesForDate = (date: Date) => {
-    return filteredMaintenances.filter(maintenance => {
+    // For calendar view, use calendar-specific data that respects role-based filtering
+    const dataToUse = activeTab === "calendar" ? calendarMaintenances : filteredMaintenances;
+    return dataToUse.filter(maintenance => {
       const startDate = new Date(maintenance.startTask);
       const endDate = new Date(maintenance.endTask);
       return (isSameDay(date, startDate) || isSameDay(date, endDate) || 
@@ -555,7 +605,7 @@ export default function MaintenancePage() {
       </header>
 
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList>
             <TabsTrigger value="all">All Maintenance</TabsTrigger>
             <TabsTrigger value="my-tasks">My Tasks</TabsTrigger>
@@ -834,13 +884,25 @@ export default function MaintenancePage() {
           </TabsContent>
 
           <TabsContent value="calendar" className="space-y-4">
+            {calendarLoading ? (
+              <Card>
+                <CardContent className="p-8">
+                  <div className="flex items-center justify-center">
+                    <RefreshCw className="h-8 w-8 animate-spin" />
+                    <span className="ml-2">Loading calendar data...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Maintenance Calendar</CardTitle>
                     <CardDescription>
-                      View maintenance tasks in calendar format
+                      {currentUser?.role === 'Admin' || currentUser?.role === 'Developer' || (currentUser?.roleLevel && currentUser.roleLevel >= 2) 
+                        ? 'View all maintenance tasks in calendar format' 
+                        : 'View your assigned maintenance tasks in calendar format'}
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -986,6 +1048,7 @@ export default function MaintenancePage() {
                 )}
               </CardContent>
             </Card>
+            )}
           </TabsContent>
         </Tabs>
 

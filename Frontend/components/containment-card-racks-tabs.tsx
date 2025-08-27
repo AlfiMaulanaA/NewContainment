@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Shield,
   Cpu,
+  CircleCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -480,22 +481,38 @@ export default function RackManagementPage({
   const getStatusIcon = (status: string, size: "sm" | "md" | "lg" = "sm") => {
     const iconSizes = {
       sm: "h-3.5 w-3.5",
-      md: "h-4 w-4", 
-      lg: "h-5 w-5"
+      md: "h-4 w-4",
+      lg: "h-5 w-5",
     };
     const iconClass = iconSizes[size];
-    
+
     switch (status) {
       case "normal":
-        return <CheckCircle className={`${iconClass} text-emerald-600 drop-shadow-sm`} />;
+        return (
+          <CheckCircle
+            className={`${iconClass} text-emerald-600 drop-shadow-sm`}
+          />
+        );
       case "warning":
-        return <AlertTriangle className={`${iconClass} text-amber-600 drop-shadow-sm`} />;
+        return (
+          <AlertTriangle
+            className={`${iconClass} text-amber-600 drop-shadow-sm`}
+          />
+        );
       case "critical":
-        return <AlertTriangle className={`${iconClass} text-red-600 drop-shadow-sm animate-pulse`} />;
+        return (
+          <AlertTriangle
+            className={`${iconClass} text-red-600 drop-shadow-sm animate-pulse`}
+          />
+        );
       case "offline":
-        return <WifiOff className={`${iconClass} text-slate-500 drop-shadow-sm`} />;
+        return (
+          <WifiOff className={`${iconClass} text-slate-500 drop-shadow-sm`} />
+        );
       default:
-        return <Clock className={`${iconClass} text-slate-400 drop-shadow-sm`} />;
+        return (
+          <Clock className={`${iconClass} text-slate-400 drop-shadow-sm`} />
+        );
     }
   };
 
@@ -601,20 +618,22 @@ export default function RackManagementPage({
                             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-200/30">
                               <Server className="h-4 w-4 text-blue-600" />
                             </div>
-                            <span className="font-bold text-gray-900">{rack.name}</span>
+                            <span className="font-bold text-gray-900">
+                              {rack.name}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge
                               variant={rack.isActive ? "default" : "secondary"}
                               className={`text-xs font-semibold px-3 py-1 rounded-full shadow-sm ${
-                                rack.isActive 
-                                  ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white border-emerald-400" 
+                                rack.isActive
+                                  ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white border-emerald-400"
                                   : "bg-gradient-to-r from-gray-400 to-slate-500 text-white"
                               }`}
                             >
                               {rack.isActive ? (
                                 <>
-                                  <Shield className="h-3 w-3 mr-1" />
+                                  <CircleCheck className="h-3 w-3 mr-1" />
                                   Active
                                 </>
                               ) : (
@@ -654,8 +673,13 @@ export default function RackManagementPage({
                                       )} ${visual?.glowColor || ""}`}
                                     >
                                       {/* Modern gradient background overlay */}
-                                      <div className={`absolute inset-0 opacity-5 bg-gradient-to-br ${visual?.gradient || "from-gray-500 to-gray-600"}`} />
-                                      
+                                      <div
+                                        className={`absolute inset-0 opacity-5 bg-gradient-to-br ${
+                                          visual?.gradient ||
+                                          "from-gray-500 to-gray-600"
+                                        }`}
+                                      />
+
                                       {/* Status indicator pulse */}
                                       {formattedData.status === "critical" && (
                                         <div className="absolute top-2 right-2">
@@ -668,7 +692,13 @@ export default function RackManagementPage({
                                         <div className="flex items-center justify-between mb-3">
                                           <div className="flex items-center gap-2">
                                             {IconComponent && (
-                                              <div className={`relative p-2 rounded-xl shadow-lg ${visual?.bgColor} ${visual?.borderColor || ""} border`}>
+                                              <div
+                                                className={`relative p-2 rounded-xl shadow-lg ${
+                                                  visual?.bgColor
+                                                } ${
+                                                  visual?.borderColor || ""
+                                                } border`}
+                                              >
                                                 <IconComponent
                                                   className={`h-4 w-4 ${visual?.color} drop-shadow-sm`}
                                                 />
@@ -676,26 +706,44 @@ export default function RackManagementPage({
                                             )}
                                             <div className="flex flex-col">
                                               <span className="font-bold text-xs tracking-wide text-gray-900 uppercase">
-                                                {visual?.shortName || visual?.name || device.name}
+                                                {visual?.shortName ||
+                                                  visual?.name ||
+                                                  device.name}
                                               </span>
                                               <span className="text-[10px] text-gray-600 font-medium">
-                                                {device.name.length > 15 ? device.name.substring(0, 15) + "..." : device.name}
+                                                {device.name.length > 15
+                                                  ? device.name.substring(
+                                                      0,
+                                                      15
+                                                    ) + "..."
+                                                  : device.name}
                                               </span>
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-1">
-                                            {getStatusIcon(formattedData.status, "md")}
+                                          <div className="flex items-center gap-2">
+                                            {formattedData.timestamp &&
+                                              formattedData.timestamp !==
+                                                "N/A" && (
+                                                <div className="flex items-center justify-center gap-1 text-[10px] text-gray-600 bg-white/40 rounded-full px-3 py-1 backdrop-blur-sm border border-white/30">
+                                                  <Clock className="h-2.5 w-2.5 text-gray-500" />
+                                                  <span className="font-medium">
+                                                    {formattedData.timestamp}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            {getStatusIcon(
+                                              formattedData.status,
+                                              "md"
+                                            )}
                                           </div>
                                         </div>
-
-                                        {/* Primary value display with enhanced styling */}
+                                        {/*                                         
                                         <div className="text-center mb-3">
                                           <div className="text-2xl font-black text-gray-900 leading-none tracking-tight mb-1">
                                             {formattedData.display}
                                           </div>
                                           <div className="h-0.5 w-12 bg-gradient-to-r from-transparent via-gray-400 to-transparent mx-auto opacity-30"></div>
-                                        </div>
-
+                                        </div> */}
                                         {/* Enhanced metrics grid with glassmorphism */}
                                         {formattedData.values.length > 1 && (
                                           <div className="grid grid-cols-2 gap-1.5 mb-3">
@@ -704,7 +752,9 @@ export default function RackManagementPage({
                                               .map((value, idx) => (
                                                 <div
                                                   key={idx}
-                                                  className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center backdrop-blur-sm border shadow-sm ${getStatusColor(value.status)} transition-all duration-300 hover:shadow-md`}
+                                                  className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center backdrop-blur-sm border shadow-sm ${getStatusColor(
+                                                    value.status
+                                                  )} transition-all duration-300 hover:shadow-md`}
                                                 >
                                                   <div className="text-xs font-bold text-gray-900">
                                                     {value.value}
@@ -716,17 +766,7 @@ export default function RackManagementPage({
                                               ))}
                                           </div>
                                         )}
-
                                         {/* Elegant timestamp with better spacing */}
-                                        {formattedData.timestamp &&
-                                          formattedData.timestamp !== "N/A" && (
-                                            <div className="flex items-center justify-center gap-1 text-[10px] text-gray-600 bg-white/40 rounded-full px-3 py-1 backdrop-blur-sm border border-white/30">
-                                              <Clock className="h-2.5 w-2.5 text-gray-500" />
-                                              <span className="font-medium">
-                                                {formattedData.timestamp}
-                                              </span>
-                                            </div>
-                                          )}
                                       </div>
                                     </div>
                                   );
@@ -774,7 +814,6 @@ export default function RackManagementPage({
                             >
                               <HardDrive className="h-3.5 w-3.5 mr-2 group-hover:scale-110 transition-transform duration-300" />
                               <span>{deviceCounts[rack.id] || 0} Devices</span>
-                              <Zap className="h-2.5 w-2.5 ml-2 opacity-60" />
                             </Button>
                             {(deviceCounts[rack.id] || 0) > 0 && (
                               <Button

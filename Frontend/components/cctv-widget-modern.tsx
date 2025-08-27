@@ -15,6 +15,7 @@ import {
   Circle,
   Expand,
   X,
+  VideoOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -178,12 +179,12 @@ const ModernVideoPlayer = ({
           </Badge>
         </div>
 
-        <Camera className="h-12 w-12 text-gray-500 mb-2" />
+        <VideoOff className="h-12 w-12 text-gray-500 mb-2" />
         <p className="text-sm text-gray-400 text-center mb-3">{error}</p>
         <Button
           onClick={restartStream}
           size="sm"
-          variant="outline"
+          variant="destructive"
           className="text-gray-300 border-gray-600"
         >
           <RotateCcw className="h-4 w-4 mr-1" />
@@ -363,7 +364,9 @@ interface ModernCCTVWidgetProps {
   layout?: "1x1" | "2x2" | "3x3" | "4x2" | "auto";
 }
 
-export default function ModernCCTVWidget({ layout = "auto" }: ModernCCTVWidgetProps = {}) {
+export default function ModernCCTVWidget({
+  layout = "auto",
+}: ModernCCTVWidgetProps = {}) {
   const [monitorData, setMonitorData] = useState<MonitorData[]>([]);
   const [loading, setLoading] = useState(true);
   const [fullscreenStream, setFullscreenStream] = useState<StreamItem | null>(
@@ -445,11 +448,16 @@ export default function ModernCCTVWidget({ layout = "auto" }: ModernCCTVWidgetPr
 
   const getLoadingItemCount = () => {
     switch (layout) {
-      case "1x1": return 1;
-      case "2x2": return 2;
-      case "3x3": return 3;
-      case "4x2": return 4;
-      default: return 3;
+      case "1x1":
+        return 1;
+      case "2x2":
+        return 2;
+      case "3x3":
+        return 3;
+      case "4x2":
+        return 4;
+      default:
+        return 3;
     }
   };
 
@@ -610,18 +618,19 @@ export default function ModernCCTVWidget({ layout = "auto" }: ModernCCTVWidgetPr
   }
 
   const renderCCTVCards = () => {
-    const streamsToShow = layout === "1x1" ? allStreams.slice(0, 1) : 
-                         layout === "2x2" ? allStreams.slice(0, 2) :
-                         layout === "3x3" ? allStreams.slice(0, 3) :
-                         layout === "4x2" ? allStreams.slice(0, 4) :
-                         allStreams;
+    const streamsToShow =
+      layout === "1x1"
+        ? allStreams.slice(0, 1)
+        : layout === "2x2"
+        ? allStreams.slice(0, 2)
+        : layout === "3x3"
+        ? allStreams.slice(0, 3)
+        : layout === "4x2"
+        ? allStreams.slice(0, 4)
+        : allStreams;
 
     return streamsToShow.map((streamItem, index) => (
-      <CCTVCard
-        key={index}
-        streamItem={streamItem}
-        onExpand={handleExpand}
-      />
+      <CCTVCard key={index} streamItem={streamItem} onExpand={handleExpand} />
     ));
   };
 

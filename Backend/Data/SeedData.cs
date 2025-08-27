@@ -256,14 +256,14 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
         // ------------------------------------------------------------------
         new Device
         {
-            Name = "Air Flow Sensor 01",
+            Name = "Temperature & Humidity Sensor 03",
             Type = "Sensor",
-            RackId = racks[2].Id, // Contoh: Rack A-03
-            Description = "Monitors air flow speed and pressure inside the containment aisle.",
-            SerialNumber = "SENS-AF-001",
+            RackId = racks[2].Id, // Contoh: Rack A-02
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-003",
             Status = "Active",
-            Topic = "IOT/Containment/Sensor/AirFlow_01",
-            SensorType = "Air Flow",
+            Topic = "IOT/Containment/Sensor/Temperature_03",
+            SensorType = "Temperature",
             CreatedBy = adminUser.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -271,14 +271,14 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
         },
         new Device
         {
-            Name = "Air Flow Sensor 02",
+            Name = "Temperature & Humidity Sensor 04",
             Type = "Sensor",
-            RackId = racks[3].Id, // Contoh: Rack B-01
-            Description = "Monitors air flow speed and pressure inside the containment aisle.",
-            SerialNumber = "SENS-AF-002",
+            RackId = racks[3].Id, // Contoh: Rack A-02
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-004",
             Status = "Active",
-            Topic = "IOT/Containment/Sensor/AirFlow_02",
-            SensorType = "Air Flow",
+            Topic = "IOT/Containment/Sensor/Temperature_04",
+            SensorType = "Temperature",
             CreatedBy = adminUser.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -290,14 +290,14 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
         // ------------------------------------------------------------------
         new Device
         {
-            Name = "Dust Sensor 01",
+            Name = "Temperature & Humidity Sensor 05",
             Type = "Sensor",
-            RackId = racks[0].Id, // Contoh: Rack A-01
-            Description = "Measures dust particle levels (PM2.5, PM10) in the air.",
-            SerialNumber = "SENS-DS-001",
+            RackId = racks[0].Id, // Contoh: Rack A-02
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-005",
             Status = "Active",
-            Topic = "IOT/Containment/Sensor/Dust_01",
-            SensorType = "Dust Sensor",
+            Topic = "IOT/Containment/Sensor/Temperature_05",
+            SensorType = "Temperature",
             CreatedBy = adminUser.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -305,14 +305,14 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
         },
         new Device
         {
-            Name = "Dust Sensor 02",
+            Name = "Temperature & Humidity Sensor 06",
             Type = "Sensor",
             RackId = racks[1].Id, // Contoh: Rack A-02
-            Description = "Measures dust particle levels (PM2.5, PM10) in the air.",
-            SerialNumber = "SENS-DS-002",
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-006",
             Status = "Active",
-            Topic = "IOT/Containment/Sensor/Dust_02",
-            SensorType = "Dust Sensor",
+            Topic = "IOT/Containment/Sensor/Temperature_06",
+            SensorType = "Temperature",
             CreatedBy = adminUser.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -324,14 +324,14 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
         // ------------------------------------------------------------------
         new Device
         {
-            Name = "Vibration Sensor 01",
+            Name = "Temperature & Humidity Sensor 07",
             Type = "Sensor",
-            RackId = racks[2].Id, // Contoh: Rack A-03
-            Description = "Detects vibrations to monitor rack stability and potential issues.",
-            SerialNumber = "SENS-VB-001",
+            RackId = racks[2].Id, // Contoh: Rack A-02
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-007",
             Status = "Active",
-            Topic = "IOT/Containment/Sensor/Vibration_01",
-            SensorType = "Vibration",
+            Topic = "IOT/Containment/Sensor/Temperature_07",
+            SensorType = "Temperature",
             CreatedBy = adminUser.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -339,14 +339,14 @@ private static async Task SeedDevicesAsync(AppDbContext context, List<Rack> rack
         },
         new Device
         {
-            Name = "Vibration Sensor 02",
+            Name = "Temperature & Humidity Sensor 08",
             Type = "Sensor",
-            RackId = racks[3].Id, // Contoh: Rack B-01
-            Description = "Detects vibrations to monitor rack stability and potential issues.",
-            SerialNumber = "SENS-VB-002",
+            RackId = racks[3].Id, // Contoh: Rack A-02
+            Description = "Sensing temperature and humidity in a data center environment.",
+            SerialNumber = "SENS-TH-008",
             Status = "Active",
-            Topic = "IOT/Containment/Sensor/Vibration_02",
-            SensorType = "Vibration",
+            Topic = "IOT/Containment/Sensor/Temperature_08",
+            SensorType = "Temperature",
             CreatedBy = adminUser.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,

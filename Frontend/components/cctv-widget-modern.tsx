@@ -168,11 +168,11 @@ const ModernVideoPlayer = ({
 
   if (error) {
     return (
-      <div className="w-full aspect-video bg-gray-900 rounded-lg flex flex-col items-center justify-center relative">
+      <div className="w-full aspect-video bg-background rounded-lg flex flex-col items-center justify-center relative">
         <div className="absolute top-3 left-3">
           <Badge
             variant="secondary"
-            className="bg-gray-700 text-gray-300 text-xs"
+            className="bg-gray-700 text-primary text-xs"
           >
             <Circle className="h-2 w-2 fill-gray-400 mr-1" />
             OFFLINE
@@ -260,9 +260,9 @@ const CCTVCard = ({
   };
 
   return (
-    <Card className="bg-white shadow-lg border border-gray-200 overflow-hidden">
+    <Card className="bg-background shadow-lg border  overflow-hidden">
       {/* Header with title */}
-      <div className="flex justify-between items-center bg-gray-50 px-4 py-3">
+      <div className="flex justify-between items-center bg-background px-4 py-3">
         <div>
           <h3 className="font-bold text-gray-900 text-sm">
             CCTV Feed - {streamItem.name}
@@ -271,7 +271,7 @@ const CCTVCard = ({
             Camera: {streamItem.host}
           </div>
         </div>
-        <div className="text-xs text-gray-500 border-gray-400 border rounded-full px-2 py-1">
+        <div className="text-xs text-primary border rounded-full px-2 py-1">
           {streamItem.status}
         </div>
       </div>
@@ -281,7 +281,7 @@ const CCTVCard = ({
         <ModernVideoPlayer src={streamUrl} title={streamItem.name} />
 
         {/* Control panel */}
-        <div className="mt-2 flex items-center justify-between bg-gray-50 rounded-lg p-2">
+        <div className="mt-2 flex items-center justify-between bg-background rounded-lg p-2">
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -304,7 +304,7 @@ const CCTVCard = ({
           </div>
 
           {/* Camera info */}
-          <div className="mt-2 text-xs text-gray-500 text-center">
+          <div className="mt-2 text-xs text-muted-foreground text-center">
             | Stream ID: {streamItem.mid}
           </div>
         </div>
@@ -340,7 +340,7 @@ const FullscreenModal = ({
           onClick={onClose}
           variant="ghost"
           size="sm"
-          className="text-white hover:bg-white/10"
+          className="text-primary"
         >
           <X className="h-5 w-5" />
         </Button>
@@ -467,20 +467,20 @@ export default function ModernCCTVWidget({
         {[...Array(getLoadingItemCount())].map((_, index) => (
           <Card
             key={index}
-            className="bg-white shadow-lg border border-gray-200 animate-pulse"
+            className="bg-background shadow-lg border  animate-pulse"
           >
-            <div className="bg-gray-200 px-4 py-3 border-b">
-              <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+            <div className="bg-background px-4 py-3 border-b">
+              <div className="h-4 bg-background rounded w-1/2"></div>
             </div>
             <CardContent className="p-4">
-              <div className="w-full aspect-video bg-gray-300 rounded-lg mb-4"></div>
-              <div className="bg-gray-100 rounded-lg p-3">
+              <div className="w-full aspect-video bg-background rounded-lg mb-4"></div>
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex justify-between">
                   <div className="flex gap-2">
                     {[...Array(4)].map((_, i) => (
                       <div
                         key={i}
-                        className="h-8 w-8 bg-gray-300 rounded"
+                        className="h-8 w-8 bg-background rounded"
                       ></div>
                     ))}
                   </div>
@@ -488,7 +488,7 @@ export default function ModernCCTVWidget({
                     {[...Array(2)].map((_, i) => (
                       <div
                         key={i}
-                        className="h-8 w-8 bg-gray-300 rounded"
+                        className="h-8 w-8 bg-background rounded"
                       ></div>
                     ))}
                   </div>
@@ -505,11 +505,8 @@ export default function ModernCCTVWidget({
     return (
       <>
         {[...Array(getLoadingItemCount())].map((_, index) => (
-          <Card
-            key={index}
-            className="bg-white shadow-lg border border-gray-200"
-          >
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+          <Card key={index} className="bg-background shadow-lg border ">
+            <div className="bg-background px-4 py-3 border-b ">
               <h3 className="font-semibold text-gray-900 text-sm">
                 CCTV Feed -{" "}
                 {index === 0

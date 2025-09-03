@@ -1,90 +1,110 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from "react";
+import Link from "next/link";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Shield, 
-  UserCheck, 
+  Settings, 
+  Users, 
+  Fingerprint, 
+  CreditCard,
   Activity,
-  Users,
-  CheckCircle,
-  AlertCircle,
-  ArrowRight,
-  RefreshCw
-} from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { 
-  AccessControlDevice,
-  accessControlApi 
-} from '@/lib/api-service';
-import { DeveloperModeGuard } from '@/components/developer-mode-guard';
+  TestTube,
+  ChevronRight,
+  Wifi,
+  WifiOff
+} from "lucide-react";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useMQTT } from "@/hooks/useMQTT";
+import { useZKTecoDevices } from "@/hooks/useZKTecoDevices";
 
-export default function AccessControlOverviewPage() {
-  const [devices, setDevices] = useState<AccessControlDevice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function AccessControlPage() {
+  useAuthGuard(); // Protect this page
+  
+  const { isConnected } = useMQTT();
+  const { devices, testResults } = useZKTecoDevices();
 
-  useEffect(() => {
-    loadDevices();
-  }, []);
+  // Calculate device statistics
+  const totalDevices = devices.length;
+  const enabledDevices = devices.filter(d => d.enabled).length;
+  const onlineDevices = testResults.filter(r => r.status === 'online').length;
+  const offlineDevices = testResults.filter(r => r.status === 'offline').length;
 
-  const loadDevices = async () => {
-    try {
-      setIsLoading(true);
-      const result = await accessControlApi.getDevices();
-      
-      if (result.success && result.data) {
-        setDevices(result.data);
-      } else {
-        toast.error('Failed to load access control devices');
-      }
-    } catch (error) {
-      toast.error('Error loading devices');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const connectedDevices = devices.filter(d => d.isConnected);
-  const enabledDevices = devices.filter(d => d.enabled);
-
-  const menuItems = [
+  // Access Control Features
+  const accessControlFeatures = [
     {
       title: "Device Management",
-      description: "Manage ZKTeco access control devices",
-      icon: Shield,
-      href: "/access-control/devices",
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200"
+      description: "Manage ZKTeco devices, test connections, and configure settings",
+      icon: Settings,
+      href: "/access-control/device",
+      badge: `${totalDevices} Devices`,
+      status: isConnected ? 'online' : 'offline',
+      available: true
     },
     {
       title: "User Management",
-      description: "Create and manage access control users",
-      icon: UserCheck,
+      description: "Manage users, roles, and permissions across all devices",
+      icon: Users,
       href: "/access-control/users",
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200"
+      badge: "Coming Soon",
+      status: 'pending',
+      available: false
+    },
+    {
+      title: "Biometric Management",
+      description: "Register and manage fingerprints for enhanced security",
+      icon: Fingerprint,
+      href: "/access-control/biometric",
+      badge: "Coming Soon",
+      status: 'pending',
+      available: false
+    },
+    {
+      title: "Card Management",
+      description: "Manage access cards and synchronize across devices",
+      icon: CreditCard,
+      href: "/access-control/cards",
+      badge: "Coming Soon",
+      status: 'pending',
+      available: false
     },
     {
       title: "Live Monitoring",
-      description: "Real-time attendance and access monitoring",
+      description: "Real-time attendance monitoring and access logs",
       icon: Activity,
       href: "/access-control/monitoring",
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      borderColor: "border-orange-200"
+      badge: "Real-time",
+      status: isConnected ? 'online' : 'offline',
+      available: false
+    },
+    {
+      title: "Connection Testing",
+      description: "Test device connectivity and system diagnostics",
+      icon: TestTube,
+      href: "/access-control/testing",
+      badge: "Diagnostic",
+      status: isConnected ? 'online' : 'offline',
+      available: false
     }
   ];
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'online': return 'bg-green-500';
+      case 'offline': return 'bg-red-500';
+      case 'pending': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
   return (
-    <DeveloperModeGuard>
-      <SidebarInset>
+    <SidebarInset>
+      {/* Header */}
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />
@@ -92,182 +112,186 @@ export default function AccessControlOverviewPage() {
           <Shield className="h-5 w-5" />
           <h1 className="text-lg font-semibold">Access Control System</h1>
         </div>
-        <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={loadDevices}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+        
+        <div className="ml-auto flex items-center gap-2">
+          {/* MQTT Status */}
+          <Badge variant={isConnected ? "default" : "destructive"} className="gap-1">
+            {isConnected ? (
+              <>
+                <Wifi className="h-3 w-3" />
+                MQTT Connected
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3" />
+                MQTT Disconnected
+              </>
+            )}
+          </Badge>
         </div>
       </header>
-      
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <p className="text-muted-foreground">ZKTeco access control management dashboard</p>
 
-      {/* Statistics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Devices</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{devices.length}</div>
-            <p className="text-xs text-muted-foreground">Registered access control devices</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Connected</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{connectedDevices.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {devices.length > 0 ? Math.round((connectedDevices.length / devices.length) * 100) : 0}% of total devices
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Enabled</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{enabledDevices.length}</div>
-            <p className="text-xs text-muted-foreground">Active and configured devices</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Health</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {devices.length > 0 && connectedDevices.length === enabledDevices.length ? (
-                <span className="text-green-600">Excellent</span>
-              ) : connectedDevices.length > 0 ? (
-                <span className="text-yellow-600">Good</span>
-              ) : (
-                <span className="text-red-600">Poor</span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Overall system status</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col gap-6 p-6">
+        {/* System Overview */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Devices</CardTitle>
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalDevices}</div>
+              <p className="text-xs text-muted-foreground">
+                {enabledDevices} enabled
+              </p>
+            </CardContent>
+          </Card>
 
-      {/* Quick Access Menu */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Access Control Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {menuItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <Card className={`${item.borderColor} border-2 hover:shadow-md transition-shadow cursor-pointer ${item.bgColor}`}>
-                  <CardContent className="p-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Online Devices</CardTitle>
+              <Wifi className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{onlineDevices}</div>
+              <p className="text-xs text-muted-foreground">
+                Active connections
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Offline Devices</CardTitle>
+              <WifiOff className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{offlineDevices}</div>
+              <p className="text-xs text-muted-foreground">
+                Need attention
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">MQTT Status</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+                {isConnected ? 'Connected' : 'Disconnected'}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Real-time communication
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Feature Cards */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Access Control Features</h2>
+          <p className="text-muted-foreground mb-6">
+            Manage your ZKTeco access control system with comprehensive tools for device management, 
+            user administration, and real-time monitoring.
+          </p>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {accessControlFeatures.map((feature) => {
+              const Icon = feature.icon;
+              
+              return (
+                <Card 
+                  key={feature.title}
+                  className={`relative transition-all hover:shadow-md ${
+                    !feature.available ? 'opacity-60' : 'hover:scale-[1.02]'
+                  }`}
+                >
+                  <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className={`p-2 rounded-full ${item.bgColor} border ${item.borderColor}`}>
-                            <item.icon className={`h-5 w-5 ${item.color}`} />
-                          </div>
-                          <h3 className="font-semibold text-lg">{item.title}</h3>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Icon className="h-5 w-5 text-primary" />
                         </div>
-                        <p className="text-gray-600 text-sm">{item.description}</p>
+                        <div>
+                          <CardTitle className="text-lg">{feature.title}</CardTitle>
+                        </div>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-gray-400" />
+                      
+                      <div className="flex items-center gap-2">
+                        {/* Status indicator */}
+                        <div 
+                          className={`w-2 h-2 rounded-full ${getStatusColor(feature.status)}`}
+                          title={`Status: ${feature.status}`}
+                        />
+                        
+                        {/* Badge */}
+                        <Badge 
+                          variant={feature.available ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          {feature.badge}
+                        </Badge>
+                      </div>
                     </div>
+                    
+                    <CardDescription className="mt-2">
+                      {feature.description}
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    {feature.available ? (
+                      <Link href={feature.href}>
+                        <Button variant="outline" className="w-full group">
+                          Access Feature
+                          <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button variant="outline" disabled className="w-full">
+                        Coming Soon
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>
+              Common tasks and shortcuts for system management
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 md:grid-cols-3">
+              <Link href="/access-control/device">
+                <Button variant="outline" className="w-full justify-start">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Manage Devices
+                </Button>
               </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Device Status Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Device Status Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-24">
-              <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-              <span>Loading devices...</span>
-            </div>
-          ) : devices.length > 0 ? (
-            <div className="space-y-3">
-              {devices.map((device) => (
-                <div key={device.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-full">
-                      <Shield className="h-4 w-4 text-blue-500" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">{device.name}</div>
-                      <div className="text-sm text-gray-500">{device.location} • {device.ip}:{device.port}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {!device.enabled ? (
-                      <Badge variant="secondary">Disabled</Badge>
-                    ) : device.isConnected ? (
-                      <Badge className="bg-green-500 hover:bg-green-600">Connected</Badge>
-                    ) : (
-                      <Badge variant="destructive">Disconnected</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">No Devices Found</h3>
-              <p className="text-gray-500">No access control devices are configured.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/access-control/devices">
-              <Button variant="outline" size="sm">
-                <Shield className="h-4 w-4 mr-2" />
-                Manage Devices
+              
+              <Button variant="outline" disabled className="w-full justify-start">
+                <Users className="mr-2 h-4 w-4" />
+                Manage Users
               </Button>
-            </Link>
-            <Link href="/access-control/users">
-              <Button variant="outline" size="sm">
-                <UserCheck className="h-4 w-4 mr-2" />
-                Add User
+              
+              <Button variant="outline" disabled className="w-full justify-start">
+                <Activity className="mr-2 h-4 w-4" />
+                View Live Activity
               </Button>
-            </Link>
-            <Link href="/access-control/monitoring">
-              <Button variant="outline" size="sm">
-                <Activity className="h-4 w-4 mr-2" />
-                Start Monitoring
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      </SidebarInset>
-    </DeveloperModeGuard>
+    </SidebarInset>
   );
 }

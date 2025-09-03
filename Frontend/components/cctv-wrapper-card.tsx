@@ -92,7 +92,7 @@ export default function CCTVWrapperCard({
   };
 
   const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
 
   const toggleFullscreen = () => {
@@ -101,37 +101,39 @@ export default function CCTVWrapperCard({
 
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      <div className="fixed inset-0 bg-background z-50 flex flex-col">
         {/* Fullscreen Header */}
-        <div className="flex items-center justify-between p-4 bg-black/90 text-white border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 bg-background text-primary border-b border-gray-700">
           <div className="flex items-center gap-3">
             <MonitorPlay className="h-6 w-6 text-blue-400" />
             <div>
               <h2 className="text-lg font-semibold">{title}</h2>
-              <p className="text-sm text-gray-300">{description}</p>
+              <p className="text-sm text-primary">{description}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {/* Grid Layout Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <Button variant="ghost" size="sm" className="text-primary">
                   {getLayoutIcon(currentLayout)}
                   <span className="ml-2">{getLayoutLabel(currentLayout)}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {(["auto", "1x1", "2x2", "3x3", "4x2"] as GridLayout[]).map((layout) => (
-                  <DropdownMenuItem
-                    key={layout}
-                    onClick={() => setCurrentLayout(layout)}
-                    className="flex items-center gap-2"
-                  >
-                    {getLayoutIcon(layout)}
-                    {getLayoutLabel(layout)}
-                  </DropdownMenuItem>
-                ))}
+                {(["auto", "1x1", "2x2", "3x3", "4x2"] as GridLayout[]).map(
+                  (layout) => (
+                    <DropdownMenuItem
+                      key={layout}
+                      onClick={() => setCurrentLayout(layout)}
+                      className="flex items-center gap-2"
+                    >
+                      {getLayoutIcon(layout)}
+                      {getLayoutLabel(layout)}
+                    </DropdownMenuItem>
+                  )
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -168,17 +170,21 @@ export default function CCTVWrapperCard({
   }
 
   return (
-    <Card className={`${compact ? "border-0 shadow-sm" : "shadow-lg"} bg-white`}>
+    <Card
+      className={`${
+        compact ? "border-0 shadow-sm" : "shadow-lg"
+      } bg-background`}
+    >
       {showHeader && (
         <CardHeader className={compact ? "pb-3" : "pb-4"}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CardTitle className="flex items-center gap-3 text-xl font-bold text-gray-900">
-                <MonitorPlay className="h-6 w-6 text-blue-600" />
+              <CardTitle className="flex items-center gap-3 text-xl font-bold text-primary">
+                <MonitorPlay className="h-6 w-6 text-green-500" />
                 {title}
               </CardTitle>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Active Cameras Count Badge */}
               <Badge variant="outline" className="text-xs">
@@ -193,16 +199,18 @@ export default function CCTVWrapperCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {(["auto", "1x1", "2x2", "3x3", "4x2"] as GridLayout[]).map((layout) => (
-                    <DropdownMenuItem
-                      key={layout}
-                      onClick={() => setCurrentLayout(layout)}
-                      className="flex items-center gap-2"
-                    >
-                      {getLayoutIcon(layout)}
-                      {getLayoutLabel(layout)}
-                    </DropdownMenuItem>
-                  ))}
+                  {(["auto", "1x1", "2x2", "3x3", "4x2"] as GridLayout[]).map(
+                    (layout) => (
+                      <DropdownMenuItem
+                        key={layout}
+                        onClick={() => setCurrentLayout(layout)}
+                        className="flex items-center gap-2"
+                      >
+                        {getLayoutIcon(layout)}
+                        {getLayoutLabel(layout)}
+                      </DropdownMenuItem>
+                    )
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -227,9 +235,9 @@ export default function CCTVWrapperCard({
               </Button>
             </div>
           </div>
-          
+
           {!compact && (
-            <p className="text-sm text-gray-600 mt-2">{description}</p>
+            <p className="text-sm text-primary mt-2">{description}</p>
           )}
         </CardHeader>
       )}

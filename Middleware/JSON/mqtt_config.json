@@ -1,0 +1,23 @@
+{
+  "mqtt": {
+    "broker": "localhost",
+    "port": 1883,
+    "keepalive": 60,
+    "client_id": "zkteco_tester",
+    "username": "",
+    "password": "",
+    "tls": {
+      "enabled": false,
+      "ca_certs": "",
+      "cert_file": "",
+      "key_file": ""
+    }
+  },
+  "mqtt_settings": {
+    "qos": 1,
+    "retain": true,
+    "publish_individual_devices": true,
+    "publish_summary": true,
+    "alert_on_failure": true
+  }
+}

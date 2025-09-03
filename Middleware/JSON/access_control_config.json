@@ -1,0 +1,32 @@
+{
+  "devices": [
+    {
+      "id": "device_1",
+      "name": "Front Door",
+      "ip": "192.168.0.203",
+      "port": 4370,
+      "password": 0,
+      "timeout": 10,
+      "force_udp": false,
+      "enabled": true
+    },
+    {
+      "id": "device_2",
+      "name": "Back Door",
+      "ip": "192.168.0.202",
+      "port": 4370,
+      "password": 0,
+      "timeout": 10,
+      "force_udp": false,
+      "enabled": true
+    }
+  ],
+  "settings": {
+    "default_timeout": 10,
+    "default_port": 4370,
+    "max_retries": 5,
+    "poll_interval": 3,
+    "verbose": false,
+    "master_device_id": "device_1"
+  }
+}

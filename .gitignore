@@ -1,0 +1,11 @@
+data
+.env
+*.token
+*.key
+wwwroot/uploads/
+*.db
+*.db-wal
+*.db-shm
+node_modules/
+bin/
+obj/

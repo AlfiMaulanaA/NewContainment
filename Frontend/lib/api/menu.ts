@@ -1,6 +1,6 @@
 // lib/api/menu.ts - Menu management API methods
-import { apiClient } from './client';
-import type { ApiResponse } from './types';
+import { apiClient } from "./client";
+import type { ApiResponse } from "./types";
 
 // Menu management types
 export interface MenuItemData {
@@ -14,6 +14,12 @@ export interface MenuItemData {
   requiresDeveloperMode: boolean;
   badgeText?: string;
   badgeVariant?: string;
+  menuGroupId?: number;
+  menuGroup?: {
+    id: number;
+    title: string;
+    icon: string;
+  };
 }
 
 export interface MenuGroupData {
@@ -51,34 +57,40 @@ export const menuApi = {
     try {
       // Prepare custom headers for developer mode
       const customHeaders: Record<string, string> = {};
-      
+
       // Add developer mode header if active
-      if (typeof window !== 'undefined') {
-        const developerMode = localStorage.getItem('developer_mode_enabled');
-        const expiry = localStorage.getItem('developer_mode_expiry');
-        
-        if (developerMode === 'true' && expiry) {
+      if (typeof window !== "undefined") {
+        const developerMode = localStorage.getItem("developer_mode_enabled");
+        const expiry = localStorage.getItem("developer_mode_expiry");
+
+        if (developerMode === "true" && expiry) {
           const expiryTime = parseInt(expiry);
           const currentTime = Date.now();
-          
+
           if (currentTime < expiryTime) {
-            customHeaders['X-Developer-Mode'] = 'true';
+            customHeaders["X-Developer-Mode"] = "true";
           }
         }
       }
 
       // Use apiClient for consistent configuration and auth handling
-      return await apiClient.get<UserMenuResponse>("/menu-management/user-menu", customHeaders);
+      return await apiClient.get<UserMenuResponse>(
+        "/menu-management/user-menu",
+        customHeaders
+      );
     } catch (error) {
-      console.error('getUserMenu error:', error);
-      throw error instanceof Error ? error : new Error('Unknown error');
+      console.error("getUserMenu error:", error);
+      throw error instanceof Error ? error : new Error("Unknown error");
     }
   },
 
   async getRoles(): Promise<ApiResponse<MenuUserRole[]>> {
     try {
       // Backend returns { success: true, data: [...] }, so we need to extract data
-      const response = await apiClient.get<{success: boolean, data: MenuUserRole[]}>("/menu-management/roles");
+      const response = await apiClient.get<{
+        success: boolean;
+        data: MenuUserRole[];
+      }>("/menu-management/roles");
       if (response.success && response.data) {
         return {
           success: true,
@@ -101,7 +113,10 @@ export const menuApi = {
   async getMenuGroups(): Promise<ApiResponse<MenuGroupData[]>> {
     try {
       // Backend returns { success: true, data: [...] }, so we need to extract data
-      const response = await apiClient.get<{success: boolean, data: MenuGroupData[]}>("/menu-management/menu-groups");
+      const response = await apiClient.get<{
+        success: boolean;
+        data: MenuGroupData[];
+      }>("/menu-management/menu-groups");
       if (response.success && response.data) {
         return {
           success: true,
@@ -121,10 +136,41 @@ export const menuApi = {
     }
   },
 
-  async createRole(roleData: Partial<MenuUserRole>): Promise<ApiResponse<MenuUserRole>> {
+  async getMenuItems(): Promise<ApiResponse<MenuItemData[]>> {
+    try {
+      // Backend returns { success: true, data: [...] }, so we need to extract data
+      const response = await apiClient.get<{
+        success: boolean;
+        data: MenuItemData[];
+      }>("/menu-management/menu-items");
+      if (response.success && response.data) {
+        return {
+          success: true,
+          data: response.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: "Failed to get menu items from backend",
+        };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get menu items",
+      };
+    }
+  },
+
+  async createRole(
+    roleData: Partial<MenuUserRole>
+  ): Promise<ApiResponse<MenuUserRole>> {
     try {
       // Backend returns { success: true, data: {...} }
-      const response = await apiClient.post<{success: boolean, data: MenuUserRole}>("/menu-management/roles", roleData);
+      const response = await apiClient.post<{
+        success: boolean;
+        data: MenuUserRole;
+      }>("/menu-management/roles", roleData);
       if (response.success && response.data) {
         return {
           success: true,
@@ -144,10 +190,15 @@ export const menuApi = {
     }
   },
 
-  async createMenuGroup(groupData: Partial<MenuGroupData>): Promise<ApiResponse<MenuGroupData>> {
+  async createMenuGroup(
+    groupData: Partial<MenuGroupData>
+  ): Promise<ApiResponse<MenuGroupData>> {
     try {
       // Backend returns { success: true, data: {...} }
-      const response = await apiClient.post<{success: boolean, data: MenuGroupData}>("/menu-management/menu-groups", groupData);
+      const response = await apiClient.post<{
+        success: boolean;
+        data: MenuGroupData;
+      }>("/menu-management/menu-groups", groupData);
       if (response.success && response.data) {
         return {
           success: true,
@@ -167,10 +218,15 @@ export const menuApi = {
     }
   },
 
-  async createMenuItem(itemData: Partial<MenuItemData> & { menuGroupId: number }): Promise<ApiResponse<MenuItemData>> {
+  async createMenuItem(
+    itemData: Partial<MenuItemData> & { menuGroupId: number }
+  ): Promise<ApiResponse<MenuItemData>> {
     try {
       // Backend returns { success: true, data: {...} }
-      const response = await apiClient.post<{success: boolean, data: MenuItemData}>("/menu-management/menu-items", itemData);
+      const response = await apiClient.post<{
+        success: boolean;
+        data: MenuItemData;
+      }>("/menu-management/menu-items", itemData);
       if (response.success && response.data) {
         return {
           success: true,
@@ -190,7 +246,10 @@ export const menuApi = {
     }
   },
 
-  async updateMenuGroup(id: number, groupData: Partial<MenuGroupData>): Promise<ApiResponse<void>> {
+  async updateMenuGroup(
+    id: number,
+    groupData: Partial<MenuGroupData>
+  ): Promise<ApiResponse<void>> {
     try {
       await apiClient.put(`/menu-management/menu-groups/${id}`, groupData);
       return {
@@ -204,7 +263,10 @@ export const menuApi = {
     }
   },
 
-  async updateMenuItem(id: number, itemData: Partial<MenuItemData>): Promise<ApiResponse<void>> {
+  async updateMenuItem(
+    id: number,
+    itemData: Partial<MenuItemData>
+  ): Promise<ApiResponse<void>> {
     try {
       await apiClient.put(`/menu-management/menu-items/${id}`, itemData);
       return {
@@ -232,9 +294,14 @@ export const menuApi = {
     }
   },
 
-  async toggleMenuItemActive(id: number): Promise<ApiResponse<{isActive: boolean}>> {
+  async toggleMenuItemActive(
+    id: number
+  ): Promise<ApiResponse<{ isActive: boolean }>> {
     try {
-      const response = await apiClient.patch<{success: boolean, isActive: boolean}>(`/menu-management/menu-items/${id}/toggle-active`);
+      const response = await apiClient.patch<{
+        success: boolean;
+        isActive: boolean;
+      }>(`/menu-management/menu-items/${id}/toggle-active`);
       if (response.success) {
         return {
           success: true,
@@ -254,9 +321,14 @@ export const menuApi = {
     }
   },
 
-  async toggleMenuGroupActive(id: number): Promise<ApiResponse<{isActive: boolean}>> {
+  async toggleMenuGroupActive(
+    id: number
+  ): Promise<ApiResponse<{ isActive: boolean }>> {
     try {
-      const response = await apiClient.patch<{success: boolean, isActive: boolean}>(`/menu-management/menu-groups/${id}/toggle-active`);
+      const response = await apiClient.patch<{
+        success: boolean;
+        isActive: boolean;
+      }>(`/menu-management/menu-groups/${id}/toggle-active`);
       if (response.success) {
         return {
           success: true,
@@ -290,7 +362,10 @@ export const menuApi = {
     }
   },
 
-  async updateRole(id: number, roleData: Partial<MenuUserRole>): Promise<ApiResponse<void>> {
+  async updateRole(
+    id: number,
+    roleData: Partial<MenuUserRole>
+  ): Promise<ApiResponse<void>> {
     try {
       await apiClient.put(`/menu-management/roles/${id}`, roleData);
       return {

@@ -151,7 +151,7 @@ namespace Backend.Data
                     new MenuItem
                     {
                         Title = "Overview",
-                        Url = "/",
+                        Url = "/dashboard-overview",
                         Icon = "LayoutDashboard",
                         SortOrder = 1,
                         MinRoleLevel = 0,

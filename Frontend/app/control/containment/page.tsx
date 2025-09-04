@@ -34,7 +34,6 @@ import { MQTTTroubleshootingGuide } from "@/components/mqtt/mqtt-troubleshooting
 import MQTTConnectionBadge from "@/components/mqtt-status";
 import { toast } from "sonner";
 import { accessLogService, AccessLog, AccessMethod } from "@/lib/api-service";
-import UserActivityWidget from "@/components/user-activity-widget";
 
 interface ControlState {
   frontDoorAlwaysOpen: boolean;
@@ -369,9 +368,6 @@ export default function ContainmentControlPage() {
             />
           </div>
         )}
-
-        {/* User Activity Monitor */}
-        <UserActivityWidget compact={true} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Door Controls */}

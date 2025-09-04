@@ -209,12 +209,30 @@ deploy_frontend() {
     log "Building frontend..."
     npm run build
     
+    log "Verifying build output..."
+    if [ ! -d ".next" ]; then
+        log_error "Next.js build failed - .next directory not found"
+        exit 1
+    fi
+    
     log "Stopping existing PM2 processes..."
     pm2 delete newcontainment-frontend 2>/dev/null || true
     
     log "Starting frontend with PM2..."
-    pm2 start npm --name "newcontainment-frontend" -- start
+    pm2 start npm --name "newcontainment-frontend" -- start -- --port 3000
     pm2 save
+    
+    log "Waiting for frontend to start..."
+    sleep 5
+    
+    # Verify frontend is running
+    if pm2 list | grep -q "newcontainment-frontend.*online"; then
+        log_success "Frontend is running"
+    else
+        log_error "Frontend failed to start"
+        pm2 logs newcontainment-frontend --lines 10
+        exit 1
+    fi
     
     log_success "Frontend deployed successfully"
 }

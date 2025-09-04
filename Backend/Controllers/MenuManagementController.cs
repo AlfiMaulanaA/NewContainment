@@ -333,7 +333,7 @@ namespace Backend.Controllers
         }
 
         [HttpPost("roles")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             try
@@ -375,7 +375,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("roles/{id}")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleRequest request)
         {
             try
@@ -419,7 +419,7 @@ namespace Backend.Controllers
         }
 
         [HttpDelete("roles/{id}")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> DeleteRole(int id)
         {
             try
@@ -509,7 +509,7 @@ namespace Backend.Controllers
         }
 
         [HttpPost("menu-groups")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> CreateMenuGroup([FromBody] CreateMenuGroupRequest request)
         {
             try
@@ -542,7 +542,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("menu-groups/{id}")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> UpdateMenuGroup(int id, [FromBody] UpdateMenuGroupRequest request)
         {
             try
@@ -574,8 +574,49 @@ namespace Backend.Controllers
         }
 
         // ADMIN ENDPOINTS - Manage Menu Items
+        [HttpGet("menu-items")]
+        public async Task<IActionResult> GetMenuItems()
+        {
+            try
+            {
+                var menuItems = await _context.MenuItems
+                    .Include(mi => mi.MenuGroup)
+                    .OrderBy(mi => mi.MenuGroup.SortOrder)
+                        .ThenBy(mi => mi.SortOrder)
+                    .ToListAsync();
+
+                var result = menuItems.Select(mi => new
+                {
+                    id = mi.Id,
+                    title = mi.Title,
+                    url = mi.Url,
+                    icon = mi.Icon,
+                    sortOrder = mi.SortOrder,
+                    minRoleLevel = mi.MinRoleLevel,
+                    isActive = mi.IsActive,
+                    requiresDeveloperMode = mi.RequiresDeveloperMode,
+                    badgeText = mi.BadgeText,
+                    badgeVariant = mi.BadgeVariant,
+                    menuGroupId = mi.MenuGroupId,
+                    menuGroup = new
+                    {
+                        id = mi.MenuGroup.Id,
+                        title = mi.MenuGroup.Title,
+                        icon = mi.MenuGroup.Icon
+                    }
+                }).ToList();
+
+                return Ok(new { success = true, data = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting menu items");
+                return StatusCode(500, new { success = false, message = "Error retrieving menu items" });
+            }
+        }
+
         [HttpPost("menu-items")]
-        [Authorize(Roles = "Admin,Developer")]
+
         public async Task<IActionResult> CreateMenuItem([FromBody] CreateMenuItemRequest request)
         {
             try
@@ -619,7 +660,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("menu-items/{id}")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> UpdateMenuItem(int id, [FromBody] UpdateMenuItemRequest request)
         {
             try
@@ -654,7 +695,7 @@ namespace Backend.Controllers
         }
 
         [HttpPatch("menu-items/{id}/toggle-active")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> ToggleMenuItemActive(int id)
         {
             try
@@ -684,7 +725,7 @@ namespace Backend.Controllers
         }
 
         [HttpPatch("menu-groups/{id}/toggle-active")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> ToggleMenuGroupActive(int id)
         {
             try
@@ -714,7 +755,7 @@ namespace Backend.Controllers
         }
 
         [HttpDelete("menu-items/{id}")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> DeleteMenuItem(int id)
         {
             try
@@ -738,7 +779,7 @@ namespace Backend.Controllers
         }
 
         [HttpDelete("menu-groups/{id}")]
-        [Authorize(Roles = "Admin,Developer")]
+        
         public async Task<IActionResult> DeleteMenuGroup(int id)
         {
             try

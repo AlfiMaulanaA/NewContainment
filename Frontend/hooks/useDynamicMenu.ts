@@ -44,7 +44,7 @@ export function useDynamicMenu() {
   // Auto-refresh menu every 5 minutes or when developer mode changes
   useEffect(() => {
     fetchUserMenu();
-    
+
     // Register refresh callback with developer mode context
     registerMenuRefresh(fetchUserMenu);
 
@@ -121,6 +121,28 @@ export function useMenuManagement() {
     } catch (err) {
       setError("Failed to fetch menu groups");
       setMenuGroups([]); // Ensure menuGroups is always an array
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchMenuItems = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await menuApi.getMenuItems();
+      if (response.success && response.data && Array.isArray(response.data)) {
+        // Update menu groups with individual menu items data
+        const updatedGroups = menuGroups.map((group) => ({
+          ...group,
+          items: response.data!.filter((item) => item.menuGroupId === group.id),
+        }));
+        setMenuGroups(updatedGroups);
+      } else {
+        setError(response.message || "Failed to fetch menu items");
+      }
+    } catch (err) {
+      setError("Failed to fetch menu items");
     } finally {
       setIsLoading(false);
     }

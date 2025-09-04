@@ -813,10 +813,12 @@ All payloads have been optimized for minimal data usage while maintaining full f
 ```
 
 **Parameters**:
+
 - **`uid`**: Integer, **Required** - User ID that exists on devices
 - **`fid`**: Integer, **Required** - Finger template ID (0-9)
 
 **Process Overview**:
+
 1. **Master Device Enrollment**: Fingerprint is enrolled only on the master device (configurable, default: device_1)
 2. **Template Extraction**: Fingerprint template is extracted from master device
 3. **Auto-Sync**: Template is automatically synchronized to all other enabled devices
@@ -851,14 +853,14 @@ This command returns **5 sequential responses** showing detailed enrollment and 
 
 ```json
 {
-  "status": "processing", 
+  "status": "processing",
   "message": "Processing fingerprint enrollment for John Doe on master device Front Door. Please wait...",
   "data": {
     "uid": 1,
     "fid": 1,
     "user_name": "John Doe",
     "master_device": {
-      "device_id": "device_1", 
+      "device_id": "device_1",
       "device_name": "Front Door",
       "status": "processing"
     },
@@ -898,7 +900,7 @@ This command returns **5 sequential responses** showing detailed enrollment and 
     "uid": 1,
     "fid": 1,
     "user_name": "John Doe",
-    "master_device": "Front Door", 
+    "master_device": "Front Door",
     "master_enrollment": {
       "success": true,
       "message": "Fingerprint enrollment completed successfully on Front Door"
@@ -912,6 +914,7 @@ This command returns **5 sequential responses** showing detailed enrollment and 
 ```
 
 #### Stage 3 Response - Final Result:
+
     "user_name": "John Doe",
     "master_device": {
       "device_id": "device_1",
@@ -921,9 +924,11 @@ This command returns **5 sequential responses** showing detailed enrollment and 
     "enrollment_stage": 2,
     "enrollment_mode": "master_device",
     "message": "Enrollment in progress on master device. Please keep finger on scanner."
-  }
+
 }
-```
+}
+
+````
 
 #### Stage 3 Response - Enrollment + Sync Result (after 5 more seconds):
 
@@ -964,7 +969,7 @@ This command returns **5 sequential responses** showing detailed enrollment and 
     "final_result": true
   }
 }
-```
+````
 
 **Partial Success Response** (some devices failed):
 
@@ -1038,6 +1043,7 @@ This command returns **5 sequential responses** showing detailed enrollment and 
 ```
 
 **Important Notes**:
+
 - **Master Device Approach**: Fingerprint enrollment only occurs on the master device (default: device_1)
 - **Auto-Sync**: After successful enrollment, fingerprint template is automatically synced to other devices
 - **Configuration**: Master device can be changed in settings.master_device_id in access_control_config.json
@@ -1067,10 +1073,12 @@ This command returns **5 sequential responses** showing detailed enrollment and 
 ```
 
 **Parameters**:
+
 - **`uid`**: Integer, **Required** - User ID that exists on devices
 - **`fid`**: Integer, **Required** - Finger template ID (0-9) to delete
 
 **Process Overview**:
+
 1. **Parallel Deletion**: Fingerprint template is deleted from all enabled devices simultaneously
 2. **No UI Changes**: Deletion happens in background without affecting device displays
 3. **Real-time Updates**: Multiple response stages showing deletion progress
@@ -1242,6 +1250,7 @@ This command returns **4 sequential responses** showing deletion progress:
 ```
 
 **Important Notes**:
+
 - **Parallel Processing**: Deletion occurs on all devices simultaneously for maximum speed
 - **No Device UI Changes**: Deletion happens in background without affecting device displays
 - **Template Not Found Handling**: If fingerprint doesn't exist, it's considered successful deletion
@@ -1256,6 +1265,7 @@ This command returns **4 sequential responses** showing deletion progress:
 **Request Topic**: `accessControl/user/command`
 
 **Request Payload**:
+
 ```json
 {
   "command": "syncronizeCard",
@@ -1264,9 +1274,11 @@ This command returns **4 sequential responses** showing deletion progress:
 ```
 
 **Parameters**:
+
 - **`data`**: Object, **Optional** - Empty object (no parameters required)
 
 **Process Overview**:
+
 1. **Device Scanning**: Scans all enabled devices to detect registered cards
 2. **Card Analysis**: Analyzes which cards are missing on which devices
 3. **Auto-Sync**: Synchronizes missing cards across all devices simultaneously
@@ -1276,6 +1288,7 @@ This command returns **4 sequential responses** showing deletion progress:
 This command returns **4 sequential responses** showing card sync progress:
 
 #### Response 1 - Request Accepted (Immediate):
+
 ```json
 {
   "status": "accepted",
@@ -1289,6 +1302,7 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 #### Response 2 - Device Scanning (after ~500ms):
+
 ```json
 {
   "status": "scanning",
@@ -1302,6 +1316,7 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 #### Response 3 - Card Analysis (after ~1-2 seconds):
+
 ```json
 {
   "status": "analyzing",
@@ -1318,7 +1333,7 @@ This command returns **4 sequential responses** showing card sync progress:
       },
       {
         "uid": 2,
-        "name": "Jane Smith", 
+        "name": "Jane Smith",
         "card_number": 67890,
         "present_on_devices": ["device_1", "device_2"]
       },
@@ -1338,6 +1353,7 @@ This command returns **4 sequential responses** showing card sync progress:
 #### Response 4 - Final Result (after 3-7 seconds):
 
 **Success Response** (Cards synchronized):
+
 ```json
 {
   "status": "success",
@@ -1391,6 +1407,7 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 **No Sync Required Response** (All cards already synchronized):
+
 ```json
 {
   "status": "success",
@@ -1412,9 +1429,10 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 **Partial Success Response** (Some sync operations failed):
+
 ```json
 {
-  "status": "partial_success", 
+  "status": "partial_success",
   "message": "Card synchronization partially successful: 2/4 operations completed.",
   "data": {
     "total_devices": 2,
@@ -1465,6 +1483,7 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 **Failed Response** (All sync operations failed):
+
 ```json
 {
   "status": "failed",
@@ -1503,6 +1522,7 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 **Important Notes**:
+
 - **Manual Registration First**: Cards must be manually registered on at least one device before synchronization
 - **Cross-Device Detection**: System automatically detects cards registered on any device
 - **Parallel Processing**: Card synchronization occurs on all target devices simultaneously
@@ -1519,6 +1539,7 @@ This command returns **4 sequential responses** showing card sync progress:
 **Request Topic**: `accessControl/user/command`
 
 **Request Payload**:
+
 ```json
 {
   "command": "deleteCard",
@@ -1529,11 +1550,13 @@ This command returns **4 sequential responses** showing card sync progress:
 ```
 
 **Parameters**:
+
 - **`uid`**: Integer, **Required** - User ID to remove card assignment from
 
 **Process Overview**:
+
 1. **User Validation**: Checks if user exists and has card assignment
-2. **Card Detection**: Identifies current card assignment across devices  
+2. **Card Detection**: Identifies current card assignment across devices
 3. **Parallel Deletion**: Removes card assignment from user across all devices simultaneously
 
 **Response Topic**: `accessControl/user/response`
@@ -1541,6 +1564,7 @@ This command returns **4 sequential responses** showing card sync progress:
 This command returns **3 sequential responses** showing card deletion progress:
 
 #### Response 1 - Request Accepted (Immediate):
+
 ```json
 {
   "status": "accepted",
@@ -1555,6 +1579,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 #### Response 2 - User Validation (after ~300ms):
+
 ```json
 {
   "status": "validating",
@@ -1569,6 +1594,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 #### Response 3 - Card Deletion Started (after ~600ms):
+
 ```json
 {
   "status": "deleting",
@@ -1587,6 +1613,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 #### Response 4 - Final Result (after 2-5 seconds):
 
 **Success Response** (Card deleted from all devices):
+
 ```json
 {
   "status": "success",
@@ -1604,7 +1631,7 @@ This command returns **3 sequential responses** showing card deletion progress:
         "status": "success"
       },
       {
-        "device_id": "device_2", 
+        "device_id": "device_2",
         "device_name": "Back Door",
         "success": true,
         "message": "Card deleted successfully from Back Door",
@@ -1625,6 +1652,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 **No Card Response** (User has no card assigned):
+
 ```json
 {
   "status": "success",
@@ -1647,13 +1675,14 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 **Partial Success Response** (Some devices failed):
+
 ```json
 {
   "status": "partial_success",
   "message": "Card deleted from 1/2 devices for John Doe",
   "data": {
     "uid": 1,
-    "user_name": "John Doe", 
+    "user_name": "John Doe",
     "card_number": 12345,
     "deletion_results": [
       {
@@ -1685,6 +1714,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 **Failed Response** (All devices failed):
+
 ```json
 {
   "status": "failed",
@@ -1703,7 +1733,7 @@ This command returns **3 sequential responses** showing card deletion progress:
       },
       {
         "device_id": "device_2",
-        "device_name": "Back Door", 
+        "device_name": "Back Door",
         "success": false,
         "message": "Failed to delete card from Back Door: Device not responding",
         "status": "failed"
@@ -1723,6 +1753,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 **User Not Found Response**:
+
 ```json
 {
   "status": "error",
@@ -1731,6 +1762,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 **Important Notes**:
+
 - **User Must Exist**: User with specified UID must exist on at least one device
 - **Card Assignment Removal**: Sets card number to 0 (removes card assignment) while preserving user data
 - **Parallel Processing**: Card deletion occurs on all devices with the user simultaneously
@@ -1747,6 +1779,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 **Request Topic**: `accessControl/user/command`
 
 **Request Payload**:
+
 ```json
 {
   "command": "setUserRole",
@@ -1758,10 +1791,12 @@ This command returns **3 sequential responses** showing card deletion progress:
 ```
 
 **Parameters**:
+
 - **`uid`**: Integer, **Required** - User ID to update role for
 - **`role`**: Integer, **Required** - New privilege level (0-3, 14)
 
 **Role/Privilege Levels**:
+
 - **0** = Normal User (can only authenticate)
 - **1** = Enroll User (can enroll fingerprints)
 - **2** = Admin (can manage users and settings)
@@ -1769,6 +1804,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 - **14** = Super User (special administrative level)
 
 **Process Overview**:
+
 1. **User Validation**: Checks if user exists and gets current role
 2. **Role Update**: Updates user privilege level across all devices
 3. **Parallel Processing**: Updates role on all devices containing the user simultaneously
@@ -1778,6 +1814,7 @@ This command returns **3 sequential responses** showing card deletion progress:
 This command returns **3 sequential responses** showing role update progress:
 
 #### Response 1 - Request Accepted (Immediate):
+
 ```json
 {
   "status": "accepted",
@@ -1794,6 +1831,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 #### Response 2 - User Validation (after ~300ms):
+
 ```json
 {
   "status": "validating",
@@ -1810,6 +1848,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 #### Response 3 - Role Update Started (after ~600ms):
+
 ```json
 {
   "status": "updating",
@@ -1831,6 +1870,7 @@ This command returns **3 sequential responses** showing role update progress:
 #### Response 4 - Final Result (after 2-5 seconds):
 
 **Success Response** (Role updated on all devices):
+
 ```json
 {
   "status": "success",
@@ -1876,6 +1916,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 **Partial Success Response** (Some devices failed):
+
 ```json
 {
   "status": "partial_success",
@@ -1921,6 +1962,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 **Failed Response** (All devices failed):
+
 ```json
 {
   "status": "failed",
@@ -1966,6 +2008,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 **Invalid Role Response**:
+
 ```json
 {
   "status": "error",
@@ -1974,6 +2017,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 **User Not Found Response**:
+
 ```json
 {
   "status": "error",
@@ -1982,6 +2026,7 @@ This command returns **3 sequential responses** showing role update progress:
 ```
 
 **Important Notes**:
+
 - **User Must Exist**: User with specified UID must exist on at least one device
 - **Role Preservation**: Updates only privilege level while preserving all other user data
 - **Parallel Processing**: Role update occurs on all devices with the user simultaneously
@@ -1995,6 +2040,7 @@ This command returns **3 sequential responses** showing role update progress:
 - **Access Control**: Higher privilege levels have more access rights on the devices
 
 **Role Usage Examples**:
+
 - **Normal User (0)**: Standard employees with access only
 - **Enroll User (1)**: Staff who can register fingerprints for others
 - **Admin (2)**: Managers who can manage users and basic settings

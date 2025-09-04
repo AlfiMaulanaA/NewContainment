@@ -1,9 +1,15 @@
-import Dashboard from '@/app/dashboard/page';
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Page() {
-  return (
-    <>
-    <Dashboard />
-    </>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to dashboard-overview
+    router.replace('/dashboard-overview');
+  }, [router]);
+
+  return null;
 }

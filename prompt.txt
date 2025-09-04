@@ -1,28 +1,6 @@
+Buatkan file script shell pada root
 
-netstat -ano | findstr :3000
-taskkill /PID <PID> /F
-
-
-5. Access Control
-6. Color Range Indicator, buat sebuah fungsi untuk menentukan warna dari suatu perbandingan parameter
-7. kenapa project frontend saya sering glith css style nya?
-
-
-Overview
-- Racks Sensor Data
-- Matikan debug
-
-Emrgency Logs
-- Delete All Logs
-- Time remaining gunkanaN waktu UTC+7
-
-Maintenance Reports
-
-Networks
-- Analisa dan perbaiki
-
-6283116297507
-
-
-Remember me, reset password
-
+1. lakukan sebuah pengecekan instalasi, apakah node, dotnet v9, nginx, pm2 sudah terinstall? jika sudah lanjut step 2, jika belum install yang belum.
+2. buatkan sebuah fungsi untuk jalankan npm install dan npm run build pada NewContainment/frontend dan running frontend di pm2
+3. dan buatkan fungsi untuk build backend di linux dengan output publish
+4. Lalu pindahkan file NewContainmentWeb.service ke /etc/systemd/system

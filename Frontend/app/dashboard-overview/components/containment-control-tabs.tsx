@@ -342,15 +342,15 @@ export default function ContainmentControlPage() {
               </h3>
 
               {/* Front Door Always Open */}
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
                 <div className="flex items-center gap-3">
                   {controlState.frontDoorAlwaysOpen ? (
-                    <DoorOpen className="h-4 w-4 text-green-500" />
+                    <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
                   ) : (
-                    <DoorClosed className="h-4 w-4 text-gray-500" />
+                    <DoorClosed className="h-4 w-4 text-muted-foreground" />
                   )}
                   <div>
-                    <Label className="font-medium">
+                    <Label className="font-medium text-foreground">
                       Front Door Always Open
                     </Label>
                     <div className="text-xs text-muted-foreground">
@@ -366,15 +366,15 @@ export default function ContainmentControlPage() {
               </div>
 
               {/* Back Door Always Open */}
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
                 <div className="flex items-center gap-3">
                   {controlState.backDoorAlwaysOpen ? (
-                    <DoorOpen className="h-4 w-4 text-green-500" />
+                    <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
                   ) : (
-                    <DoorClosed className="h-4 w-4 text-gray-500" />
+                    <DoorClosed className="h-4 w-4 text-muted-foreground" />
                   )}
                   <div>
-                    <Label className="font-medium">Back Door Always Open</Label>
+                    <Label className="font-medium text-foreground">Back Door Always Open</Label>
                     <div className="text-xs text-muted-foreground">
                       Keep back door permanently open
                     </div>

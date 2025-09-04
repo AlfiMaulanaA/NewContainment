@@ -76,6 +76,9 @@ import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { getRoleDisplayName, getRoleColor } from "@/lib/auth-utils";
 import { toast } from "sonner";
+import ThemeAvatar from "@/components/theme-avatar";
+import { getAppConfig } from "@/lib/config";
+import { isDefaultAvatar } from "@/lib/avatar-utils";
 import {
   usePermissions,
   PermissionWrapper,
@@ -332,7 +335,7 @@ export default function UserManagementPage() {
         if (editingUser && editingUser.id === userId) {
           setEditingUser({
             ...editingUser,
-            photoPath: "/images/avatar-user.png",
+            photoPath: null,
           });
         }
 
@@ -347,10 +350,7 @@ export default function UserManagementPage() {
     }
   };
 
-  // Get user photo URL
-  const getUserPhotoUrl = (user: User) => {
-    return userPhotoApi.getPhotoUrl(user);
-  };
+  const { apiBaseUrl } = getAppConfig();
 
   // Get role enum from string
   const getRoleEnum = (roleString: string): UserRole => {
@@ -618,14 +618,13 @@ export default function UserManagementPage() {
                         </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            <img
-                              src={getUserPhotoUrl(user)}
+                            <ThemeAvatar
+                              user={user}
+                              baseUrl={apiBaseUrl}
+                              className="object-cover border"
                               alt={user.name}
-                              className="w-8 h-8 rounded-full object-cover border"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = "/images/avatar-user.png";
-                              }}
+                              width={32}
+                              height={32}
                             />
                             {user.name}
                           </div>
@@ -792,14 +791,13 @@ export default function UserManagementPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : editingUser ? (
-                    <img
-                      src={getUserPhotoUrl(editingUser)}
+                    <ThemeAvatar
+                      user={editingUser}
+                      baseUrl={apiBaseUrl}
+                      className="object-cover"
                       alt={editingUser.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/images/avatar-user.png";
-                      }}
+                      width={128}
+                      height={128}
                     />
                   ) : (
                     <UserIcon className="w-8 h-8 text-gray-400" />
@@ -850,7 +848,7 @@ export default function UserManagementPage() {
                     )}
                     {editingUser &&
                       editingUser.photoPath &&
-                      editingUser.photoPath !== "/images/avatar-user.png" && (
+                      !isDefaultAvatar(editingUser.photoPath) && (
                         <Button
                           type="button"
                           variant="destructive"

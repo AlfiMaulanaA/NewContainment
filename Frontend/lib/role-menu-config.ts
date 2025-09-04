@@ -178,6 +178,24 @@ export const DYNAMIC_MENU_CONFIG: MenuGroup[] = [
     ],
   },
   {
+    id: 'monitoring',
+    title: 'Real-time Monitoring',
+    requiredRole: RoleLevel.USER,
+    items: [
+      {
+        id: 'sensor-monitoring',
+        title: 'Sensor Monitor',
+        url: '/monitoring/sensors',
+        icon: Activity,
+        requiredRole: RoleLevel.USER,
+        badge: {
+          text: 'Live',
+          variant: 'default',
+        },
+      },
+    ],
+  },
+  {
     id: 'analytics',
     title: 'Analytics',
     requiredRole: RoleLevel.USER,

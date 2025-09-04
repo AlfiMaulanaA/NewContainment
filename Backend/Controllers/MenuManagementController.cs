@@ -11,7 +11,6 @@ namespace Backend.Controllers
 {
     [ApiController]
     [Route("api/menu-management")]
-    [Authorize]
     public class MenuManagementController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -510,12 +509,30 @@ namespace Backend.Controllers
         }
 
         [HttpPost("menu-groups")]
-        public IActionResult CreateMenuGroup([FromBody] dynamic groupData)
+        [Authorize(Roles = "Admin,Developer")]
+        public async Task<IActionResult> CreateMenuGroup([FromBody] CreateMenuGroupRequest request)
         {
             try
             {
-                // Mock implementation - return success
-                return Ok(new { success = true, data = new { id = 1, message = "Menu group created successfully" } });
+                var menuGroup = new MenuGroup
+                {
+                    Title = request.Title,
+                    Icon = request.Icon,
+                    SortOrder = request.SortOrder,
+                    MinRoleLevel = request.MinRoleLevel,
+                    IsActive = request.IsActive,
+                    RequiresDeveloperMode = request.RequiresDeveloperMode,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.MenuGroups.Add(menuGroup);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { 
+                    success = true, 
+                    data = new { id = menuGroup.Id, message = "Menu group created successfully" } 
+                });
             }
             catch (Exception ex)
             {
@@ -525,28 +542,74 @@ namespace Backend.Controllers
         }
 
         [HttpPut("menu-groups/{id}")]
-        public IActionResult UpdateMenuGroup(int id, [FromBody] dynamic groupData)
+        [Authorize(Roles = "Admin,Developer")]
+        public async Task<IActionResult> UpdateMenuGroup(int id, [FromBody] UpdateMenuGroupRequest request)
         {
             try
             {
-                // Mock implementation - return success
+                var menuGroup = await _context.MenuGroups.FindAsync(id);
+                if (menuGroup == null)
+                {
+                    return NotFound(new { success = false, message = "Menu group not found" });
+                }
+
+                if (!string.IsNullOrEmpty(request.Title)) menuGroup.Title = request.Title;
+                if (!string.IsNullOrEmpty(request.Icon)) menuGroup.Icon = request.Icon;
+                if (request.SortOrder.HasValue) menuGroup.SortOrder = request.SortOrder.Value;
+                if (request.MinRoleLevel.HasValue) menuGroup.MinRoleLevel = request.MinRoleLevel;
+                if (request.IsActive.HasValue) menuGroup.IsActive = request.IsActive.Value;
+                if (request.RequiresDeveloperMode.HasValue) menuGroup.RequiresDeveloperMode = request.RequiresDeveloperMode.Value;
+                
+                menuGroup.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
                 return Ok(new { success = true, message = "Menu group updated successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating menu group");
+                _logger.LogError(ex, "Error updating menu group {Id}", id);
                 return StatusCode(500, new { success = false, message = "Error updating menu group" });
             }
         }
 
         // ADMIN ENDPOINTS - Manage Menu Items
         [HttpPost("menu-items")]
-        public IActionResult CreateMenuItem([FromBody] dynamic itemData)
+        [Authorize(Roles = "Admin,Developer")]
+        public async Task<IActionResult> CreateMenuItem([FromBody] CreateMenuItemRequest request)
         {
             try
             {
-                // Mock implementation - return success
-                return Ok(new { success = true, data = new { id = 1, message = "Menu item created successfully" } });
+                // Verify the menu group exists
+                var menuGroup = await _context.MenuGroups.FindAsync(request.MenuGroupId);
+                if (menuGroup == null)
+                {
+                    return BadRequest(new { success = false, message = "Menu group not found" });
+                }
+
+                var menuItem = new MenuItem
+                {
+                    Title = request.Title,
+                    Url = request.Url,
+                    Icon = request.Icon,
+                    SortOrder = request.SortOrder,
+                    MinRoleLevel = request.MinRoleLevel,
+                    IsActive = request.IsActive,
+                    RequiresDeveloperMode = request.RequiresDeveloperMode,
+                    BadgeText = request.BadgeText,
+                    BadgeVariant = request.BadgeVariant,
+                    MenuGroupId = request.MenuGroupId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.MenuItems.Add(menuItem);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { 
+                    success = true, 
+                    data = new { id = menuItem.Id, message = "Menu item created successfully" } 
+                });
             }
             catch (Exception ex)
             {

@@ -9,6 +9,7 @@ import {
   type UserMenuResponse,
   type MenuUserRole,
 } from "@/lib/api";
+import { useDeveloperMode } from "@/contexts/DeveloperModeContext";
 
 // Re-export types for convenience
 export type { MenuItemData, MenuGroupData, UserMenuResponse, MenuUserRole };
@@ -18,6 +19,7 @@ export function useDynamicMenu() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const { registerMenuRefresh } = useDeveloperMode();
 
   const fetchUserMenu = async () => {
     try {
@@ -42,6 +44,9 @@ export function useDynamicMenu() {
   // Auto-refresh menu every 5 minutes or when developer mode changes
   useEffect(() => {
     fetchUserMenu();
+    
+    // Register refresh callback with developer mode context
+    registerMenuRefresh(fetchUserMenu);
 
     const interval = setInterval(() => {
       fetchUserMenu();
@@ -65,7 +70,7 @@ export function useDynamicMenu() {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [registerMenuRefresh]);
 
   return {
     menuData,

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { setCookie } from "cookies-next";
+import ThemeAvatar from "@/components/theme-avatar";
 
 const LoginPage = () => {
   const { theme, setTheme } = useTheme();
@@ -113,7 +114,7 @@ const LoginPage = () => {
 
         // Small delay to ensure token is stored, then navigate using router
         setTimeout(() => {
-          router.push("/");
+          router.push("/dashboard-overview");
         }, 100);
       } else {
         const errorMessage = result.message || "Login failed";
@@ -129,7 +130,11 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen font-sans bg-gray-100 relative">
+    <div className={`flex min-h-screen font-sans relative ${
+      theme === 'dark' 
+        ? 'bg-gray-900' 
+        : 'bg-gray-100'
+    }`}>
       {/* Kiri: Gambar dan informasi */}
       <div
         className="flex-1 relative bg-cover bg-center overflow-hidden hidden lg:block"
@@ -143,13 +148,23 @@ const LoginPage = () => {
           <div className="absolute top-6 left-6 z-10 text-white">
             <div className="text-sm font-medium mb-2">Production By</div>
             <div className="flex items-center gap-2 animate-fadeInUp">
-              <img
-                src="/images/gspe.jpg"
-                alt="GSPE"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
+              <div className={`w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden backdrop-blur-sm flex items-center justify-center ${
+                theme === 'dark' 
+                  ? 'bg-gray-800/80 shadow-lg' 
+                  : 'bg-white/10'
+              }`}>
+                <img
+                  src="/images/gspe.jpg"
+                  alt="GSPE"
+                  width={32}
+                  height={32}
+                  className={`rounded-full object-cover ${
+                    theme === 'dark' 
+                      ? 'filter brightness-125 contrast-110 saturate-110' 
+                      : 'filter brightness-110 contrast-110'
+                  }`}
+                />
+              </div>
               <div>
                 <p className="font-bold leading-tight">
                   PT Graha Sumber Prima Elektronik
@@ -176,7 +191,11 @@ const LoginPage = () => {
       </div>
 
       {/* Kanan: Form Login */}
-      <div className="flex-1 flex items-center justify-center bg-white px-4 sm:px-6 lg:px-8">
+      <div className={`flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 ${
+        theme === 'dark' 
+          ? 'bg-gray-800' 
+          : 'bg-white'
+      }`}>
         <div className="absolute top-4 right-4 z-50">
           <Button
             variant="outline"
@@ -194,10 +213,18 @@ const LoginPage = () => {
 
         <div className="w-full max-w-md space-y-6 animate-slideIn py-12">
           <div>
-            <h2 className="text-3xl font-bold text-center text-gray-900 animate-fadeInUp">
+            <h2 className={`text-3xl font-bold text-center animate-fadeInUp ${
+              theme === 'dark' 
+                ? 'text-white' 
+                : 'text-gray-900'
+            }`}>
               Hi, Welcome Back.
             </h2>
-            <p className="text-center text-gray-500 mt-2 text-sm">
+            <p className={`text-center mt-2 text-sm ${
+              theme === 'dark' 
+                ? 'text-gray-300' 
+                : 'text-gray-500'
+            }`}>
               <span
                 className="inline-block border-r-2 border-blue-500 pr-2 animate-typing overflow-hidden whitespace-nowrap"
                 style={{
@@ -306,9 +333,13 @@ const LoginPage = () => {
             )}
 
             {/* Daftar */}
-            <p className="text-center text-sm text-gray-600">
-              Don’t have an account?{" "}
-              <a href="/auth/register" className="underline text-blue-600">
+            <p className={`text-center text-sm ${
+              theme === 'dark' 
+                ? 'text-gray-300' 
+                : 'text-gray-600'
+            }`}>
+              Don't have an account?{" "}
+              <a href="/auth/register" className="underline text-blue-600 hover:text-blue-700">
                 Sign up
               </a>
             </p>
@@ -345,7 +376,11 @@ const LoginPage = () => {
       </div>
 
       {/* Versi Aplikasi */}
-      <div className="absolute bottom-2 right-4 text-xs text-gray-400 border border-gray-300 px-3 py-1 rounded-full bg-white/70 backdrop-blur-sm shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:bg-white">
+      <div className={`absolute bottom-2 right-4 text-xs px-3 py-1 rounded-full backdrop-blur-sm shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md ${
+        theme === 'dark'
+          ? 'text-gray-300 border border-gray-600 bg-gray-800/70 hover:bg-gray-700/80'
+          : 'text-gray-400 border border-gray-300 bg-white/70 hover:bg-white'
+      }`}>
         Version {appVersion}
       </div>
     </div>

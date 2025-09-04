@@ -188,18 +188,6 @@ namespace Backend.Data
                     },
                     new MenuItem
                     {
-                        Title = "User Activity",
-                        Url = "/management/user-activity",
-                        Icon = "Activity",
-                        SortOrder = 2,
-                        MinRoleLevel = 3, // Admin only
-                        IsActive = true,
-                        RequiresDeveloperMode = false,
-                        MenuGroupId = infraGroup.Id,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                    new MenuItem
-                    {
                         Title = "Containments",
                         Url = "/management/containments",
                         Icon = "Server",
@@ -228,18 +216,6 @@ namespace Backend.Data
                         Url = "/management/devices",
                         Icon = "Database",
                         SortOrder = 5,
-                        MinRoleLevel = 1,
-                        IsActive = true,
-                        RequiresDeveloperMode = false,
-                        MenuGroupId = infraGroup.Id,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                    new MenuItem
-                    {
-                        Title = "Sensors",
-                        Url = "/management/sensors",
-                        Icon = "Thermometer",
-                        SortOrder = 6,
                         MinRoleLevel = 1,
                         IsActive = true,
                         RequiresDeveloperMode = false,
@@ -278,18 +254,6 @@ namespace Backend.Data
                         Url = "/management/camera",
                         Icon = "Video",
                         SortOrder = 1,
-                        MinRoleLevel = 2,
-                        IsActive = true,
-                        RequiresDeveloperMode = true,
-                        MenuGroupId = securityGroup.Id,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                    new MenuItem
-                    {
-                        Title = "Access Control",
-                        Url = "/access-control",
-                        Icon = "FileLock",
-                        SortOrder = 2,
                         MinRoleLevel = 2,
                         IsActive = true,
                         RequiresDeveloperMode = true,

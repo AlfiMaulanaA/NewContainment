@@ -22,6 +22,7 @@ import {
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useMQTT } from "@/hooks/useMQTT";
 import { useZKTecoDevices } from "@/hooks/useZKTecoDevices";
+import { DeveloperModeGuard } from "@/components/developer-mode-guard";
 
 export default function AccessControlPage() {
   useAuthGuard(); // Protect this page
@@ -103,15 +104,16 @@ export default function AccessControlPage() {
   };
 
   return (
-    <SidebarInset>
-      {/* Header */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Access Control System</h1>
-        </div>
+    <DeveloperModeGuard>
+      <SidebarInset>
+        {/* Header */}
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            <h1 className="text-lg font-semibold">Access Control System</h1>
+          </div>
         
         <div className="ml-auto flex items-center gap-2">
           {/* MQTT Status */}
@@ -292,6 +294,7 @@ export default function AccessControlPage() {
           </CardContent>
         </Card>
       </div>
-    </SidebarInset>
+      </SidebarInset>
+    </DeveloperModeGuard>
   );
 }

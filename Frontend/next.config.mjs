@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: true,
-  // Only enable static export for production builds to fix hot-reload issues in development
-  ...(process.env.NODE_ENV === 'production' && {
-    output: 'export', // Enable static export for production only
-    distDir: 'out', // Output directory for static files
-  }),
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -14,7 +9,7 @@ const nextConfig = {
   },
   // Performance optimizations
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
     // Remove turbo as it might conflict with other optimizations
   },
   // Enable SWC minification for better performance
@@ -22,8 +17,8 @@ const nextConfig = {
   // Disable image optimization for static export
   images: {
     unoptimized: true,
-    domains: ['localhost'],
-    formats: ['image/webp', 'image/avif'],
+    domains: ["localhost"],
+    formats: ["image/webp", "image/avif"],
   },
   // Compress responses
   compress: true,
@@ -39,14 +34,14 @@ const nextConfig = {
           // Only separate large icon libraries to reduce initial bundle
           icons: {
             test: /[\\/]node_modules[\\/](lucide-react|@radix-ui)[\\/]/,
-            name: 'icons',
-            chunks: 'all',
+            name: "icons",
+            chunks: "all",
             priority: 20,
           },
         },
       };
     }
-    
+
     return config;
   },
 };

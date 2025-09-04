@@ -1,0 +1,166 @@
+{
+  "project": {
+    "name": "IoT Containment Monitoring System",
+    "version": "1.0.0",
+    "description": "Full-stack IoT monitoring system with real-time sensor data and CCTV integration",
+    "author": "IoT Development Team",
+    "repository": "https://github.com/company/iot-containment-system",
+    "license": "MIT"
+  },
+  "documentation": {
+    "outputDirectory": "../output",
+    "templatesDirectory": "../templates",
+    "assetsDirectory": "../assets",
+    "generateFormats": ["markdown", "html", "json"],
+    "includeWordConversion": true,
+    "includePdfGeneration": false,
+    "includeCodeAnalysis": true,
+    "includeApiDocumentation": true
+  },
+  "analysis": {
+    "scanDirectories": {
+      "frontend": "../../Frontend",
+      "backend": "../../Backend",
+      "middleware": "../../Middleware"
+    },
+    "fileExtensions": {
+      "frontend": [".tsx", ".ts", ".jsx", ".js"],
+      "backend": [".cs", ".csproj"],
+      "config": [".json", ".xml", ".yaml", ".yml"]
+    },
+    "excludeDirectories": [
+      "node_modules",
+      "bin",
+      "obj",
+      ".next",
+      "build",
+      "dist",
+      ".git",
+      "coverage",
+      "logs"
+    ],
+    "includeTestFiles": false,
+    "analyzeDependencies": true,
+    "extractComments": true,
+    "generateDiagrams": false
+  },
+  "features": {
+    "roleBasedAccess": {
+      "enabled": true,
+      "levels": [
+        { "name": "User", "level": 1, "description": "Standard user with basic access" },
+        { "name": "Developer", "level": 2, "description": "Developer with advanced features access" },
+        { "name": "Admin", "level": 3, "description": "Administrator with full system access" }
+      ]
+    },
+    "realTimeMonitoring": {
+      "enabled": true,
+      "protocols": ["MQTT", "WebSocket"],
+      "dataTypes": ["sensor", "device", "alert", "system"]
+    },
+    "integrations": {
+      "mqtt": {
+        "enabled": true,
+        "broker": "Eclipse Mosquitto",
+        "topics": ["sensors/+/data", "devices/+/status", "system/alerts"]
+      },
+      "cctv": {
+        "enabled": true,
+        "protocols": ["RTSP", "HTTP"],
+        "features": ["live-streaming", "recording", "alerts"]
+      },
+      "whatsapp": {
+        "enabled": true,
+        "api": "WhatsApp Business API",
+        "features": ["notifications", "alerts"]
+      },
+      "biometric": {
+        "enabled": true,
+        "devices": ["ZKTeco"],
+        "features": ["access-control", "attendance", "logs"]
+      }
+    }
+  },
+  "templates": {
+    "systemOverview": {
+      "enabled": true,
+      "sections": ["architecture", "features", "technologies", "statistics"]
+    },
+    "apiDocumentation": {
+      "enabled": true,
+      "includeExamples": true,
+      "includeErrorCodes": true,
+      "groupByController": true,
+      "generatePostmanCollection": false
+    },
+    "userGuide": {
+      "enabled": true,
+      "includeScreenshots": false,
+      "stepByStepInstructions": true,
+      "troubleshootingSection": true
+    },
+    "developerGuide": {
+      "enabled": true,
+      "includeSetupInstructions": true,
+      "includeCodeExamples": true,
+      "includeArchitectureDiagrams": false
+    },
+    "deploymentGuide": {
+      "enabled": true,
+      "environments": ["development", "staging", "production"],
+      "platforms": ["windows", "linux", "docker", "cloud"]
+    },
+    "securityDocumentation": {
+      "enabled": true,
+      "includeThreats": true,
+      "includeMitigations": true,
+      "includeCompliance": true
+    }
+  },
+  "server": {
+    "port": 8080,
+    "autoOpen": false,
+    "watchFiles": true,
+    "hotReload": false
+  },
+  "export": {
+    "formats": {
+      "word": {
+        "enabled": true,
+        "tool": "pandoc",
+        "template": "default"
+      },
+      "pdf": {
+        "enabled": false,
+        "tool": "pandoc",
+        "template": "default"
+      },
+      "confluence": {
+        "enabled": false,
+        "baseUrl": "",
+        "credentials": ""
+      }
+    }
+  },
+  "branding": {
+    "companyName": "IoT Solutions Inc.",
+    "primaryColor": "#667eea",
+    "secondaryColor": "#764ba2",
+    "logo": "/assets/logo.png",
+    "favicon": "/assets/favicon.ico"
+  },
+  "notifications": {
+    "onGenerationComplete": true,
+    "onError": true,
+    "email": {
+      "enabled": false,
+      "recipients": [],
+      "smtpConfig": {}
+    },
+    "slack": {
+      "enabled": false,
+      "webhook": "",
+      "channel": "#documentation"
+    }
+  }
+}

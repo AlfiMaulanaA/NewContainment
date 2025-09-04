@@ -1,13 +1,7 @@
-D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\publish\web.config
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\appsettings.Development.json
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\appsettings.json
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\appsettings.Production.json
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\appsettings.websocket.json
-D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\publish\appsettings.Development.json
-D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\publish\appsettings.json
-D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\publish\appsettings.Production.json
-D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\publish\Backend.deps.json
-D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\publish\Backend.runtimeconfig.json
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\Backend.staticwebassets.runtime.json
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\Backend.staticwebassets.endpoints.json
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Release\net9.0\Backend.exe

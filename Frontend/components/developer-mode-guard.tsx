@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DeveloperModeDialog } from '@/components/developer-mode-dialog';
 import { useDeveloperMode } from '@/contexts/DeveloperModeContext';
+import { useDynamicMenu } from '@/hooks/useDynamicMenu';
 import { 
   Lock, 
   Code, 
@@ -23,19 +24,25 @@ interface DeveloperModeGuardProps {
 
 export function DeveloperModeGuard({ children, fallback }: DeveloperModeGuardProps) {
   const { isDeveloperMode, isLoading } = useDeveloperMode();
+  const { menuData, isLoading: menuLoading } = useDynamicMenu();
 
-  if (isLoading) {
+  if (isLoading || menuLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Checking permissions...</p>
+          <p className="text-sm text-muted-foreground">
+            {menuLoading ? 'Loading menu permissions...' : 'Checking permissions...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (isDeveloperMode) {
+  // Check both local developer mode state and dynamic menu data
+  const hasAccess = isDeveloperMode && menuData?.isDeveloperMode;
+  
+  if (hasAccess) {
     return <>{children}</>;
   }
 

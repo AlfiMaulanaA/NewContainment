@@ -198,8 +198,11 @@ using (var scope = app.Services.CreateScope())
 
     logger.LogInformation("Migrating database...");
     await context.Database.MigrateAsync(); // Selalu migrasi
+    
+    // Ensure all pending changes are applied
+    await context.SaveChangesAsync();
 
-    // Initialize default roles first
+    // Initialize default roles after migration is complete
     logger.LogInformation("Initializing role mapping system...");
     await roleMappingService.InitializeDefaultRolesAsync();
     
@@ -240,11 +243,8 @@ using (var scope = app.Services.CreateScope())
 // ...existing code...
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 

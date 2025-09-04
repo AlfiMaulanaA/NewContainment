@@ -206,7 +206,7 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
         <Badge
           variant={status ? "destructive" : "default"}
           className={
-            !status ? "bg-green-100 text-green-800 border-green-300" : ""
+            !status ? "bg-green-500/10 text-green-700 dark:bg-green-400/10 dark:text-green-300 border-green-500/20" : ""
           }
         >
           {status ? "ALERT" : "Normal"}
@@ -220,8 +220,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
           variant={!status ? "destructive" : "default"}
           className={
             !status
-              ? "bg-red-100 text-red-800 border-red-300"
-              : "bg-green-100 text-green-800 border-green-300"
+              ? "bg-red-500/10 text-red-700 dark:bg-red-400/10 dark:text-red-300 border-red-500/20"
+              : "bg-green-500/10 text-green-700 dark:bg-green-400/10 dark:text-green-300 border-green-500/20"
           }
         >
           {status ? "Closed" : "Open"}
@@ -235,8 +235,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
           variant="default"
           className={
             status
-              ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-              : "bg-green-100 text-green-800 border-green-300"
+              ? "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-400/10 dark:text-yellow-300 border-yellow-500/20"
+              : "bg-green-500/10 text-green-700 dark:bg-green-400/10 dark:text-green-300 border-green-500/20"
           }
         >
           {status ? "Active" : "Inactive"}
@@ -250,8 +250,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
           variant="default"
           className={
             status
-              ? "bg-blue-100 text-blue-800 border-blue-300"
-              : "bg-green-100 text-green-800 border-green-300"
+              ? "bg-blue-500/10 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300 border-blue-500/20"
+              : "bg-green-500/10 text-green-700 dark:bg-green-400/10 dark:text-green-300 border-green-500/20"
           }
         >
           {status ? "Active" : "Inactive"}
@@ -265,8 +265,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
           variant={status ? "destructive" : "default"}
           className={
             status
-              ? "bg-red-100 text-red-800 border-red-300"
-              : "bg-green-100 text-green-800 border-green-300"
+              ? "bg-red-500/10 text-red-700 dark:bg-red-400/10 dark:text-red-300 border-red-500/20"
+              : "bg-green-500/10 text-green-700 dark:bg-green-400/10 dark:text-green-300 border-green-500/20"
           }
         >
           {status ? "Active" : "Inactive"}
@@ -278,7 +278,7 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
       return (
         <Badge
           variant="default"
-          className="bg-gray-100 text-gray-800 border-gray-300"
+          className="bg-muted text-muted-foreground border-border"
         >
           Normal
         </Badge>
@@ -290,8 +290,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
         variant="default"
         className={
           status
-            ? "bg-green-100 text-green-800 border-green-300"
-            : "bg-gray-100 text-gray-800 border-gray-300"
+            ? "bg-green-500/10 text-green-700 dark:bg-green-400/10 dark:text-green-300 border-green-500/20"
+            : "bg-muted text-muted-foreground border-border"
         }
       >
         {status ? "Active" : "Inactive"}
@@ -312,11 +312,11 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
     type,
     description,
   }: StatusCardProps) => (
-    <div className="flex items-center justify-between p-3 border rounded-lg bg-card">
+    <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
       <div className="flex items-center gap-3">
         {getStatusIcon(status === undefined ? false : status, type)}
         <div>
-          <div className="font-medium text-sm">{title}</div>
+          <div className="font-medium text-sm text-foreground">{title}</div>
           {description && (
             <div className="text-xs text-muted-foreground">{description}</div>
           )}
@@ -403,8 +403,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
                       <Card
                         className={`relative flex items-center gap-3 p-3 ${
                           status.emergencyStatus
-                            ? "bg-red-600 text-white"
-                            : "bg-green-600 text-white"
+                            ? "bg-destructive text-destructive-foreground border-destructive"
+                            : "bg-green-600 dark:bg-green-700 text-white border-green-600 dark:border-green-700"
                         }`}
                       >
                         {status.emergencyStatus ? (

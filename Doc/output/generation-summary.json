@@ -1,0 +1,55 @@
+{
+  "generationInfo": {
+    "timestamp": "2025-09-03T20:43:35.000Z",
+    "duration": "5.66s",
+    "version": "0.1.0"
+  },
+  "statistics": {
+    "totalFiles": {
+      "frontendPages": 39,
+      "backendControllers": 30,
+      "databaseModels": 21,
+      "apiEndpoints": 209,
+      "coreFeatures": 1
+    },
+    "documentation": {
+      "markdownFiles": 10,
+      "htmlFiles": 1,
+      "configFiles": 2,
+      "analysisFiles": 1
+    }
+  },
+  "features": [
+    {
+      "name": "Frontend",
+      "description": "Frontend functionality",
+      "pages": 39,
+      "controllers": 0
+    }
+  ],
+  "technologies": {
+    "frontend": {
+      "framework": "Next.js 14",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS",
+      "ui": "Radix UI + shadcn/ui",
+      "stateManagement": "React Context + Custom Hooks",
+      "realtime": "MQTT.js"
+    },
+    "backend": {
+      "framework": ".NET 9",
+      "language": "C#",
+      "database": "SQLite + Entity Framework Core",
+      "authentication": "JWT",
+      "realtime": "MQTTnet",
+      "api": "ASP.NET Core Web API"
+    }
+  },
+  "nextSteps": [
+    "Review generated documentation for accuracy",
+    "Customize documentation to match company branding",
+    "Set up automated documentation updates",
+    "Deploy documentation portal to production",
+    "Train team members on documentation usage"
+  ]
+}

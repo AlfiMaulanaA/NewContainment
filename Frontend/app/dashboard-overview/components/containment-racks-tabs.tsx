@@ -452,15 +452,15 @@ export default function RackManagementPage({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "normal":
-        return "text-emerald-800 bg-gradient-to-br from-emerald-50/90 to-green-100/60 border-emerald-300/50 shadow-lg shadow-emerald-100/30 backdrop-blur-sm";
+        return "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-400/10 border-emerald-500/20 dark:border-emerald-400/20";
       case "warning":
-        return "text-amber-800 bg-gradient-to-br from-amber-50/90 to-orange-100/60 border-amber-300/50 shadow-lg shadow-amber-100/30 backdrop-blur-sm";
+        return "text-amber-700 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-400/10 border-amber-500/20 dark:border-amber-400/20";
       case "critical":
-        return "text-red-800 bg-gradient-to-br from-red-50/90 to-rose-100/60 border-red-300/50 shadow-lg shadow-red-100/30 backdrop-blur-sm";
+        return "text-red-700 dark:text-red-300 bg-red-500/10 dark:bg-red-400/10 border-red-500/20 dark:border-red-400/20";
       case "offline":
-        return "text-slate-600 bg-gradient-to-br from-slate-100/90 to-gray-100/60 border-slate-300/50 shadow-lg shadow-slate-100/30 backdrop-blur-sm";
+        return "text-muted-foreground bg-muted border-border";
       default:
-        return "text-slate-700 bg-gradient-to-br from-slate-50/90 to-gray-100/60 border-slate-300/50 shadow-lg shadow-slate-100/30 backdrop-blur-sm";
+        return "text-muted-foreground bg-secondary border-border";
     }
   };
 
@@ -544,18 +544,18 @@ export default function RackManagementPage({
   const getDeviceStatusBadgeColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case "active":
-        return "text-green-600 bg-green-100";
+        return "text-green-700 dark:text-green-300 bg-green-500/10 dark:bg-green-400/10";
       case "inactive":
       case "offline":
-        return "text-gray-600 bg-gray-100";
+        return "text-muted-foreground bg-muted";
       case "error":
-        return "text-red-600 bg-red-100";
+        return "text-red-700 dark:text-red-300 bg-red-500/10 dark:bg-red-400/10";
       case "warning":
-        return "text-yellow-600 bg-yellow-100";
+        return "text-yellow-700 dark:text-yellow-300 bg-yellow-500/10 dark:bg-yellow-400/10";
       case "maintenance":
-        return "text-blue-600 bg-blue-100";
+        return "text-blue-700 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-400/10";
       default:
-        return "text-gray-600 bg-gray-100";
+        return "text-muted-foreground bg-muted";
     }
   };
 
@@ -640,7 +640,7 @@ export default function RackManagementPage({
                                 .filter((device) => device.type === "Sensor")
                                 .map((device) => {
                                   const visual =
-                                    SENSOR_TYPE_VISUALS[device.sensorType];
+                                    device.sensorType ? SENSOR_TYPE_VISUALS[device.sensorType as keyof typeof SENSOR_TYPE_VISUALS] : undefined;
                                   const IconComponent = visual?.icon;
                                   const formattedData = formatSensorData(
                                     device,
@@ -784,7 +784,7 @@ export default function RackManagementPage({
                                     }&rackName=${encodeURIComponent(rack.name)}`
                                   )
                                 }
-                                className="group text-emerald-700 hover:text-emerald-900 border border-emerald-200/50 hover:border-emerald-300 p-2.5 h-auto rounded-xl transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
+                                className="group text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 border border-emerald-500/20 hover:border-emerald-500/40 p-2.5 h-auto rounded-xl transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
                                 title="Manage devices"
                               >
                                 <Server className="h-3.5 w-3.5 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300" />
@@ -900,10 +900,10 @@ export default function RackManagementPage({
                                           value.status
                                         )}`}
                                       >
-                                        <div className="font-bold text-gray-900">
+                                        <div className="font-bold text-foreground">
                                           {value.value}
                                         </div>
-                                        <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide opacity-80">
+                                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide opacity-80">
                                           {value.label}
                                         </div>
                                         {value.status === "warning" && (
@@ -920,8 +920,8 @@ export default function RackManagementPage({
                                 {/* Enhanced timestamp display */}
                                 {formattedData.timestamp &&
                                   formattedData.timestamp !== "N/A" && (
-                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-600  rounded-full px-4 py-2 border border-gray-200/50 backdrop-blur-sm">
-                                      <Clock className="h-3 w-3 text-gray-500" />
+                                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground rounded-full px-4 py-2 border border-border/50 bg-secondary/20">
+                                      <Clock className="h-3 w-3 text-muted-foreground" />
                                       <span className="font-medium">
                                         Last updated: {formattedData.timestamp}
                                       </span>
@@ -931,7 +931,7 @@ export default function RackManagementPage({
                             );
                           })()
                         ) : (
-                          <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded">
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                             N/A - Not a sensor
                           </span>
                         )}

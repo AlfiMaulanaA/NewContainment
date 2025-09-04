@@ -206,47 +206,51 @@ export default function MenuManagementPage() {
     }
   };
 
-  const handleDeleteItem = async (id: number) => {
-    if (confirm("Are you sure you want to delete this menu item?")) {
-      try {
-        await deleteMenuItem(id);
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<'item' | 'group' | 'role'>('item');
+  const [deleteTarget, setDeleteTarget] = useState<{id: number, name: string} | null>(null);
+
+  const handleDeleteItem = async (id: number, name: string) => {
+    setDeleteType('item');
+    setDeleteTarget({id, name});
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    
+    try {
+      if (deleteType === 'item') {
+        await deleteMenuItem(deleteTarget.id);
         toast.success("Menu item deleted successfully");
-        refreshMenu(); // Refresh sidebar menu
-      } catch (error) {
-        toast.error("Failed to delete menu item");
-      }
-    }
-  };
-
-  const handleDeleteGroup = async (id: number) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this menu group? This will only work if the group has no items."
-      )
-    ) {
-      try {
-        await deleteMenuGroup(id);
+        refreshMenu();
+      } else if (deleteType === 'group') {
+        await deleteMenuGroup(deleteTarget.id);
         toast.success("Menu group deleted successfully");
-        refreshMenu(); // Refresh sidebar menu
-      } catch (error) {
-        toast.error("Failed to delete menu group");
+        refreshMenu();
+      } else if (deleteType === 'role') {
+        await deleteRole(deleteTarget.id);
+        toast.success("Role deleted successfully");
       }
+    } catch (error) {
+      toast.error(`Failed to delete ${deleteType}`);
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
     }
   };
 
-  const handleDeleteRole = async (id: number) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this role? This will only work if no users are assigned to this role."
-      )
-    ) {
-      try {
-        await deleteRole(id);
-        toast.success("Role deleted successfully");
-      } catch (error) {
-        toast.error("Failed to delete role");
-      }
-    }
+  const handleDeleteGroup = async (id: number, name: string) => {
+    setDeleteType('group');
+    setDeleteTarget({id, name});
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteRole = async (id: number, name: string) => {
+    setDeleteType('role');
+    setDeleteTarget({id, name});
+    setDeleteDialogOpen(true);
   };
 
   const handleToggleItemActive = async (id: number) => {
@@ -711,7 +715,7 @@ export default function MenuManagementPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeleteGroup(group.id)}
+                                onClick={() => handleDeleteGroup(group.id, group.title)}
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -1115,7 +1119,7 @@ export default function MenuManagementPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleDeleteItem(item.id)}
+                                  onClick={() => handleDeleteItem(item.id, item.title)}
                                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -1319,7 +1323,7 @@ export default function MenuManagementPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeleteRole(role.id)}
+                                onClick={() => handleDeleteRole(role.id, role.displayName)}
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -1449,6 +1453,43 @@ export default function MenuManagementPage() {
             </TabsContent>
           </PermissionWrapper>
         </Tabs>
+        
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                Delete {deleteType === 'item' ? 'Menu Item' : deleteType === 'group' ? 'Menu Group' : 'Role'}
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?
+                {deleteType === 'group' && (
+                  <span className="block mt-2 text-amber-600">
+                    ⚠️ This will only work if the group has no items.
+                  </span>
+                )}
+                {deleteType === 'role' && (
+                  <span className="block mt-2 text-amber-600">
+                    ⚠️ This will only work if no users are assigned to this role.
+                  </span>
+                )}
+                <span className="block mt-2 text-red-600 font-medium">
+                  This action cannot be undone.
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDelete}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete {deleteType === 'item' ? 'Item' : deleteType === 'group' ? 'Group' : 'Role'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarInset>
   );

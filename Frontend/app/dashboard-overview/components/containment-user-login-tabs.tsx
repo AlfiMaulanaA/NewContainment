@@ -10,32 +10,24 @@ import JwtTokenInfo from "@/components/jwt-token-info";
 import { userProfileApi } from "@/lib/api-service";
 import { getAppConfig } from "@/lib/config";
 import Link from "next/link";
-
-// Avatar default
-const avatarIcon = "/images/avatar-user.png";
+import ThemeAvatar from "@/components/theme-avatar";
 
 export default function ContainmentInfoTabs() {
   const { theme, setTheme } = useTheme();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userPhotoUrl, setUserPhotoUrl] = useState<string>(avatarIcon);
 
   // Fetch user photo from API
   const fetchUserPhoto = async (userId: number) => {
     try {
-      const { apiBaseUrl } = getAppConfig();
       const result = await userProfileApi.getUserProfile(userId);
       if (result.success && result.data) {
-        const photoUrl =
-          result.data.photoPath && result.data.photoPath !== avatarIcon
-            ? `${apiBaseUrl}${result.data.photoPath}`
-            : avatarIcon;
-        setUserPhotoUrl(photoUrl);
-      } else {
-        setUserPhotoUrl(avatarIcon);
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          photoPath: result.data?.photoPath
+        }));
       }
     } catch (error) {
       console.error("Error fetching user photo:", error);
-      setUserPhotoUrl(avatarIcon);
     }
   };
 
@@ -52,16 +44,8 @@ export default function ContainmentInfoTabs() {
       <Card className="relative w-full rounded-xl">
         <CardHeader className="text-start pr-40">
           <CardTitle className="flex items-center gap-2">
-            <Users
-              className={`h-6 w-6 ${
-                theme === "dark" ? "text-green-400" : "text-green-500"
-              }`}
-            />
-            <span
-              className={`text-2xl font-bold ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
+            <Users className="h-6 w-6 text-green-500 dark:text-green-400" />
+            <span className="text-2xl font-bold text-foreground">
               User Logged In
             </span>
           </CardTitle>
@@ -70,14 +54,13 @@ export default function ContainmentInfoTabs() {
           {/* User Avatar Section */}
           <div className="flex-shrink-0">
             <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-emerald-400 shadow-md">
-              <img
-                src={userPhotoUrl}
+              <ThemeAvatar
+                user={currentUser}
+                baseUrl={getAppConfig().apiBaseUrl}
+                className="object-cover"
                 alt="User Avatar"
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = avatarIcon;
-                }}
+                width={80}
+                height={80}
               />
             </div>
           </div>
@@ -85,11 +68,7 @@ export default function ContainmentInfoTabs() {
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3">
             {/* Name and Role */}
             <div className="flex items-center gap-2 flex-wrap">
-              <User2
-                className={`w-5 h-5 ${
-                  theme === "dark" ? "text-emerald-400" : "text-emerald-500"
-                }`}
-              />
+              <User2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
               <span className="text-lg font-semibold">
                 {currentUser?.name || "N/A"}
               </span>
@@ -99,11 +78,7 @@ export default function ContainmentInfoTabs() {
             </div>
             {/* Email */}
             <div className="flex items-center gap-2">
-              <Mail
-                className={`w-5 h-5 ${
-                  theme === "dark" ? "text-emerald-400" : "text-emerald-500"
-                }`}
-              />
+              <Mail className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
               <span className="text-sm text-muted-foreground">
                 {currentUser?.email || "N/A"}
               </span>

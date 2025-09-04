@@ -1,0 +1,26 @@
+{
+  "name": "iot-containment-docs",
+  "version": "1.0.0",
+  "description": "Generated documentation for IoT Containment Monitoring System",
+  "scripts": {
+    "serve": "http-server . -p 8080",
+    "generate": "node ../generator/generate-docs.js",
+    "convert-to-pdf": "markdown-pdf *.md",
+    "convert-to-word": "pandoc -f markdown -t docx -o documentation.docx *.md"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "markdown-pdf": "^11.0.0",
+    "pandoc": "^0.2.1"
+  },
+  "keywords": [
+    "documentation",
+    "iot",
+    "monitoring",
+    "api",
+    "user-guide"
+  ],
+  "author": "IoT Containment System Team",
+  "license": "MIT",
+  "generated": "2025-09-03T20:43:34.779Z"
+}

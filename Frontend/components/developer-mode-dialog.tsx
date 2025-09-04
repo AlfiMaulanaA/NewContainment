@@ -47,10 +47,10 @@ export function DeveloperModeDialog({ children, className }: DeveloperModeDialog
     setIsLoading(true);
 
     try {
-      const success = enableDeveloperMode(password);
+      const success = await enableDeveloperMode(password);
       
       if (success) {
-        toast.success('Developer Mode enabled successfully!');
+        toast.success('Developer Mode enabled successfully! Menu will refresh automatically.');
         setPassword('');
         setIsOpen(false);
         // Force immediate UI update
@@ -69,11 +69,18 @@ export function DeveloperModeDialog({ children, className }: DeveloperModeDialog
     }
   };
 
-  const handleToggleDeveloperMode = () => {
+  const handleToggleDeveloperMode = async () => {
     if (isDeveloperMode) {
-      disableDeveloperMode();
-      toast.success('Developer Mode disabled');
-      setIsOpen(false);
+      setIsLoading(true);
+      try {
+        await disableDeveloperMode();
+        toast.success('Developer Mode disabled. Menu will refresh automatically.');
+        setIsOpen(false);
+      } catch (error) {
+        toast.error('Failed to disable Developer Mode');
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       // Dialog will open for password input
     }
@@ -193,9 +200,19 @@ export function DeveloperModeDialog({ children, className }: DeveloperModeDialog
                 variant="outline" 
                 className="w-full" 
                 onClick={handleToggleDeveloperMode}
+                disabled={isLoading}
               >
-                <Lock className="h-4 w-4 mr-2" />
-                Disable Developer Mode
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2" />
+                    Disabling...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Disable Developer Mode
+                  </>
+                )}
               </Button>
             </div>
           )}

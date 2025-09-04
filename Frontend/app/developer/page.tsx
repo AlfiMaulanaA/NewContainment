@@ -30,6 +30,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useDeveloperMode, DEVELOPER_MODE_CONFIG } from "@/contexts/DeveloperModeContext";
 import { DeveloperModeDialog } from "@/components/developer-mode-dialog";
+import { DeveloperModeGuard } from "@/components/developer-mode-guard";
 
 function DeveloperPageContent() {
   const { 
@@ -401,5 +402,9 @@ const DeveloperPageClientOnly = dynamic(() => Promise.resolve(DeveloperPageConte
 });
 
 export default function DeveloperPage() {
-  return <DeveloperPageClientOnly />;
+  return (
+    <DeveloperModeGuard>
+      <DeveloperPageClientOnly />
+    </DeveloperModeGuard>
+  );
 }

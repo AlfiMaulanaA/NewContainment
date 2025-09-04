@@ -48,6 +48,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { LogoutConfirmation } from "@/components/logout-confirmation";
 import { Badge } from "@/components/ui/badge";
+import ThemeAvatar from "@/components/theme-avatar";
 import { useDynamicMenu } from "@/hooks/useDynamicMenu";
 
 // Icon mapping for dynamic menu
@@ -81,47 +82,32 @@ const iconMap: Record<string, React.ComponentType<any>> = {
 };
 
 const appName = process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment Monitoring";
-const avatarIcon = process.env.NEXT_PUBLIC_APP_AVATAR_URL || "/images/avatar-user.png";
-
 export function DynamicSidebar() {
   const pathname = usePathname();
-  const { isDeveloperMode, getFormattedRemainingTime } = useDeveloperMode();
+  const { isDeveloperMode, getFormattedRemainingTime, isDynamicMenuLoading } = useDeveloperMode();
   const { menuData, isLoading: menuLoading, refreshMenu } = useDynamicMenu();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [userPhotoUrl, setUserPhotoUrl] = useState<string>(avatarIcon);
   const [isScrollVisible, setIsScrollVisible] = useState(false);
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
+  const { apiBaseUrl } = getAppConfig();
 
-  // Get user photo URL
-  const getUserPhotoUrl = (user: any) => {
-    if (user?.photoPath && user.photoPath !== "/images/avatar-user.png") {
-      const { apiBaseUrl } = getAppConfig();
-      return `${apiBaseUrl}${user.photoPath}`;
-    }
-    return avatarIcon;
-  };
-
-  // Fetch user photo
+  // Fetch user photo data to populate user object for ThemeAvatar component
   const fetchUserPhoto = async (userId: number) => {
     try {
-      const { apiBaseUrl } = getAppConfig();
       const result = await userProfileApi.getUserProfile(userId);
 
       if (result.success && result.data) {
-        const photoUrl =
-          result.data.photoPath && result.data.photoPath !== "/images/avatar-user.png"
-            ? `${apiBaseUrl}${result.data.photoPath}`
-            : avatarIcon;
-        setUserPhotoUrl(photoUrl);
-      } else {
-        setUserPhotoUrl(avatarIcon);
+        // Update currentUser with photo data for ThemeAvatar component
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          photoPath: result.data.photoPath
+        }));
       }
     } catch (error) {
       console.error("Error fetching user photo:", error);
-      setUserPhotoUrl(avatarIcon);
     }
   };
 
@@ -173,12 +159,17 @@ export function DynamicSidebar() {
     return IconComponent || iconMap.Menu; // Fallback to Menu icon
   };
 
-  if (menuLoading) {
+  if (menuLoading || isDynamicMenuLoading) {
     return (
       <Sidebar>
         <SidebarContent className="bg-background">
           <div className="flex items-center justify-center p-6">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span className="text-sm text-muted-foreground">
+                {isDynamicMenuLoading ? 'Updating menu...' : 'Loading menu...'}
+              </span>
+            </div>
           </div>
         </SidebarContent>
       </Sidebar>
@@ -297,14 +288,13 @@ export function DynamicSidebar() {
           <DialogTrigger asChild>
             <div className="flex items-center gap-3 mb-4 px-1 cursor-pointer hover:bg-muted rounded-md p-1 transition hover:shadow-sm">
               <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-sidebar-border">
-                <img
-                  src={userPhotoUrl}
+                <ThemeAvatar
+                  user={currentUser}
+                  baseUrl={apiBaseUrl}
+                  className="object-cover"
                   alt="User Avatar"
-                  className="object-cover h-full w-full"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = avatarIcon;
-                  }}
+                  width={40}
+                  height={40}
                 />
               </div>
               <div className="flex flex-col flex-1 min-w-0">
@@ -332,14 +322,13 @@ export function DynamicSidebar() {
 
             <div className="flex flex-col items-center mt-2">
               <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary shadow-md mb-2">
-                <img
-                  src={userPhotoUrl}
+                <ThemeAvatar
+                  user={currentUser}
+                  baseUrl={apiBaseUrl}
+                  className="object-cover"
                   alt="User Avatar"
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = avatarIcon;
-                  }}
+                  width={96}
+                  height={96}
                 />
               </div>
               <h3 className="text-lg font-semibold">

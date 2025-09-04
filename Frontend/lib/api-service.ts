@@ -845,11 +845,13 @@ export const userPhotoApi = {
     }
   },
 
-  getPhotoUrl(user: { photoPath?: string }): string {
-    if (user.photoPath && user.photoPath !== "/images/avatar-user.png") {
+  getPhotoUrl(user: { photoPath?: string }, isDark: boolean = false): string {
+    if (user.photoPath && 
+        user.photoPath !== "/images/avatar-user.png" && 
+        user.photoPath !== "/images/avatar-user-dark.png") {
       return `${BASE_URL}${user.photoPath}`;
     }
-    return "/images/avatar-user.png";
+    return isDark ? "/images/avatar-user-dark.png" : "/images/avatar-user.png";
   },
 };
 

@@ -86,6 +86,9 @@ namespace Backend.Services
         {
             try
             {
+                // Ensure database schema exists before checking roles
+                await _context.Database.EnsureCreatedAsync();
+                
                 // Check if roles already exist
                 if (await _context.Roles.AnyAsync()) return;
 

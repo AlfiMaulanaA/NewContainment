@@ -10,13 +10,17 @@ const EXPIRY_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 interface DeveloperModeContextType {
   isDeveloperMode: boolean;
   isLoading: boolean;
-  enableDeveloperMode: (password: string) => boolean;
-  disableDeveloperMode: () => void;
+  enableDeveloperMode: (password: string) => Promise<boolean>;
+  disableDeveloperMode: () => Promise<void>;
   getRemainingTime: () => number;
   getFormattedRemainingTime: () => string;
   refreshDeveloperMode: () => void;
   // Event emitter for real-time updates
   triggerUpdate: () => void;
+  // Dynamic menu integration
+  refreshMenu: () => void;
+  isDynamicMenuLoading: boolean;
+  registerMenuRefresh: (callback: () => void) => void;
 }
 
 const DeveloperModeContext = createContext<DeveloperModeContextType | undefined>(undefined);
@@ -25,6 +29,7 @@ export function DeveloperModeProvider({ children }: { children: React.ReactNode 
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [refreshMenuCallback, setRefreshMenuCallback] = useState<(() => void) | null>(null);
 
   const checkDeveloperMode = useCallback(() => {
     try {
@@ -69,7 +74,7 @@ export function DeveloperModeProvider({ children }: { children: React.ReactNode 
     return () => clearInterval(interval);
   }, [isDeveloperMode, checkDeveloperMode]);
 
-  const enableDeveloperMode = useCallback((password: string): boolean => {
+  const enableDeveloperMode = useCallback(async (password: string): Promise<boolean> => {
     if (password === DEVELOPER_PASSWORD) {
       const expiryTime = Date.now() + EXPIRY_DURATION;
       
@@ -77,7 +82,19 @@ export function DeveloperModeProvider({ children }: { children: React.ReactNode 
         localStorage.setItem(DEVELOPER_MODE_KEY, 'true');
         localStorage.setItem(DEVELOPER_MODE_EXPIRY, expiryTime.toString());
         setIsDeveloperMode(true);
+        
+        // Trigger menu refresh to show/hide developer mode items
+        if (refreshMenuCallback) {
+          refreshMenuCallback();
+        }
         triggerUpdate();
+        
+        // Trigger storage event for other tabs/components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: DEVELOPER_MODE_KEY,
+          newValue: 'true',
+        }));
+        
         return true;
       } catch (error) {
         console.error('Error enabling developer mode:', error);
@@ -85,18 +102,29 @@ export function DeveloperModeProvider({ children }: { children: React.ReactNode 
       }
     }
     return false;
-  }, []);
+  }, [refreshMenuCallback]);
 
-  const disableDeveloperMode = useCallback(() => {
+  const disableDeveloperMode = useCallback(async () => {
     try {
       localStorage.removeItem(DEVELOPER_MODE_KEY);
       localStorage.removeItem(DEVELOPER_MODE_EXPIRY);
       setIsDeveloperMode(false);
+      
+      // Trigger menu refresh to hide developer mode items
+      if (refreshMenuCallback) {
+        refreshMenuCallback();
+      }
       triggerUpdate();
+      
+      // Trigger storage event for other tabs/components
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: DEVELOPER_MODE_KEY,
+        newValue: null,
+      }));
     } catch (error) {
       console.error('Error disabling developer mode:', error);
     }
-  }, []);
+  }, [refreshMenuCallback]);
 
   const getRemainingTime = useCallback((): number => {
     try {
@@ -131,6 +159,11 @@ export function DeveloperModeProvider({ children }: { children: React.ReactNode 
     triggerUpdate();
   }, [checkDeveloperMode]);
 
+  // Function to register menu refresh callback
+  const registerMenuRefresh = useCallback((callback: () => void) => {
+    setRefreshMenuCallback(() => callback);
+  }, []);
+  
   const value: DeveloperModeContextType = {
     isDeveloperMode,
     isLoading,
@@ -140,6 +173,9 @@ export function DeveloperModeProvider({ children }: { children: React.ReactNode 
     getFormattedRemainingTime,
     refreshDeveloperMode,
     triggerUpdate,
+    refreshMenu: refreshMenuCallback || (() => {}),
+    isDynamicMenuLoading: false,
+    registerMenuRefresh,
   };
 
   return (

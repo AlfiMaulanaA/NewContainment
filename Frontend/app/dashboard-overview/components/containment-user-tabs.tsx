@@ -16,7 +16,8 @@ import { usersApi, userPhotoApi, User, UserRole } from "@/lib/api-service";
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { toast } from "sonner";
-import Image from "next/image";
+import ThemeAvatar from "@/components/theme-avatar";
+import { getAppConfig } from "@/lib/config";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -37,6 +38,8 @@ export default function UserManagementPage() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+  
+  const { apiBaseUrl } = getAppConfig();
 
   const loadUsers = async () => {
     setLoading(true);
@@ -68,7 +71,7 @@ export default function UserManagementPage() {
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader className="p-4">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-xl">Users</CardTitle>
+            <CardTitle className="text-xl text-foreground">Users</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -91,20 +94,18 @@ export default function UserManagementPage() {
                                 : "border-red-500"
                             }`}
                         >
-                          <Image
-                            src={getUserPhotoUrl(user)}
+                          <ThemeAvatar
+                            user={user}
+                            baseUrl={apiBaseUrl}
+                            className="object-cover"
                             alt={user.name}
-                            layout="fill"
-                            objectFit="cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/images/avatar-user.png";
-                            }}
+                            width={64}
+                            height={64}
                           />
                         </div>
                       </div>
                       <div className="flex-1 flex flex-col items-center">
-                        <h2 className="text-sm font-bold truncate">
+                        <h2 className="text-sm font-bold truncate text-foreground">
                           {user.name}
                         </h2>
                         <p className="text-xs text-muted-foreground truncate">

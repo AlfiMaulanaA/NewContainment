@@ -1,0 +1,55 @@
+{
+  "name": "iot-containment-docs-generator",
+  "version": "1.0.0",
+  "description": "Documentation generator for IoT Containment Monitoring System",
+  "main": "generate-docs.js",
+  "scripts": {
+    "generate": "node generate-docs.js",
+    "dev": "nodemon generate-docs.js",
+    "analyze": "node -e \"require('./codebase-analyzer'); console.log('Analysis complete')\"",
+    "templates": "node -e \"require('./template-generator'); console.log('Templates ready')\"",
+    "serve": "node docs-server.js",
+    "serve-alt": "cd ../output && http-server . -p 8080 -o",
+    "convert-word": "cd ../output/word && chmod +x convert-to-word.sh && ./convert-to-word.sh",
+    "test": "echo 'Testing documentation generation...' && npm run generate",
+    "build": "npm run generate",
+    "start": "npm run serve",
+    "watch": "nodemon --watch ../../Frontend --watch ../../Backend --exec \"npm run generate\"",
+    "open": "start http://localhost:8080"
+  },
+  "bin": {
+    "generate-docs": "./generate-docs.js"
+  },
+  "keywords": [
+    "documentation",
+    "generator",
+    "iot",
+    "monitoring",
+    "api-docs",
+    "markdown",
+    "automation"
+  ],
+  "author": "IoT Containment System Team",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^11.1.1",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "http-server": "^14.1.1",
+    "eslint": "^8.50.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/company/iot-containment-system.git",
+    "directory": "Doc/generator"
+  },
+  "bugs": {
+    "url": "https://github.com/company/iot-containment-system/issues"
+  },
+  "homepage": "https://github.com/company/iot-containment-system#readme"
+}

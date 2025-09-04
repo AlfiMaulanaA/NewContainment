@@ -168,38 +168,38 @@ const ModernVideoPlayer = ({
 
   if (error) {
     return (
-      <div className="w-full aspect-video bg-background rounded-lg flex flex-col items-center justify-center relative">
+      <div className="w-full aspect-video bg-muted rounded-lg flex flex-col items-center justify-center relative">
         <div className="absolute top-3 left-3">
           <Badge
             variant="secondary"
-            className="bg-gray-700 text-primary text-xs"
+            className="bg-destructive/10 text-destructive text-xs"
           >
-            <Circle className="h-2 w-2 fill-gray-400 mr-1" />
+            <Circle className="h-2 w-2 fill-destructive mr-1" />
             OFFLINE
           </Badge>
         </div>
 
-        <VideoOff className="h-12 w-12 text-gray-500 mb-2" />
-        <p className="text-sm text-gray-400 text-center mb-3">{error}</p>
+        <VideoOff className="h-12 w-12 text-muted-foreground mb-2" />
+        <p className="text-sm text-muted-foreground text-center mb-3">{error}</p>
         <Button
           onClick={restartStream}
           size="sm"
-          variant="destructive"
-          className="text-gray-300 border-gray-600"
+          variant="outline"
+          className="border-border"
         >
           <RotateCcw className="h-4 w-4 mr-1" />
           Retry
         </Button>
 
         <div className="absolute bottom-3 right-3">
-          <span className="text-xs text-gray-500">{currentTime}</span>
+          <span className="text-xs text-muted-foreground">{currentTime}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
+    <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
@@ -260,18 +260,18 @@ const CCTVCard = ({
   };
 
   return (
-    <Card className="bg-background shadow-lg border  overflow-hidden">
+    <Card className="bg-card shadow-lg border border-border overflow-hidden">
       {/* Header with title */}
-      <div className="flex justify-between items-center bg-background px-4 py-3">
+      <div className="flex justify-between items-center bg-card px-4 py-3 border-b border-border">
         <div>
-          <h3 className="font-bold text-gray-900 text-sm">
+          <h3 className="font-bold text-foreground text-sm">
             CCTV Feed - {streamItem.name}
           </h3>
           <div className="text-xs text-muted-foreground">
-            Camera: {streamItem.host}
+            Camera: {streamItem.camera.name}
           </div>
         </div>
-        <div className="text-xs text-primary border rounded-full px-2 py-1">
+        <div className="text-xs text-primary border border-border rounded-full px-2 py-1">
           {streamItem.status}
         </div>
       </div>
@@ -281,7 +281,7 @@ const CCTVCard = ({
         <ModernVideoPlayer src={streamUrl} title={streamItem.name} />
 
         {/* Control panel */}
-        <div className="mt-2 flex items-center justify-between bg-background rounded-lg p-2">
+        <div className="mt-2 flex items-center justify-between bg-secondary/50 rounded-lg p-2">
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -304,8 +304,8 @@ const CCTVCard = ({
           </div>
 
           {/* Camera info */}
-          <div className="mt-2 text-xs text-muted-foreground text-center">
-            | Stream ID: {streamItem.mid}
+          <div className="text-xs text-muted-foreground">
+            Stream ID: {streamItem.mid}
           </div>
         </div>
       </CardContent>
@@ -467,20 +467,20 @@ export default function ModernCCTVWidget({
         {[...Array(getLoadingItemCount())].map((_, index) => (
           <Card
             key={index}
-            className="bg-background shadow-lg border  animate-pulse"
+            className="bg-card shadow-lg border border-border animate-pulse"
           >
-            <div className="bg-background px-4 py-3 border-b">
-              <div className="h-4 bg-background rounded w-1/2"></div>
+            <div className="bg-muted px-4 py-3 border-b border-border">
+              <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
             </div>
             <CardContent className="p-4">
-              <div className="w-full aspect-video bg-background rounded-lg mb-4"></div>
-              <div className="bg-background rounded-lg p-3">
+              <div className="w-full aspect-video bg-muted rounded-lg mb-4"></div>
+              <div className="bg-secondary rounded-lg p-3">
                 <div className="flex justify-between">
                   <div className="flex gap-2">
                     {[...Array(4)].map((_, i) => (
                       <div
                         key={i}
-                        className="h-8 w-8 bg-background rounded"
+                        className="h-8 w-8 bg-muted rounded"
                       ></div>
                     ))}
                   </div>
@@ -488,7 +488,7 @@ export default function ModernCCTVWidget({
                     {[...Array(2)].map((_, i) => (
                       <div
                         key={i}
-                        className="h-8 w-8 bg-background rounded"
+                        className="h-8 w-8 bg-muted rounded"
                       ></div>
                     ))}
                   </div>
@@ -503,114 +503,28 @@ export default function ModernCCTVWidget({
 
   if (allStreams.length === 0) {
     return (
-      <>
-        {[...Array(getLoadingItemCount())].map((_, index) => (
-          <Card key={index} className="bg-background shadow-lg border ">
-            <div className="bg-background px-4 py-3 border-b ">
-              <h3 className="font-semibold text-gray-900 text-sm">
-                CCTV Feed -{" "}
-                {index === 0
-                  ? "Entrance Corridor"
-                  : index === 1
-                  ? "Loading Dock"
-                  : "Server Room A Cam 1"}
-              </h3>
-            </div>
-            <CardContent className="p-4">
-              <div className="w-full aspect-video bg-gray-900 rounded-lg flex flex-col items-center justify-center relative">
-                <div className="absolute top-3 left-3">
-                  <Badge
-                    variant="secondary"
-                    className="bg-gray-700 text-gray-300 text-xs"
-                  >
-                    <Circle className="h-2 w-2 fill-gray-400 mr-1" />
-                    OFFLINE
-                  </Badge>
-                </div>
-
-                <Camera className="h-12 w-12 text-gray-500 mb-2" />
-                <p className="text-sm text-gray-400 text-center">
-                  No camera feed available
-                </p>
-
-                <div className="absolute bottom-3 right-3">
-                  <span className="text-xs text-gray-500">
-                    {new Date().toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "2-digit",
-                      year: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                      hour12: true,
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled
-                  >
-                    <Play className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled
-                  >
-                    <Pause className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled
-                  >
-                    <VolumeX className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled
-                  >
-                    <Square className="h-3 w-3 text-gray-400" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled
-                  >
-                    <Settings className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled
-                  >
-                    <Expand className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mt-3 text-xs text-gray-500 text-center">
-                Camera: Not connected | Stream ID: N/A
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </>
+      <Card className="bg-card shadow-lg border border-border">
+        <CardContent className="p-8">
+          <div className="w-full aspect-video bg-muted rounded-lg flex flex-col items-center justify-center relative min-h-[300px]">
+            <Camera className="h-16 w-16 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              No CCTV Cameras Available
+            </h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              No active camera feeds found. Please check your camera configuration or contact administrator.
+            </p>
+            <Button
+              onClick={loadCamerasAndMonitorData}
+              variant="outline"
+              size="sm"
+              className="mt-4"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retry Connection
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 

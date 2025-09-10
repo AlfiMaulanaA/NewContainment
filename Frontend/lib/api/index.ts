@@ -13,6 +13,7 @@ export { mqttConfigurationApi } from './mqtt';
 export { maintenanceApi } from './maintenance';
 export { systemApi, accessLogApi, cameraConfigApi } from './system';
 export { menuApi, type MenuItemData, type MenuGroupData, type UserMenuResponse, type MenuUserRole } from './menu';
+export { sensorIntervalsApi, sensorIntervalHelpers, type SensorIntervalConfig, type AvailableInterval } from './sensor-intervals';
 
 // Legacy compatibility exports - export main APIs with original names
 export { authApi as api } from './auth';
@@ -27,6 +28,7 @@ import { mqttConfigurationApi } from './mqtt';
 import { maintenanceApi } from './maintenance';
 import { systemApi, accessLogApi, cameraConfigApi } from './system';
 import { menuApi } from './menu';
+import { sensorIntervalsApi } from './sensor-intervals';
 import { apiClient } from './client';
 
 export const apiService = {
@@ -54,6 +56,7 @@ export const apiService = {
   accessLog: accessLogApi,
   camera: cameraConfigApi,
   menu: menuApi,
+  sensorIntervals: sensorIntervalsApi,
 };
 
 // Default export for convenience

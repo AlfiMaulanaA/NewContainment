@@ -33,7 +33,7 @@ namespace Backend.Models
 
         // New database-based role relationship
         public int? RoleId { get; set; }
-        
+
         [ForeignKey("RoleId")]
         public virtual Role? DatabaseRole { get; set; }
 
@@ -42,15 +42,15 @@ namespace Backend.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsActive { get; set; } = true;
-        
+
         // Helper property to get the effective role (database role takes precedence)
         [NotMapped]
         public Role? EffectiveRole => DatabaseRole;
-        
+
         // Helper property to get role name for compatibility
         [NotMapped]
         public string RoleName => DatabaseRole?.Name ?? Role.ToString();
-        
+
         // Helper property to get role level
         [NotMapped]
         public int RoleLevel => DatabaseRole?.Level ?? (int)Role;

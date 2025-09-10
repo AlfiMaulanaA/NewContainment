@@ -58,7 +58,7 @@ namespace Backend.Services
 
                 // Get target details
                 var targetName = await GetMaintenanceTargetNameAsync(maintenance);
-                
+
                 var message = $"🔧 MAINTENANCE ASSIGNMENT\n\n" +
                              $"Dear {user.Name},\n\n" +
                              $"You have been assigned a new maintenance task. Please review the details below:\n\n" +
@@ -80,7 +80,7 @@ namespace Backend.Services
                           $"IoT Containment Management System";
 
                 var success = await _whatsAppService.SendMessageAsync(user.PhoneNumber, user.Name, message);
-                
+
                 if (success)
                 {
                     _logger.LogInformation("Maintenance assignment notification sent successfully to user {UserId} for maintenance {MaintenanceId}", user.Id, maintenance.Id);
@@ -146,7 +146,7 @@ namespace Backend.Services
                           $"IoT Containment Management System";
 
                 var success = await _whatsAppService.SendMessageAsync(user.PhoneNumber, user.Name, message);
-                
+
                 if (success)
                 {
                     _logger.LogInformation("Maintenance reminder notification sent successfully to user {UserId} for maintenance {MaintenanceId}", user.Id, maintenance.Id);
@@ -189,7 +189,7 @@ namespace Backend.Services
                 foreach (var maintenance in upcomingMaintenances)
                 {
                     await SendMaintenanceReminderNotificationAsync(maintenance);
-                    
+
                     // Add a small delay between messages to avoid rate limiting
                     await Task.Delay(1000);
                 }
@@ -212,19 +212,19 @@ namespace Backend.Services
                     case MaintenanceTarget.Device:
                         var device = await _context.Devices.FindAsync(maintenance.TargetId);
                         return device?.Name ?? $"Device #{maintenance.TargetId}";
-                    
+
                     case MaintenanceTarget.Rack:
                         var rack = await _context.Racks
                             .Include(r => r.Containment)
                             .FirstOrDefaultAsync(r => r.Id == maintenance.TargetId);
-                        return rack != null ? 
-                            $"{rack.Name} (in {rack.Containment?.Name})" : 
+                        return rack != null ?
+                            $"{rack.Name} (in {rack.Containment?.Name})" :
                             $"Rack #{maintenance.TargetId}";
-                    
+
                     case MaintenanceTarget.Containment:
                         var containment = await _context.Containments.FindAsync(maintenance.TargetId);
                         return containment?.Name ?? $"Containment #{maintenance.TargetId}";
-                    
+
                     default:
                         return $"{maintenance.TargetType} #{maintenance.TargetId}";
                 }

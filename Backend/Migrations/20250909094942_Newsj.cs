@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class Cohys : Migration
+    public partial class Newsj : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,8 +23,7 @@ namespace Backend.Migrations
                     Timestamp = table.Column<DateTime>(type: "TEXT", nullable: false),
                     AdditionalData = table.Column<string>(type: "TEXT", nullable: true),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
-                    IsSuccess = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
-                    IpAddress = table.Column<string>(type: "TEXT", nullable: true)
+                    IsSuccess = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -748,6 +747,117 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "SensorDataConfigurations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    SaveIntervalSeconds = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsIntervalEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    IsTemperatureThresholdEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    TemperatureUpperThreshold = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
+                    TemperatureLowerThreshold = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
+                    TemperatureColdColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
+                    TemperatureNormalColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
+                    TemperatureWarmColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
+                    TemperatureHotColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
+                    TemperatureCriticalColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
+                    TemperatureColdMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureNormalMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureNormalMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureWarmMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureWarmMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureHotMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureHotMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    TemperatureCriticalMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    AutoSaveOnThresholdExceed = table.Column<bool>(type: "INTEGER", nullable: false),
+                    AutoSaveOnUpperThreshold = table.Column<bool>(type: "INTEGER", nullable: false),
+                    AutoSaveOnLowerThreshold = table.Column<bool>(type: "INTEGER", nullable: false),
+                    EnableNotifications = table.Column<bool>(type: "INTEGER", nullable: false),
+                    NotificationRecipients = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    DeviceId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ContainmentId = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsGlobalConfiguration = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SensorDataConfigurations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SensorDataConfigurations_Containments_ContainmentId",
+                        column: x => x.ContainmentId,
+                        principalTable: "Containments",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_SensorDataConfigurations_Devices_DeviceId",
+                        column: x => x.DeviceId,
+                        principalTable: "Devices",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_SensorDataConfigurations_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SensorDataConfigurations_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AutoSensorDataLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    DeviceId = table.Column<int>(type: "INTEGER", nullable: false),
+                    SensorDataId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ConfigurationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    TriggerReason = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    TemperatureValue = table.Column<decimal>(type: "decimal(8,3)", nullable: true),
+                    ThresholdValue = table.Column<decimal>(type: "decimal(8,3)", nullable: true),
+                    ViolationType = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    TemperatureStatus = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    TemperatureColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
+                    TriggerTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    AdditionalData = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    NotificationSent = table.Column<bool>(type: "INTEGER", nullable: false),
+                    NotificationSentAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    NotificationStatus = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AutoSensorDataLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AutoSensorDataLogs_DeviceSensorData_SensorDataId",
+                        column: x => x.SensorDataId,
+                        principalTable: "DeviceSensorData",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AutoSensorDataLogs_Devices_DeviceId",
+                        column: x => x.DeviceId,
+                        principalTable: "Devices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AutoSensorDataLogs_SensorDataConfigurations_ConfigurationId",
+                        column: x => x.ConfigurationId,
+                        principalTable: "SensorDataConfigurations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AccessLogs_Timestamp",
                 table: "AccessLogs",
@@ -787,6 +897,21 @@ namespace Backend.Migrations
                 name: "IX_ActivityReports_UserId",
                 table: "ActivityReports",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AutoSensorDataLogs_ConfigurationId",
+                table: "AutoSensorDataLogs",
+                column: "ConfigurationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AutoSensorDataLogs_DeviceId",
+                table: "AutoSensorDataLogs",
+                column: "DeviceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AutoSensorDataLogs_SensorDataId",
+                table: "AutoSensorDataLogs",
+                column: "SensorDataId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CameraConfigs_IpAddress",
@@ -1165,6 +1290,26 @@ namespace Backend.Migrations
                 column: "UpdatedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SensorDataConfigurations_ContainmentId",
+                table: "SensorDataConfigurations",
+                column: "ContainmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataConfigurations_CreatedBy",
+                table: "SensorDataConfigurations",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataConfigurations_DeviceId",
+                table: "SensorDataConfigurations",
+                column: "DeviceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataConfigurations_UpdatedBy",
+                table: "SensorDataConfigurations",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_IsActive",
                 table: "UserRoles",
                 column: "IsActive");
@@ -1207,6 +1352,9 @@ namespace Backend.Migrations
                 name: "ActivityReports");
 
             migrationBuilder.DropTable(
+                name: "AutoSensorDataLogs");
+
+            migrationBuilder.DropTable(
                 name: "CameraConfigs");
 
             migrationBuilder.DropTable(
@@ -1217,9 +1365,6 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "DeviceActivityStatuses");
-
-            migrationBuilder.DropTable(
-                name: "DeviceSensorData");
 
             migrationBuilder.DropTable(
                 name: "EmergencyReports");
@@ -1249,7 +1394,10 @@ namespace Backend.Migrations
                 name: "UserRoles");
 
             migrationBuilder.DropTable(
-                name: "Devices");
+                name: "DeviceSensorData");
+
+            migrationBuilder.DropTable(
+                name: "SensorDataConfigurations");
 
             migrationBuilder.DropTable(
                 name: "MenuItems");
@@ -1258,10 +1406,13 @@ namespace Backend.Migrations
                 name: "Permissions");
 
             migrationBuilder.DropTable(
-                name: "Racks");
+                name: "Devices");
 
             migrationBuilder.DropTable(
                 name: "MenuGroups");
+
+            migrationBuilder.DropTable(
+                name: "Racks");
 
             migrationBuilder.DropTable(
                 name: "Containments");

@@ -7,9 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Wifi, Power, Terminal, RotateCw, Settings, Thermometer, Cpu,
-  MemoryStick, HardDrive, Clock, Moon, Sun, BatteryCharging,
-  Grid, List, Play, Pause, Monitor, Save, Loader2,
+  Wifi,
+  Power,
+  Terminal,
+  RotateCw,
+  Settings,
+  Thermometer,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Clock,
+  Moon,
+  Sun,
+  BatteryCharging,
+  Grid,
+  List,
+  Play,
+  Pause,
+  Monitor,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,24 +34,28 @@ import { useTheme } from "next-themes";
 // MqttStatus component is removed
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 // MQTT-related imports are removed
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
-
-// Import configuration components
-import { SystemConfigComponent } from "@/components/system-config";
-import { PinConfigComponent } from "@/components/pin-config";
 
 // Import API service
 import { systemInfoApi, type SystemInfo } from "@/lib/api-service";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'system');
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || "system"
+  );
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isLoadingSystemInfo, setIsLoadingSystemInfo] = useState(false);
   const [systemInfoError, setSystemInfoError] = useState<string | null>(null);
@@ -60,13 +81,14 @@ export default function SettingsPage() {
       if (response.success && response.data) {
         setSystemInfo(response.data);
       } else {
-        setSystemInfoError(response.message || 'Failed to fetch system info');
-        toast.error(response.message || 'Failed to fetch system info');
+        setSystemInfoError(response.message || "Failed to fetch system info");
+        toast.error(response.message || "Failed to fetch system info");
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       setSystemInfoError(errorMessage);
-      toast.error('Error fetching system info: ' + errorMessage);
+      toast.error("Error fetching system info: " + errorMessage);
     } finally {
       setIsLoadingSystemInfo(false);
     }
@@ -80,15 +102,16 @@ export default function SettingsPage() {
       const response = await systemInfoApi.refreshSystemInfo();
       if (response.success && response.data) {
         setSystemInfo(response.data);
-        toast.success('System info refreshed successfully');
+        toast.success("System info refreshed successfully");
       } else {
-        setSystemInfoError(response.message || 'Failed to refresh system info');
-        toast.error(response.message || 'Failed to refresh system info');
+        setSystemInfoError(response.message || "Failed to refresh system info");
+        toast.error(response.message || "Failed to refresh system info");
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       setSystemInfoError(errorMessage);
-      toast.error('Error refreshing system info: ' + errorMessage);
+      toast.error("Error refreshing system info: " + errorMessage);
     } finally {
       setIsLoadingSystemInfo(false);
     }
@@ -97,13 +120,13 @@ export default function SettingsPage() {
   useEffect(() => {
     // Fetch system info on component mount
     fetchSystemInfo();
-    
+
     // Only handles IP address rotation
-    const ipInterval = setInterval(() => setIpIndex(i => (i + 1) % 2), 3000);
-    
+    const ipInterval = setInterval(() => setIpIndex((i) => (i + 1) % 2), 3000);
+
     // Auto-refresh system info every 30 seconds
     const systemInfoInterval = setInterval(fetchSystemInfo, 30000);
-    
+
     return () => {
       clearInterval(ipInterval);
       clearInterval(systemInfoInterval);
@@ -111,7 +134,11 @@ export default function SettingsPage() {
   }, [fetchSystemInfo]);
 
   const ipType = ipIndex === 0 ? "eth0" : "wlan0";
-  const ipAddress = systemInfo ? (ipIndex === 0 ? systemInfo.eth0_ip_address : systemInfo.wlan0_ip_address) : "N/A";
+  const ipAddress = systemInfo
+    ? ipIndex === 0
+      ? systemInfo.eth0_ip_address
+      : systemInfo.wlan0_ip_address
+    : "N/A";
 
   const handleIntervalChange = (value: string) => {
     setAutoPlayInterval(parseInt(value));
@@ -121,6 +148,12 @@ export default function SettingsPage() {
   const handleReset = () => {
     resetPreferences();
     toast.success("Dashboard preferences reset to defaults");
+  };
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    const themeLabel = newTheme === "system" ? "System Default" : newTheme === "dark" ? "Dark Mode" : "Light Mode";
+    toast.success(`Theme changed to ${themeLabel}`);
   };
 
   return (
@@ -138,7 +171,7 @@ export default function SettingsPage() {
             size="icon"
             aria-label="Toggle theme"
             className="h-8 w-8"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
               <Sun className="h-5 w-5 text-yellow-400 transition-all duration-200" />
@@ -167,14 +200,81 @@ export default function SettingsPage() {
       </header>
       <div className="p-6 space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="system">System Settings</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard Settings</TabsTrigger>
-            <TabsTrigger value="system-config">System Config</TabsTrigger>
-            <TabsTrigger value="pin-config">Pin Config</TabsTrigger>
           </TabsList>
 
           <TabsContent value="system" className="space-y-6">
+            {/* Theme Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {theme === "dark" ? (
+                    <Moon className="h-5 w-5 text-blue-600" />
+                  ) : (
+                    <Sun className="h-5 w-5 text-yellow-500" />
+                  )}
+                  Theme Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="theme-mode" className="text-base font-medium">
+                        Appearance Mode
+                      </Label>
+                      <Badge variant="secondary" className="text-xs">
+                        {theme === "dark" ? "Dark" : "Light"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Switch between light and dark theme for better visibility
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant={theme === "light" ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => handleThemeChange("light")}
+                    >
+                      <Sun className="h-4 w-4" />
+                      Light
+                    </Button>
+                    <Button
+                      variant={theme === "dark" ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => handleThemeChange("dark")}
+                    >
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </Button>
+                    <Button
+                      variant={theme === "system" ? "default" : "outline"}
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => handleThemeChange("system")}
+                    >
+                      <Monitor className="h-4 w-4" />
+                      System
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="text-center p-4 bg-muted/30 rounded-lg">
+                  <div className="text-lg font-bold text-primary mb-1">
+                    Current Theme: {theme === "system" ? "System Default" : theme === "dark" ? "Dark Mode" : "Light Mode"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Theme preference is saved automatically
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {isLoadingSystemInfo && !systemInfo ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -194,10 +294,17 @@ export default function SettingsPage() {
                 <CardContent className="p-6 text-center">
                   <div className="text-red-500 mb-2">
                     <Terminal className="h-8 w-8 mx-auto mb-2" />
-                    <p className="font-medium">Failed to load system information</p>
+                    <p className="font-medium">
+                      Failed to load system information
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">{systemInfoError}</p>
-                  <Button onClick={refreshSystemInfo} disabled={isLoadingSystemInfo}>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {systemInfoError}
+                  </p>
+                  <Button
+                    onClick={refreshSystemInfo}
+                    disabled={isLoadingSystemInfo}
+                  >
                     {isLoadingSystemInfo ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
@@ -214,7 +321,9 @@ export default function SettingsPage() {
                     <Wifi className="h-6 w-6 text-blue-500" />
                     <div>
                       <h6 className="font-medium">IP Address</h6>
-                      <p className="text-sm text-muted-foreground"><strong>{ipType}:</strong> {ipAddress}</p>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>{ipType}:</strong> {ipAddress}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -223,7 +332,9 @@ export default function SettingsPage() {
                     <Thermometer className="h-6 w-6 text-red-500" />
                     <div>
                       <h6 className="font-medium">CPU Temp</h6>
-                      <p className="text-sm text-muted-foreground">{systemInfo.cpu_temp}°C</p>
+                      <p className="text-sm text-muted-foreground">
+                        {systemInfo.cpu_temp}°C
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -232,7 +343,9 @@ export default function SettingsPage() {
                     <Cpu className="h-6 w-6 text-green-700" />
                     <div>
                       <h6 className="font-medium">CPU Usage</h6>
-                      <p className="text-sm text-muted-foreground">{systemInfo.cpu_usage}%</p>
+                      <p className="text-sm text-muted-foreground">
+                        {systemInfo.cpu_usage}%
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -242,7 +355,9 @@ export default function SettingsPage() {
                     <div>
                       <h6 className="font-medium">Memory Usage</h6>
                       <p className="text-sm text-muted-foreground">
-                        {systemInfo.memory_usage}% ({Math.round(systemInfo.used_memory)}/{Math.round(systemInfo.total_memory)} MB)
+                        {systemInfo.memory_usage}% (
+                        {Math.round(systemInfo.used_memory)}/
+                        {Math.round(systemInfo.total_memory)} MB)
                       </p>
                     </div>
                   </CardContent>
@@ -253,7 +368,9 @@ export default function SettingsPage() {
                     <div>
                       <h6 className="font-medium">Disk Usage</h6>
                       <p className="text-sm text-muted-foreground">
-                        {systemInfo.disk_usage}% ({Math.round(systemInfo.used_disk)}/{Math.round(systemInfo.total_disk)} MB)
+                        {systemInfo.disk_usage}% (
+                        {Math.round(systemInfo.used_disk)}/
+                        {Math.round(systemInfo.total_disk)} MB)
                       </p>
                     </div>
                   </CardContent>
@@ -264,20 +381,26 @@ export default function SettingsPage() {
                     <div>
                       <h6 className="font-medium">Uptime</h6>
                       <p className="text-sm text-muted-foreground">
-                        {systemInfo.uptime ? `${Math.floor(systemInfo.uptime / 3600)}h ${Math.floor((systemInfo.uptime % 3600) / 60)}m` : 'N/A'}
+                        {systemInfo.uptime
+                          ? `${Math.floor(
+                              systemInfo.uptime / 3600
+                            )}h ${Math.floor((systemInfo.uptime % 3600) / 60)}m`
+                          : "N/A"}
                       </p>
                     </div>
                   </CardContent>
                 </Card>
               </div>
             ) : null}
-            
+
             {systemInfo && !systemInfo.is_available && (
               <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
                     <Terminal className="h-4 w-4" />
-                    <p className="text-sm font-medium">System monitoring partially unavailable</p>
+                    <p className="text-sm font-medium">
+                      System monitoring partially unavailable
+                    </p>
                   </div>
                   {systemInfo.error_message && (
                     <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
@@ -318,18 +441,20 @@ export default function SettingsPage() {
                           ) : (
                             <List className="h-4 w-4 text-primary" />
                           )}
-                          <Label htmlFor="display-mode" className="text-base font-medium">
+                          <Label
+                            htmlFor="display-mode"
+                            className="text-base font-medium"
+                          >
                             Display Mode
                           </Label>
                           <Badge variant="secondary" className="text-xs">
-                            {preferences.isCarouselMode ? 'Carousel' : 'Scroll'}
+                            {preferences.isCarouselMode ? "Carousel" : "Scroll"}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {preferences.isCarouselMode
-                            ? 'Show one component at a time with navigation controls'
-                            : 'Show all components in a scrollable list'
-                          }
+                            ? "Show one component at a time with navigation controls"
+                            : "Show all components in a scrollable list"}
                         </p>
                       </div>
                       <Switch
@@ -343,7 +468,9 @@ export default function SettingsPage() {
                       <>
                         <Separator />
                         <div className="space-y-4">
-                          <h4 className="text-sm font-medium">Carousel Settings</h4>
+                          <h4 className="text-sm font-medium">
+                            Carousel Settings
+                          </h4>
 
                           {/* Auto-play Toggle */}
                           <div className="flex items-center justify-between">
@@ -354,7 +481,10 @@ export default function SettingsPage() {
                                 ) : (
                                   <Pause className="h-4 w-4 text-muted-foreground" />
                                 )}
-                                <Label htmlFor="auto-play" className="text-sm font-medium">
+                                <Label
+                                  htmlFor="auto-play"
+                                  className="text-sm font-medium"
+                                >
                                   Auto-play
                                 </Label>
                                 {preferences.autoPlayEnabled && (
@@ -379,7 +509,10 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
-                                <Label htmlFor="interval" className="text-sm font-medium">
+                                <Label
+                                  htmlFor="interval"
+                                  className="text-sm font-medium"
+                                >
                                   Auto-play Interval
                                 </Label>
                               </div>
@@ -391,12 +524,24 @@ export default function SettingsPage() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="5000">5 seconds</SelectItem>
-                                  <SelectItem value="10000">10 seconds</SelectItem>
-                                  <SelectItem value="15000">15 seconds</SelectItem>
-                                  <SelectItem value="20000">20 seconds</SelectItem>
-                                  <SelectItem value="30000">30 seconds</SelectItem>
-                                  <SelectItem value="60000">1 minute</SelectItem>
+                                  <SelectItem value="5000">
+                                    5 seconds
+                                  </SelectItem>
+                                  <SelectItem value="10000">
+                                    10 seconds
+                                  </SelectItem>
+                                  <SelectItem value="15000">
+                                    15 seconds
+                                  </SelectItem>
+                                  <SelectItem value="20000">
+                                    20 seconds
+                                  </SelectItem>
+                                  <SelectItem value="30000">
+                                    30 seconds
+                                  </SelectItem>
+                                  <SelectItem value="60000">
+                                    1 minute
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                               <p className="text-xs text-muted-foreground">
@@ -419,23 +564,31 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
                         <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.isCarouselMode ? 'Carousel' : 'Scroll'}
+                          {preferences.isCarouselMode ? "Carousel" : "Scroll"}
                         </div>
-                        <div className="text-xs text-muted-foreground">Display Mode</div>
+                        <div className="text-xs text-muted-foreground">
+                          Display Mode
+                        </div>
                       </div>
 
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
                         <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.autoPlayEnabled ? 'On' : 'Off'}
+                          {preferences.autoPlayEnabled ? "On" : "Off"}
                         </div>
-                        <div className="text-xs text-muted-foreground">Auto-play</div>
+                        <div className="text-xs text-muted-foreground">
+                          Auto-play
+                        </div>
                       </div>
 
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
                         <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.autoPlayEnabled ? `${preferences.autoPlayInterval / 1000}s` : 'N/A'}
+                          {preferences.autoPlayEnabled
+                            ? `${preferences.autoPlayInterval / 1000}s`
+                            : "N/A"}
                         </div>
-                        <div className="text-xs text-muted-foreground">Interval</div>
+                        <div className="text-xs text-muted-foreground">
+                          Interval
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -459,7 +612,8 @@ export default function SettingsPage() {
                       </Button>
                       <div className="flex-1">
                         <p className="text-sm text-muted-foreground">
-                          Reset all dashboard display settings to their default values.
+                          Reset all dashboard display settings to their default
+                          values.
                         </p>
                       </div>
                     </div>
@@ -467,14 +621,6 @@ export default function SettingsPage() {
                 </Card>
               </>
             )}
-          </TabsContent>
-
-          <TabsContent value="system-config" className="space-y-6">
-            <SystemConfigComponent />
-          </TabsContent>
-
-          <TabsContent value="pin-config" className="space-y-6">
-            <PinConfigComponent />
           </TabsContent>
         </Tabs>
       </div>

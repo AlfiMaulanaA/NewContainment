@@ -32,7 +32,7 @@ namespace Backend.Services
 
             var now = DateTime.Now;
             var scheduledTime = new DateTime(now.Year, now.Month, now.Day, reminderHour, 0, 0);
-            
+
             // If the scheduled time has already passed today, schedule for tomorrow
             if (scheduledTime <= now)
             {
@@ -43,8 +43,8 @@ namespace Backend.Services
             var dailyInterval = TimeSpan.FromDays(1);
 
             _timer = new Timer(async _ => await ExecuteReminderCheck(), null, timeUntilScheduled, dailyInterval);
-            
-            _logger.LogInformation("Maintenance Reminder Service scheduled to run daily at {Time}. Next execution: {NextRun}", 
+
+            _logger.LogInformation("Maintenance Reminder Service scheduled to run daily at {Time}. Next execution: {NextRun}",
                 scheduledTime.ToString("HH:mm"), scheduledTime);
         }
 

@@ -137,21 +137,11 @@ export default function CCTVWrapperCard({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              onClick={handleRefresh}
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white/10"
-            >
+            <Button onClick={handleRefresh} variant="ghost" size="sm">
               <RefreshCw className="h-4 w-4" />
             </Button>
 
-            <Button
-              onClick={toggleFullscreen}
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white/10"
-            >
+            <Button onClick={toggleFullscreen} variant="ghost" size="sm">
               <Minimize2 className="h-5 w-5" />
             </Button>
           </div>

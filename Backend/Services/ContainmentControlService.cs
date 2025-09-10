@@ -31,14 +31,14 @@ namespace Backend.Services
             try
             {
                 List<Containment> targetContainments;
-                
+
                 if (request.ContainmentId == 0)
                 {
                     // Control all active containments
                     targetContainments = await _context.Containments
                         .Where(c => c.IsActive)
                         .ToListAsync();
-                        
+
                     if (!targetContainments.Any())
                     {
                         return new ContainmentControlResponse
@@ -62,7 +62,7 @@ namespace Backend.Services
                             Message = $"Containment with ID {request.ContainmentId} not found or inactive"
                         };
                     }
-                    
+
                     targetContainments = new List<Containment> { containment };
                 }
 
@@ -99,7 +99,7 @@ namespace Backend.Services
                     {
                         // Send MQTT command with containment-specific topic if needed
                         await _mqttService.PublishAsync(CONTROL_TOPIC, commandPayload);
-                        
+
                         // Update status to sent
                         controlRecord.Status = "Sent";
                         successCount++;
@@ -111,12 +111,12 @@ namespace Backend.Services
                             var userName = user?.Name ?? $"User {userId}";
                             var containmentName = targetContainments.FirstOrDefault(c => c.Id == controlRecord.ContainmentId)?.Name ?? $"Containment {controlRecord.ContainmentId}";
                             var trigger = $"{GetToggleDescription(request.ControlType, request.IsEnabled)} - {containmentName}";
-                            var additionalData = JsonSerializer.Serialize(new 
-                            { 
+                            var additionalData = JsonSerializer.Serialize(new
+                            {
                                 ContainmentId = controlRecord.ContainmentId,
                                 Command = controlRecord.Command,
                                 ControlType = request.ControlType,
-                                IsEnabled = request.IsEnabled 
+                                IsEnabled = request.IsEnabled
                             });
 
                             await _accessLogService.LogSoftwareAccessAsync(userName, trigger, additionalData);
@@ -133,7 +133,7 @@ namespace Backend.Services
                         // Update status to failed
                         controlRecord.Status = "Failed";
                         controlRecord.ErrorMessage = mqttEx.Message;
-                        
+
                         var containment = targetContainments.FirstOrDefault(c => c.Id == controlRecord.ContainmentId);
                         failedContainments.Add(containment?.Name ?? $"ID {controlRecord.ContainmentId}");
 
@@ -146,10 +146,10 @@ namespace Backend.Services
                 // Return response based on results
                 if (successCount == targetContainments.Count)
                 {
-                    var description = request.ContainmentId == 0 
+                    var description = request.ContainmentId == 0
                         ? $"Control '{GetToggleDescription(request.ControlType, request.IsEnabled)}' sent to all {successCount} containments"
                         : $"Control '{GetToggleDescription(request.ControlType, request.IsEnabled)}' sent successfully";
-                        
+
                     return new ContainmentControlResponse
                     {
                         Success = true,
@@ -180,7 +180,7 @@ namespace Backend.Services
             {
                 var containmentInfo = request.ContainmentId == 0 ? "all containments" : $"ContainmentId: {request.ContainmentId}";
                 _logger.LogError(ex, $"Error processing toggle command {request.ControlType} for {containmentInfo}");
-                
+
                 return new ContainmentControlResponse
                 {
                     Success = false,
@@ -195,7 +195,7 @@ namespace Backend.Services
             var commandData = controlType.ToLower() switch
             {
                 "front_door" => isEnabled ? "Open front door" : "Close front door",
-                "back_door" => isEnabled ? "Open back door" : "Close back door", 
+                "back_door" => isEnabled ? "Open back door" : "Close back door",
                 "front_door_always" => isEnabled ? "Open front door always enable" : "Open front door always disable",
                 "back_door_always" => isEnabled ? "Open back door always enable" : "Open back door always disable",
                 "ceiling" => isEnabled ? "Open Ceiiling" : "Close Ceiiling",
@@ -245,7 +245,7 @@ namespace Backend.Services
                 "front_door" => $"{action} Front Door",
                 "back_door" => $"{action} Back Door",
                 "front_door_always" => $"{action} Front Door Always Open",
-                "back_door_always" => $"{action} Back Door Always Open", 
+                "back_door_always" => $"{action} Back Door Always Open",
                 "ceiling" => $"{action} Ceiling",
                 _ => $"{action} {controlType}"
             };

@@ -28,7 +28,7 @@ namespace Backend.Controllers
 
         [HttpGet("by-date-range")]
         public async Task<ActionResult<IEnumerable<ActivityReport>>> GetActivityReportsByDateRange(
-            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
         {
             if (startDate > endDate)
@@ -65,7 +65,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<ActivityReport>> GetActivityReport(int id)
         {
             var report = await _activityReportService.GetActivityReportByIdAsync(id);
-            
+
             if (report == null)
             {
                 return NotFound();
@@ -101,7 +101,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteActivityReport(int id)
         {
             var result = await _activityReportService.DeleteActivityReportByIdAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -115,7 +115,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteAllActivityReports()
         {
             var result = await _activityReportService.DeleteAllActivityReportsAsync();
-            
+
             if (!result)
             {
                 return NotFound("No activity reports found to delete");
@@ -140,15 +140,15 @@ namespace Backend.Controllers
         [Required]
         [StringLength(1000)]
         public string Description { get; set; } = string.Empty;
-        
+
         [Required]
         [StringLength(50)]
         public string Status { get; set; } = string.Empty;
-        
+
         [Required]
         [StringLength(100)]
         public string Trigger { get; set; } = string.Empty;
-        
+
         [StringLength(500)]
         public string? AdditionalData { get; set; }
     }

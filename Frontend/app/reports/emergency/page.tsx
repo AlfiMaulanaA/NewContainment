@@ -67,6 +67,7 @@ export default function EmergencyReportsPage() {
     null
   );
   const [currentTime, setCurrentTime] = useState(new Date()); // New state for current time
+  const [criticalEmergencies, setCriticalEmergencies] = useState<EmergencyReport[]>([]); // Emergencies > 7 hours
 
   // Filter states
   const [filter, setFilter] = useState<EmergencyReportFilter>({
@@ -113,17 +114,65 @@ export default function EmergencyReportsPage() {
     },
   ];
 
-  // Effect to update current time every second for live duration calculation
+  // Helper function to check if emergency is critical (>7 hours)
+  const getEmergencyDurationHours = (startTime: string, endTime?: string | null): number => {
+    const start = parseAsUTC(startTime);
+    const end = endTime ? parseAsUTC(endTime) : currentTime;
+    const durationMs = end.getTime() - start.getTime();
+    return durationMs / (1000 * 60 * 60); // Convert to hours
+  };
+
+  // Effect to update current time and check for critical emergencies
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // Check for critical emergencies (>7 hours)
+      const critical = activeEmergencies.filter(emergency => {
+        const durationHours = getEmergencyDurationHours(emergency.startTime);
+        return durationHours > 7;
+      });
+      
+      // Update critical emergencies and show notifications for new ones
+      setCriticalEmergencies(prevCritical => {
+        const newCritical = critical.filter(emergency => 
+          !prevCritical.some(prev => prev.id === emergency.id)
+        );
+        
+        // Show toast notification for newly critical emergencies
+        newCritical.forEach(emergency => {
+          const durationHours = getEmergencyDurationHours(emergency.startTime);
+          const config = getEmergencyTypeConfig(emergency.emergencyType);
+          toast.error(
+            `CRITICAL ALERT: ${config.label} has been active for ${durationHours.toFixed(1)} hours!`,
+            {
+              duration: 10000, // Show for 10 seconds
+              action: {
+                label: "View Details",
+                onClick: () => setSelectedReport(emergency)
+              }
+            }
+          );
+        });
+        
+        return critical;
+      });
     }, 1000); // Update every second
 
     return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
+  }, [activeEmergencies, currentTime]);
 
   useEffect(() => {
     loadInitialData();
+    
+    // Set up auto-refresh every 30 seconds to detect new emergencies or status changes
+    const autoRefreshInterval = setInterval(() => {
+      loadActiveEmergencies();
+      loadReports();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(autoRefreshInterval);
   }, []);
 
   useEffect(() => {
@@ -307,22 +356,54 @@ export default function EmergencyReportsPage() {
       return durationString;
     }
   };
+  // Helper function to parse timestamp as UTC for duration calculation
+  const parseAsUTC = (dateString: string): Date => {
+    // Ensure we parse as UTC by adding 'Z' if not present
+    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    return new Date(utcString);
+  };
 
-  // New helper to calculate live duration from start and end (or current time)
+  // Helper function to parse timestamp for display (assumes backend sends WIB time)
+  const parseForDisplay = (dateString: string): Date => {
+    // Parse directly without timezone conversion since backend already sends WIB
+    return new Date(dateString);
+  };
+
+  const convertToWIB = (dateString: string): Date => {
+    // Use parseForDisplay instead of adding +7 hours
+    const result = parseForDisplay(dateString);
+    console.log('Display Time Debug:', {
+      original: dateString,
+      parsed: result.toISOString(),
+      localDisplay: result.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+    });
+    return result;
+  };
+
   const getLiveDurationString = (
     startTime: string,
     endTime: string | null | undefined,
     now: Date
   ) => {
-    const start = new Date(startTime);
-    const end = endTime ? new Date(endTime) : now; // Use 'now' if endTime is null/undefined
+    // Use UTC times for duration calculation to avoid double conversion
+    const start = parseAsUTC(startTime);
+    const end = endTime ? parseAsUTC(endTime) : now;
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return "Invalid Date";
     }
 
     const durationMs = end.getTime() - start.getTime();
-    if (durationMs < 0) return "0s"; // Should not happen if start < end
+    if (durationMs < 0) return "0s";
+
+    // Debug log untuk melihat nilai actual
+    console.log('Duration Calculation Debug:', {
+      startTime,
+      startUTC: start.toISOString(),
+      endUTC: end.toISOString(),
+      durationMs,
+      durationHours: durationMs / (1000 * 60 * 60)
+    });
 
     const totalSeconds = Math.floor(durationMs / 1000);
     const days = Math.floor(totalSeconds / (3600 * 24));
@@ -362,9 +443,18 @@ export default function EmergencyReportsPage() {
         (ae) => ae.emergencyType === summary.emergencyType
       );
       activeReportsOfType.forEach((ae) => {
-        const start = new Date(ae.startTime);
+        const start = parseAsUTC(ae.startTime);
         if (!isNaN(start.getTime())) {
-          combinedTotalDurationMs += currentTime.getTime() - start.getTime();
+          const activeDurationMs = currentTime.getTime() - start.getTime();
+          console.log('Active Emergency Duration Debug:', {
+            emergencyType: summary.emergencyType,
+            startTime: ae.startTime,
+            startParsed: start.toISOString(),
+            currentTime: currentTime.toISOString(),
+            activeDurationMs,
+            activeDurationHours: activeDurationMs / (1000 * 60 * 60)
+          });
+          combinedTotalDurationMs += activeDurationMs;
         }
       });
     }
@@ -443,7 +533,63 @@ export default function EmergencyReportsPage() {
       </header>
 
       <div className="flex-1 space-y-4 p-4">
-        {/* Changed from container mx-auto p-6 */}
+        {/* Critical Emergencies Alert (>7 hours) */}
+        {criticalEmergencies.length > 0 && (
+          <Card className="border-red-500 bg-red-100 animate-pulse">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 animate-bounce" />
+                ⚠️ CRITICAL EMERGENCIES - ACTIVE FOR MORE THAN 7 HOURS ({criticalEmergencies.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {criticalEmergencies.map((emergency) => {
+                  const config = getEmergencyTypeConfig(emergency.emergencyType);
+                  const durationHours = getEmergencyDurationHours(emergency.startTime);
+                  return (
+                    <div
+                      key={emergency.id}
+                      className="flex items-center justify-between p-4 bg-red-200 rounded-lg border-2 border-red-400"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-300 rounded-full">
+                          {config.icon}
+                        </div>
+                        <div>
+                          <div className="font-bold text-red-900">{config.label}</div>
+                          <div className="text-sm text-red-700">
+                            Started: {convertToWIB(emergency.startTime).toLocaleString('id-ID')} WIB
+                          </div>
+                          <div className="text-lg font-bold text-red-800 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            {durationHours.toFixed(1)} HOURS!
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setSelectedReport(emergency)}
+                        >
+                          View Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCloseEmergency(emergency.emergencyType)}
+                        >
+                          Force Close
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Active Emergencies Alert */}
         {activeEmergencies.length > 0 && (
@@ -471,15 +617,31 @@ export default function EmergencyReportsPage() {
                           <div className="font-medium">{config.label}</div>
                           <div className="text-sm text-muted-foreground">
                             Active since{" "}
-                            {new Date(emergency.startTime).toLocaleString()}
+                            {convertToWIB(emergency.startTime).toLocaleString('id-ID', { 
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })} WIB
                           </div>
-                          <div className="text-sm font-semibold text-red-600 flex items-center gap-1">
+                          <div className={`text-sm font-semibold flex items-center gap-1 ${
+                            getEmergencyDurationHours(emergency.startTime) > 7 
+                              ? 'text-red-700 animate-pulse' 
+                              : 'text-red-600'
+                          }`}>
                             <Clock className="h-3 w-3" />
                             Duration:{" "}
                             {getLiveDurationString(
                               emergency.startTime,
                               null,
                               currentTime
+                            )}
+                            {getEmergencyDurationHours(emergency.startTime) > 7 && (
+                              <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full ml-2">
+                                CRITICAL!
+                              </span>
                             )}
                           </div>
                         </div>
@@ -720,14 +882,36 @@ export default function EmergencyReportsPage() {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {new Date(report.startTime).toLocaleString()}
+                              <div>
+                                <div className="text-sm">
+                                  {convertToWIB(report.startTime).toLocaleString('id-ID', { 
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                                <div className="text-xs text-muted-foreground">WIB</div>
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             {report.endTime ? (
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(report.endTime).toLocaleString()}
+                                <div>
+                                  <div className="text-sm">
+                                    {convertToWIB(report.endTime).toLocaleString('id-ID', { 
+                                      year: 'numeric',
+                                      month: '2-digit',
+                                      day: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">WIB</div>
+                                </div>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">
@@ -736,15 +920,28 @@ export default function EmergencyReportsPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
+                            <div className={`flex items-center gap-1 ${
+                              report.isActive && getEmergencyDurationHours(report.startTime) > 7 
+                                ? 'text-red-700 font-bold animate-pulse' 
+                                : ''
+                            }`}>
                               <Clock className="h-3 w-3" />
-                              {report.isActive
-                                ? getLiveDurationString(
-                                    report.startTime,
-                                    null,
-                                    currentTime
-                                  )
-                                : formatApiDurationString(report.duration)}
+                              <div>
+                                <div className="text-sm">
+                                  {report.isActive
+                                    ? getLiveDurationString(
+                                        report.startTime,
+                                        null,
+                                        currentTime
+                                      )
+                                    : formatApiDurationString(report.duration)}
+                                </div>
+                                {report.isActive && getEmergencyDurationHours(report.startTime) > 7 && (
+                                  <div className="text-xs bg-red-200 text-red-800 px-1 py-0.5 rounded mt-1 inline-block">
+                                    CRITICAL!
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -794,20 +991,32 @@ export default function EmergencyReportsPage() {
                                       </div>
                                     </div>
                                     <div>
-                                      <Label>Start Time</Label>
+                                      <Label>Start Time (WIB)</Label>
                                       <div className="mt-1">
-                                        {new Date(
-                                          report.startTime
-                                        ).toLocaleString()}
+                                        {convertToWIB(report.startTime).toLocaleString('id-ID', { 
+                                          weekday: 'long',
+                                          year: 'numeric',
+                                          month: 'long',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          second: '2-digit'
+                                        })} WIB
                                       </div>
                                     </div>
                                     <div>
-                                      <Label>End Time</Label>
+                                      <Label>End Time (WIB)</Label>
                                       <div className="mt-1">
                                         {report.endTime
-                                          ? new Date(
-                                              report.endTime
-                                            ).toLocaleString()
+                                          ? convertToWIB(report.endTime).toLocaleString('id-ID', { 
+                                              weekday: 'long',
+                                              year: 'numeric',
+                                              month: 'long',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              second: '2-digit'
+                                            }) + ' WIB'
                                           : "Ongoing"}
                                       </div>
                                     </div>
@@ -826,11 +1035,16 @@ export default function EmergencyReportsPage() {
                                       </div>
                                     </div>
                                     <div>
-                                      <Label>Created</Label>
+                                      <Label>Created (WIB)</Label>
                                       <div className="mt-1">
-                                        {new Date(
-                                          report.createdAt
-                                        ).toLocaleString()}
+                                        {convertToWIB(report.createdAt).toLocaleString('id-ID', { 
+                                          year: 'numeric',
+                                          month: 'long',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          second: '2-digit'
+                                        })} WIB
                                       </div>
                                     </div>
                                   </div>

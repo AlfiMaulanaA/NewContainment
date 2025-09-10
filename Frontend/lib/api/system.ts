@@ -42,9 +42,27 @@ export const systemApi = {
 
 // Access Log API methods
 export const accessLogApi = {
-  async getAccessLogs(page: number = 1, limit: number = 50): Promise<ApiResponse<{ logs: AccessLog[]; total: number }>> {
+  async getAccessLogs(params?: { 
+    page?: number; 
+    pageSize?: number; 
+    via?: number;
+    user?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<AccessLog[]>> {
     try {
-      const data = await apiClient.get<{ logs: AccessLog[]; total: number }>(`/accesslog?page=${page}&limit=${limit}`);
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.set('page', params.page.toString());
+      if (params?.pageSize) queryParams.set('pageSize', params.pageSize.toString());
+      if (params?.via) queryParams.set('via', params.via.toString());
+      if (params?.user) queryParams.set('user', params.user);
+      if (params?.startDate) queryParams.set('startDate', params.startDate);
+      if (params?.endDate) queryParams.set('endDate', params.endDate);
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/accesslog?${queryString}` : '/accesslog';
+      
+      const data = await apiClient.get<AccessLog[]>(url);
       return {
         success: true,
         data,
@@ -53,6 +71,28 @@ export const accessLogApi = {
       return {
         success: false,
         message: error.message || "Failed to get access logs",
+      };
+    }
+  },
+
+  async createAccessLog(accessLogData: {
+    user: string;
+    via: number;
+    trigger: string;
+    description?: string;
+    isSuccess: boolean;
+    additionalData?: string;
+  }): Promise<ApiResponse<AccessLog>> {
+    try {
+      const data = await apiClient.post<AccessLog>('/accesslog', accessLogData);
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to create access log",
       };
     }
   },

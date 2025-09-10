@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useMQTT } from "@/hooks/useMQTT";
 import { useMQTTStatus } from "@/hooks/useMQTTStatus";
 import { useMQTTPublish } from "@/hooks/useMQTTPublish";
+import MqttStatus from "@/components/mqtt-status";
 
 // Types for pin configuration
 interface PinConfig {
@@ -93,7 +94,7 @@ const defaultPinConfig: PinConfig = {
   relay_mini_door_emergency: 5,
 };
 
-export function PinConfigComponent() {
+export default function PinConfigComponent() {
   const [config, setConfig] = useState<PinConfig>(defaultPinConfig);
   const [originalConfig, setOriginalConfig] =
     useState<PinConfig>(defaultPinConfig);
@@ -391,13 +392,7 @@ export function PinConfigComponent() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge
-            variant={mqttStatus === "connected" ? "default" : "destructive"}
-            className="flex items-center gap-1"
-          >
-            <Wifi className="h-3 w-3" />
-            {mqttStatus === "connected" ? "Connected" : "Disconnected"}
-          </Badge>
+          <MqttStatus />
 
           {lastUpdated && (
             <Badge variant="secondary" className="flex items-center gap-1">

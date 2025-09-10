@@ -46,7 +46,7 @@ namespace Backend.Controllers
                 }
 
                 // Check developer mode from headers
-                var isDeveloperMode = Request.Headers.ContainsKey("X-Developer-Mode") && 
+                var isDeveloperMode = Request.Headers.ContainsKey("X-Developer-Mode") &&
                                     Request.Headers["X-Developer-Mode"] == "true";
 
                 // Get database role and permissions for the user
@@ -55,7 +55,7 @@ namespace Backend.Controllers
 
                 // Try to get dynamic menu from database first, fallback to static if needed
                 var menuGroups = await GetDynamicMenuGroups((int)user.Role, isDeveloperMode);
-                
+
                 // If no dynamic menu exists, use static menu as fallback
                 if (!menuGroups.Any())
                 {
@@ -75,7 +75,7 @@ namespace Backend.Controllers
                         color = databaseRole?.Color ?? user.Role switch
                         {
                             Backend.Enums.UserRole.Developer => "text-green-600 bg-green-100",
-                            Backend.Enums.UserRole.Admin => "text-blue-600 bg-blue-100", 
+                            Backend.Enums.UserRole.Admin => "text-blue-600 bg-blue-100",
                             Backend.Enums.UserRole.User => "text-gray-600 bg-gray-100",
                             _ => "text-gray-600 bg-gray-100"
                         },
@@ -100,11 +100,11 @@ namespace Backend.Controllers
             try
             {
                 var menuGroups = await _context.MenuGroups
-                    .Where(g => g.IsActive && 
+                    .Where(g => g.IsActive &&
                                (g.MinRoleLevel == null || g.MinRoleLevel <= userRoleLevel) &&
                                (!g.RequiresDeveloperMode || isDeveloperMode))
                     .OrderBy(g => g.SortOrder)
-                    .Include(g => g.MenuItems.Where(i => i.IsActive && 
+                    .Include(g => g.MenuItems.Where(i => i.IsActive &&
                                                        (i.MinRoleLevel == null || i.MinRoleLevel <= userRoleLevel) &&
                                                        (!i.RequiresDeveloperMode || isDeveloperMode)))
                     .ToListAsync();
@@ -333,7 +333,7 @@ namespace Backend.Controllers
         }
 
         [HttpPost("roles")]
-        
+
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             try
@@ -341,7 +341,7 @@ namespace Backend.Controllers
                 // Check if role name already exists
                 var existingRole = await _context.Roles
                     .FirstOrDefaultAsync(r => r.Name.ToLower() == request.Name.ToLower());
-                
+
                 if (existingRole != null)
                 {
                     return BadRequest(new { success = false, message = "Role name already exists" });
@@ -362,9 +362,10 @@ namespace Backend.Controllers
                 _context.Roles.Add(role);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    success = true, 
-                    data = new { id = role.Id, message = "Role created successfully" } 
+                return Ok(new
+                {
+                    success = true,
+                    data = new { id = role.Id, message = "Role created successfully" }
                 });
             }
             catch (Exception ex)
@@ -375,7 +376,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("roles/{id}")]
-        
+
         public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleRequest request)
         {
             try
@@ -391,7 +392,7 @@ namespace Backend.Controllers
                 {
                     var existingRole = await _context.Roles
                         .FirstOrDefaultAsync(r => r.Name.ToLower() == request.Name.ToLower() && r.Id != id);
-                    
+
                     if (existingRole != null)
                     {
                         return BadRequest(new { success = false, message = "Role name already exists" });
@@ -404,7 +405,7 @@ namespace Backend.Controllers
                 if (request.Level.HasValue) role.Level = request.Level.Value;
                 if (!string.IsNullOrEmpty(request.Color)) role.Color = request.Color;
                 if (request.IsActive.HasValue) role.IsActive = request.IsActive.Value;
-                
+
                 role.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -419,7 +420,7 @@ namespace Backend.Controllers
         }
 
         [HttpDelete("roles/{id}")]
-        
+
         public async Task<IActionResult> DeleteRole(int id)
         {
             try
@@ -428,7 +429,7 @@ namespace Backend.Controllers
                     .Include(r => r.UserRoles)
                         .ThenInclude(ur => ur.User)
                     .FirstOrDefaultAsync(r => r.Id == id);
-                    
+
                 if (role == null)
                 {
                     return NotFound(new { success = false, message = "Role not found" });
@@ -437,18 +438,20 @@ namespace Backend.Controllers
                 // Check if role is being used by users
                 if (role.UserRoles.Any())
                 {
-                    return BadRequest(new { 
-                        success = false, 
-                        message = "Cannot delete role that is assigned to users" 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Cannot delete role that is assigned to users"
                     });
                 }
 
                 // Don't allow deletion of system roles (Admin, Developer, User)
                 if (role.Name == "Admin" || role.Name == "Developer" || role.Name == "User")
                 {
-                    return BadRequest(new { 
-                        success = false, 
-                        message = "Cannot delete system roles" 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Cannot delete system roles"
                     });
                 }
 
@@ -509,7 +512,7 @@ namespace Backend.Controllers
         }
 
         [HttpPost("menu-groups")]
-        
+
         public async Task<IActionResult> CreateMenuGroup([FromBody] CreateMenuGroupRequest request)
         {
             try
@@ -529,9 +532,10 @@ namespace Backend.Controllers
                 _context.MenuGroups.Add(menuGroup);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    success = true, 
-                    data = new { id = menuGroup.Id, message = "Menu group created successfully" } 
+                return Ok(new
+                {
+                    success = true,
+                    data = new { id = menuGroup.Id, message = "Menu group created successfully" }
                 });
             }
             catch (Exception ex)
@@ -542,7 +546,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("menu-groups/{id}")]
-        
+
         public async Task<IActionResult> UpdateMenuGroup(int id, [FromBody] UpdateMenuGroupRequest request)
         {
             try
@@ -559,7 +563,7 @@ namespace Backend.Controllers
                 if (request.MinRoleLevel.HasValue) menuGroup.MinRoleLevel = request.MinRoleLevel;
                 if (request.IsActive.HasValue) menuGroup.IsActive = request.IsActive.Value;
                 if (request.RequiresDeveloperMode.HasValue) menuGroup.RequiresDeveloperMode = request.RequiresDeveloperMode.Value;
-                
+
                 menuGroup.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -647,9 +651,10 @@ namespace Backend.Controllers
                 _context.MenuItems.Add(menuItem);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    success = true, 
-                    data = new { id = menuItem.Id, message = "Menu item created successfully" } 
+                return Ok(new
+                {
+                    success = true,
+                    data = new { id = menuItem.Id, message = "Menu item created successfully" }
                 });
             }
             catch (Exception ex)
@@ -660,7 +665,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("menu-items/{id}")]
-        
+
         public async Task<IActionResult> UpdateMenuItem(int id, [FromBody] UpdateMenuItemRequest request)
         {
             try
@@ -680,7 +685,19 @@ namespace Backend.Controllers
                 if (request.RequiresDeveloperMode.HasValue) menuItem.RequiresDeveloperMode = request.RequiresDeveloperMode.Value;
                 if (request.BadgeText != null) menuItem.BadgeText = request.BadgeText;
                 if (!string.IsNullOrEmpty(request.BadgeVariant)) menuItem.BadgeVariant = request.BadgeVariant;
-                
+
+                // Handle Menu Group change
+                if (request.MenuGroupId.HasValue)
+                {
+                    // Verify the new menu group exists
+                    var menuGroup = await _context.MenuGroups.FindAsync(request.MenuGroupId.Value);
+                    if (menuGroup == null)
+                    {
+                        return BadRequest(new { success = false, message = "Menu group not found" });
+                    }
+                    menuItem.MenuGroupId = request.MenuGroupId.Value;
+                }
+
                 menuItem.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -695,7 +712,7 @@ namespace Backend.Controllers
         }
 
         [HttpPatch("menu-items/{id}/toggle-active")]
-        
+
         public async Task<IActionResult> ToggleMenuItemActive(int id)
         {
             try
@@ -711,8 +728,9 @@ namespace Backend.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = $"Menu item {(menuItem.IsActive ? "activated" : "deactivated")} successfully",
                     isActive = menuItem.IsActive
                 });
@@ -725,7 +743,7 @@ namespace Backend.Controllers
         }
 
         [HttpPatch("menu-groups/{id}/toggle-active")]
-        
+
         public async Task<IActionResult> ToggleMenuGroupActive(int id)
         {
             try
@@ -741,8 +759,9 @@ namespace Backend.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = $"Menu group {(menuGroup.IsActive ? "activated" : "deactivated")} successfully",
                     isActive = menuGroup.IsActive
                 });
@@ -755,7 +774,7 @@ namespace Backend.Controllers
         }
 
         [HttpDelete("menu-items/{id}")]
-        
+
         public async Task<IActionResult> DeleteMenuItem(int id)
         {
             try
@@ -779,7 +798,7 @@ namespace Backend.Controllers
         }
 
         [HttpDelete("menu-groups/{id}")]
-        
+
         public async Task<IActionResult> DeleteMenuGroup(int id)
         {
             try
@@ -787,7 +806,7 @@ namespace Backend.Controllers
                 var menuGroup = await _context.MenuGroups
                     .Include(mg => mg.MenuItems)
                     .FirstOrDefaultAsync(mg => mg.Id == id);
-                    
+
                 if (menuGroup == null)
                 {
                     return NotFound(new { success = false, message = "Menu group not found" });
@@ -796,9 +815,10 @@ namespace Backend.Controllers
                 // Check if group has items
                 if (menuGroup.MenuItems.Any())
                 {
-                    return BadRequest(new { 
-                        success = false, 
-                        message = "Cannot delete menu group that contains menu items. Please delete all items first." 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Cannot delete menu group that contains menu items. Please delete all items first."
                     });
                 }
 
@@ -882,5 +902,6 @@ namespace Backend.Controllers
         public bool? RequiresDeveloperMode { get; set; }
         public string? BadgeText { get; set; }
         public string? BadgeVariant { get; set; }
+        public int? MenuGroupId { get; set; }
     }
 }

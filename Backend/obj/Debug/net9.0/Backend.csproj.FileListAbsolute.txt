@@ -177,3 +177,4 @@ D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\obj\Debug\net9.0\refint\Backend.d
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\obj\Debug\net9.0\Backend.pdb
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\obj\Debug\net9.0\Backend.genruntimeconfig.cache
 D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\obj\Debug\net9.0\ref\Backend.dll
+D:\Alfi\RnD\DEVELOPMENT\NewContainment\Backend\bin\Debug\net9.0\appsettings.SeedData.json

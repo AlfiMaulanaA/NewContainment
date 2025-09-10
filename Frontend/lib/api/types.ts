@@ -74,7 +74,7 @@ export interface ResetPasswordResponse {
   success: boolean;
 }
 
-// User management types  
+// User management types
 export interface CreateUserRequest {
   name: string;
   email: string;
@@ -126,21 +126,21 @@ export interface Rack {
 // Device types
 export enum DeviceType {
   Server = "Server",
-  Switch = "Switch", 
+  Switch = "Switch",
   Router = "Router",
   Sensor = "Sensor",
   PDU = "PDU",
   UPS = "UPS",
-  Other = "Other"
+  Other = "Other",
 }
 
 export enum SensorType {
   Temperature = "Temperature",
   AirFlow = "Air Flow",
-  DustSensor = "Dust Sensor", 
+  DustSensor = "Dust Sensor",
   Vibration = "Vibration",
   Humidity = "Humidity",
-  Unknown = "Unknown"
+  Unknown = "Unknown",
 }
 
 export interface Device {
@@ -224,7 +224,7 @@ export interface MqttConfiguration {
   updatedBy?: number;
 }
 
-// Camera Configuration types  
+// Camera Configuration types
 export interface CameraConfig {
   id: number;
   name: string;
@@ -269,16 +269,51 @@ export interface SystemInfo {
 }
 
 // Access Log types
+export enum AccessMethod {
+  Fingerprint = 1,
+  Face = 2,
+  Password = 3,
+  Card = 4,
+  BMS = 5,
+  Software = 6,
+}
+
 export interface AccessLog {
   id: number;
-  userId: number;
-  action: string;
-  resource: string;
+  user: string;
+  via: AccessMethod;
+  trigger: string;
   timestamp: string;
-  ipAddress?: string;
-  userAgent?: string;
-  success: boolean;
-  details?: string;
+  additionalData?: string;
+  description?: string;
+  isSuccess: boolean;
+}
+
+export interface CreateAccessLogRequest {
+  user: string;
+  via: AccessMethod;
+  trigger: string;
+  description?: string;
+  isSuccess: boolean;
+  additionalData?: string;
+}
+
+// Live Attendance types
+export interface AttendanceData {
+  status: "success" | "failed";
+  data: {
+    deviceId: string;
+    via: number;
+    uid: string | null;
+    name: string;
+    message: string;
+    device_name: string;
+    access_action: string;
+    timestamp: string;
+    verify_code: number;
+    punch_code: number;
+  };
+  event_type: string;
 }
 
 // Emergency Report types
@@ -306,7 +341,7 @@ export interface ActivityReport {
   metadata?: any;
 }
 
-// Network Configuration types  
+// Network Configuration types
 export interface NetworkConfiguration {
   id: number;
   interfaceName: string;

@@ -15,7 +15,7 @@ namespace Backend.Services
             DateTime? endDate = null);
         Task<AccessLog?> GetAccessLogByIdAsync(int id);
         Task<AccessLog> CreateAccessLogAsync(AccessLog accessLog);
-        Task<AccessLog> LogSoftwareAccessAsync(string user, string trigger, string? additionalData = null, string? ipAddress = null);
+        Task<AccessLog> LogSoftwareAccessAsync(string user, string trigger, string? additionalData = null);
         Task<IEnumerable<AccessLog>> GetAccessLogsByViaAsync(AccessMethod via);
         Task<IEnumerable<AccessLog>> GetAccessLogsByUserAsync(string user);
         Task<object> GetAccessLogSummaryAsync(DateTime? startDate = null, DateTime? endDate = null);

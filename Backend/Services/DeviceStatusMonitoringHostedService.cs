@@ -18,7 +18,7 @@ namespace Backend.Services
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
-            
+
             // Get check interval from configuration (default: 2 minutes)
             var intervalMinutes = configuration.GetValue<int>("DeviceMonitoring:CheckIntervalMinutes", 2);
             _checkInterval = TimeSpan.FromMinutes(intervalMinutes);
@@ -27,10 +27,10 @@ namespace Backend.Services
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Device Status Monitoring Service started with check interval: {Interval}", _checkInterval);
-            
+
             // Initialize device monitoring on startup
             await InitializeDeviceMonitoringAsync();
-            
+
             await base.StartAsync(cancellationToken);
         }
 
@@ -57,7 +57,7 @@ namespace Backend.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error occurred during device status monitoring cycle");
-                    
+
                     // Wait a shorter time before retrying on error
                     try
                     {
@@ -77,7 +77,7 @@ namespace Backend.Services
             {
                 using var scope = _serviceProvider.CreateScope();
                 var deviceStatusService = scope.ServiceProvider.GetRequiredService<IDeviceStatusMonitoringService>();
-                
+
                 await deviceStatusService.InitializeDeviceMonitoringAsync();
                 _logger.LogInformation("Device monitoring initialized successfully");
             }
@@ -93,11 +93,11 @@ namespace Backend.Services
             {
                 using var scope = _serviceProvider.CreateScope();
                 var deviceStatusService = scope.ServiceProvider.GetRequiredService<IDeviceStatusMonitoringService>();
-                
+
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 await deviceStatusService.CheckAndUpdateDeviceStatusesAsync();
                 stopwatch.Stop();
-                
+
                 _logger.LogDebug("Device status check completed in {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
             }
             catch (Exception ex)

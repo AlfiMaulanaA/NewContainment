@@ -81,6 +81,7 @@ export interface Rack {
   isActive?: boolean;
   createdBy: number;
   updatedBy?: number;
+  capacityU?: number;
   containment?: Containment;
   devices?: Device[];
 }
@@ -92,6 +93,7 @@ export enum DeviceType {
   Router = "Router",
   Sensor = "Sensor",
   PDU = "PDU",
+  PowerMeter = "Power Meter",
   UPS = "UPS",
   Other = "Other",
 }
@@ -463,12 +465,16 @@ export interface CreateRackRequest {
   name: string;
   containmentId: number;
   description?: string;
+  capacityU?: number;
+  isActive?: boolean;
 }
 
 export interface UpdateRackRequest {
   name: string;
   containmentId: number;
   description?: string;
+  capacityU?: number;
+  isActive?: boolean;
 }
 
 export interface CreateDeviceRequest {
@@ -846,9 +852,11 @@ export const userPhotoApi = {
   },
 
   getPhotoUrl(user: { photoPath?: string }, isDark: boolean = false): string {
-    if (user.photoPath && 
-        user.photoPath !== "/images/avatar-user.png" && 
-        user.photoPath !== "/images/avatar-user-dark.png") {
+    if (
+      user.photoPath &&
+      user.photoPath !== "/images/avatar-user.png" &&
+      user.photoPath !== "/images/avatar-user-dark.png"
+    ) {
       return `${BASE_URL}${user.photoPath}`;
     }
     return isDark ? "/images/avatar-user-dark.png" : "/images/avatar-user.png";
@@ -1268,9 +1276,13 @@ export const devicesApi = {
     }
   },
 
-  async getDevicesByRackStatus(rackId: number): Promise<ApiResponse<DeviceStatus[]>> {
+  async getDevicesByRackStatus(
+    rackId: number
+  ): Promise<ApiResponse<DeviceStatus[]>> {
     try {
-      const data = await client.get<DeviceStatus[]>(`/device/by-rack/${rackId}/status`);
+      const data = await client.get<DeviceStatus[]>(
+        `/device/by-rack/${rackId}/status`
+      );
       return {
         success: true,
         data,
@@ -3287,12 +3299,12 @@ export interface AccessLog {
 }
 
 export enum AccessMethod {
-  Password = 1,
-  Card = 2,
-  Fingerprint = 3,
-  Software = 4,
-  Face = 5,
-  BMS = 6,
+  Fingerprint = 1,
+  Face = 2,
+  Password = 3,
+  Card = 4,
+  BMS = 5,
+  Software = 6,
 }
 
 export interface SoftwareAccessRequest {

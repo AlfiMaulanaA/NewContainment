@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Select,
   SelectContent,
@@ -28,8 +30,15 @@ import {
   BarChart3,
   Calendar,
   Filter,
+  Database,
 } from "lucide-react";
-import { deviceSensorDataApi, devicesApi, racksApi, containmentsApi, DeviceSensorData } from "@/lib/api-service";
+import {
+  deviceSensorDataApi,
+  devicesApi,
+  racksApi,
+  containmentsApi,
+  DeviceSensorData,
+} from "@/lib/api-service";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import {
@@ -53,7 +62,6 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-
 
 interface SensorDataResponse {
   data: DeviceSensorData[];
@@ -146,11 +154,13 @@ export default function SensorDataReportsPage() {
 
       if (sensorTypesRes?.data && Array.isArray(sensorTypesRes.data))
         setAvailableSensorTypes(sensorTypesRes.data || []);
-      if (devicesRes?.data && Array.isArray(devicesRes.data)) setDevices(devicesRes.data || []);
-      if (racksRes?.data && Array.isArray(racksRes.data)) setRacks(racksRes.data || []);
-      if (containmentsRes?.data && Array.isArray(containmentsRes.data)) setContainments(containmentsRes.data || []);
+      if (devicesRes?.data && Array.isArray(devicesRes.data))
+        setDevices(devicesRes.data || []);
+      if (racksRes?.data && Array.isArray(racksRes.data))
+        setRacks(racksRes.data || []);
+      if (containmentsRes?.data && Array.isArray(containmentsRes.data))
+        setContainments(containmentsRes.data || []);
       if (summaryRes?.data) setSummary(summaryRes.data);
-
     } catch (error: any) {
       console.error("Error loading initial data:", error);
       toast.error("Failed to load data: " + (error.message || "Unknown error"));
@@ -167,11 +177,14 @@ export default function SensorDataReportsPage() {
         pageSize: filters.pageSize,
       };
 
-      if (filters.deviceId && filters.deviceId !== "all") params.deviceId = parseInt(filters.deviceId);
-      if (filters.rackId && filters.rackId !== "all") params.rackId = parseInt(filters.rackId);
+      if (filters.deviceId && filters.deviceId !== "all")
+        params.deviceId = parseInt(filters.deviceId);
+      if (filters.rackId && filters.rackId !== "all")
+        params.rackId = parseInt(filters.rackId);
       if (filters.containmentId && filters.containmentId !== "all")
         params.containmentId = parseInt(filters.containmentId);
-      if (filters.sensorType && filters.sensorType !== "all") params.sensorType = filters.sensorType;
+      if (filters.sensorType && filters.sensorType !== "all")
+        params.sensorType = filters.sensorType;
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
 
@@ -193,7 +206,9 @@ export default function SensorDataReportsPage() {
       }
     } catch (error: any) {
       console.error("Error loading sensor data:", error);
-      toast.error("Failed to load sensor data: " + (error.message || "Unknown error"));
+      toast.error(
+        "Failed to load sensor data: " + (error.message || "Unknown error")
+      );
     } finally {
       setLoadingData(false);
     }
@@ -243,7 +258,9 @@ export default function SensorDataReportsPage() {
       }
     } catch (error: any) {
       console.error("Error loading summary:", error);
-      toast.error("Failed to load summary: " + (error.message || "Unknown error"));
+      toast.error(
+        "Failed to load summary: " + (error.message || "Unknown error")
+      );
     }
   };
 
@@ -306,11 +323,13 @@ export default function SensorDataReportsPage() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success(`Exported ${sensorData.length} records to CSV`);
     } catch (error: any) {
       console.error("Error exporting CSV:", error);
-      toast.error("Failed to export CSV: " + (error.message || "Unknown error"));
+      toast.error(
+        "Failed to export CSV: " + (error.message || "Unknown error")
+      );
     }
   };
 
@@ -325,450 +344,493 @@ export default function SensorDataReportsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Sensor Data Reports</h1>
-        <div className="flex gap-2">
-          <Button onClick={applyFilters} variant="outline" disabled={loadingData}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loadingData ? 'animate-spin' : ''}`} />
-            Refresh
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="h-6" />
+          <Database className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+            Sensor Data Reports
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={applyFilters}
+            variant="outline"
+            size="sm"
+            disabled={loadingData}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${loadingData ? "animate-spin" : ""}`}
+            />
+            <span className="sr-only md:not-sr-only md:ml-2">Refresh</span>
           </Button>
-          <Button onClick={exportToCSV} variant="outline" disabled={sensorData.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+          <Button
+            onClick={exportToCSV}
+            variant="outline"
+            size="sm"
+            disabled={sensorData.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            <span className="sr-only md:not-sr-only md:ml-2">Export CSV</span>
           </Button>
         </div>
-      </div>
+      </header>
 
-      <Tabs defaultValue="data" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="data">Data Table</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-          <TabsTrigger value="charts">Charts</TabsTrigger>
-        </TabsList>
+      <div className="flex-1 p-4 space-y-6">
+        <Tabs defaultValue="data" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="data">Data Table</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="charts">Charts</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="data" className="space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filters
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="deviceId">Device</Label>
-                  <Select
-                    value={filters.deviceId}
-                    onValueChange={(value) =>
-                      handleFilterChange("deviceId", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All devices" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All devices</SelectItem>
-                      {Array.isArray(devices) && devices.map((device) => (
-                        <SelectItem
-                          key={device.id}
-                          value={device.id.toString()}
-                        >
-                          {device.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <TabsContent value="data" className="space-y-6">
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="deviceId">Device</Label>
+                    <Select
+                      value={filters.deviceId}
+                      onValueChange={(value) =>
+                        handleFilterChange("deviceId", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All devices" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All devices</SelectItem>
+                        {Array.isArray(devices) &&
+                          devices.map((device) => (
+                            <SelectItem
+                              key={device.id}
+                              value={device.id.toString()}
+                            >
+                              {device.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="sensorType">Sensor Type</Label>
+                    <Select
+                      value={filters.sensorType}
+                      onValueChange={(value) =>
+                        handleFilterChange("sensorType", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All types</SelectItem>
+                        {Array.isArray(availableSensorTypes) &&
+                          availableSensorTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="containmentId">Containment</Label>
+                    <Select
+                      value={filters.containmentId}
+                      onValueChange={(value) =>
+                        handleFilterChange("containmentId", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All containments" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All containments</SelectItem>
+                        {Array.isArray(containments) &&
+                          containments.map((containment) => (
+                            <SelectItem
+                              key={containment.id}
+                              value={containment.id.toString()}
+                            >
+                              {containment.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="rackId">Rack</Label>
+                    <Select
+                      value={filters.rackId}
+                      onValueChange={(value) =>
+                        handleFilterChange("rackId", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All racks" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All racks</SelectItem>
+                        {Array.isArray(racks) &&
+                          racks.map((rack) => (
+                            <SelectItem
+                              key={rack.id}
+                              value={rack.id.toString()}
+                            >
+                              {rack.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input
+                      id="startDate"
+                      type="datetime-local"
+                      value={filters.startDate}
+                      onChange={(e) =>
+                        handleFilterChange("startDate", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="datetime-local"
+                      value={filters.endDate}
+                      onChange={(e) =>
+                        handleFilterChange("endDate", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-end gap-2 col-span-full md:col-span-1 lg:col-span-2">
+                    <Button
+                      onClick={applyFilters}
+                      className="flex-1"
+                      disabled={loadingData}
+                    >
+                      {loadingData ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4 mr-2" />
+                      )}
+                      Apply Filters
+                    </Button>
+                    <Button
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="flex-1"
+                      disabled={loadingData}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <Label htmlFor="sensorType">Sensor Type</Label>
-                  <Select
-                    value={filters.sensorType}
-                    onValueChange={(value) =>
-                      handleFilterChange("sensorType", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All types</SelectItem>
-                      {Array.isArray(availableSensorTypes) && availableSensorTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="containmentId">Containment</Label>
-                  <Select
-                    value={filters.containmentId}
-                    onValueChange={(value) =>
-                      handleFilterChange("containmentId", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All containments" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All containments</SelectItem>
-                      {Array.isArray(containments) && containments.map((containment) => (
-                        <SelectItem
-                          key={containment.id}
-                          value={containment.id.toString()}
-                        >
-                          {containment.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="rackId">Rack</Label>
-                  <Select
-                    value={filters.rackId}
-                    onValueChange={(value) =>
-                      handleFilterChange("rackId", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All racks" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All racks</SelectItem>
-                      {Array.isArray(racks) && racks.map((rack) => (
-                        <SelectItem key={rack.id} value={rack.id.toString()}>
-                          {rack.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="datetime-local"
-                    value={filters.startDate}
-                    onChange={(e) =>
-                      handleFilterChange("startDate", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="datetime-local"
-                    value={filters.endDate}
-                    onChange={(e) =>
-                      handleFilterChange("endDate", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-end gap-2 col-span-full md:col-span-1 lg:col-span-2">
-                  <Button onClick={applyFilters} className="flex-1" disabled={loadingData}>
-                    {loadingData ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4 mr-2" />
-                    )}
-                    Apply Filters
-                  </Button>
-                  <Button
-                    onClick={clearFilters}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={loadingData}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Sensor Data ({pagination.totalRecords} records)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Device</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Timestamp</TableHead>
-                      <TableHead>Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sensorData.length > 0 ? (
-                      sensorData.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {item.device?.name || "Unknown Device"}
+            {/* Data Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Sensor Data ({pagination.totalRecords} records)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Device</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Topic</TableHead>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>Data</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sensorData.length > 0 ? (
+                        sensorData.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {item.device?.name || "Unknown Device"}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  ID: {item.deviceId}
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                ID: {item.deviceId}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {item.sensorType ||
+                                  item.device?.sensorType ||
+                                  "Unknown"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>{item.containment?.name || "Unknown"}</div>
+                                <div className="text-muted-foreground">
+                                  {item.rack?.name || "Unknown"}
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {item.sensorType ||
-                                item.device?.sensorType ||
-                                "Unknown"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <div>{item.containment?.name || "Unknown"}</div>
-                              <div className="text-muted-foreground">
-                                {item.rack?.name || "Unknown"}
+                            </TableCell>
+                            <TableCell>
+                              <code className="text-xs bg-muted px-2 py-1 rounded max-w-32 truncate block">
+                                {item.topic || "N/A"}
+                              </code>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatTimestamp(item.timestamp)}
+                            </TableCell>
+                            <TableCell>
+                              <details className="text-xs">
+                                <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                                  View Payload
+                                </summary>
+                                <pre className="mt-2 p-2 bg-gray-100 rounded max-w-xs overflow-auto whitespace-pre-wrap">
+                                  {JSON.stringify(
+                                    parsePayload(item.rawPayload),
+                                    null,
+                                    2
+                                  )}
+                                </pre>
+                              </details>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            {loadingData ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                Loading sensor data...
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-xs bg-muted px-2 py-1 rounded max-w-32 truncate block">
-                              {item.topic || "N/A"}
-                            </code>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {formatTimestamp(item.timestamp)}
-                          </TableCell>
-                          <TableCell>
-                            <details className="text-xs">
-                              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                                View Payload
-                              </summary>
-                              <pre className="mt-2 p-2 bg-gray-100 rounded max-w-xs overflow-auto whitespace-pre-wrap">
-                                {JSON.stringify(
-                                  parsePayload(item.rawPayload),
-                                  null,
-                                  2
-                                )}
-                              </pre>
-                            </details>
+                            ) : (
+                              "No sensor data found"
+                            )}
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          {loadingData ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                              Loading sensor data...
-                            </div>
-                          ) : (
-                            "No sensor data found"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="mt-6">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() =>
-                            handlePageChange(pagination.currentPage - 1)
-                          }
-                          className={
-                            !pagination.hasPreviousPage
-                              ? "pointer-events-none opacity-50"
-                              : "cursor-pointer"
-                          }
-                        />
-                      </PaginationItem>
-
-                      {Array.from(
-                        { length: Math.min(5, pagination.totalPages) },
-                        (_, i) => {
-                          const page = i + 1;
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationLink
-                                onClick={() => handlePageChange(page)}
-                                isActive={page === pagination.currentPage}
-                                className="cursor-pointer"
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        }
                       )}
-
-                      {pagination.totalPages > 5 && (
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )}
-
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() =>
-                            handlePageChange(pagination.currentPage + 1)
-                          }
-                          className={
-                            !pagination.hasNextPage
-                              ? "pointer-events-none opacity-50"
-                              : "cursor-pointer"
-                          }
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="summary" className="space-y-6">
-          {summary && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold">
-                      {summary?.totalRecords?.toLocaleString() ?? '0'}
-                    </div>
-                    <p className="text-muted-foreground">Total Records</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold">
-                      {summary?.activeDevices ?? '0'}
-                    </div>
-                    <p className="text-muted-foreground">Active Devices</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold">
-                      {summary?.sensorTypes?.length ?? '0'}
-                    </div>
-                    <p className="text-muted-foreground">Sensor Types</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold">
-                      {summary?.devicesSummary?.length ?? '0'}
-                    </div>
-                    <p className="text-muted-foreground">Reporting Devices</p>
-                  </CardContent>
-                </Card>
-              </div>
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="mt-6">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() =>
+                              handlePageChange(pagination.currentPage - 1)
+                            }
+                            className={
+                              !pagination.hasPreviousPage
+                                ? "pointer-events-none opacity-50"
+                                : "cursor-pointer"
+                            }
+                          />
+                        </PaginationItem>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Sensor Types Distribution</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {summary?.sensorTypes && summary.sensorTypes.length > 0 ? (
-                        summary.sensorTypes.map((type) => (
-                          <div
-                            key={type.sensorType}
-                            className="flex items-center justify-between"
-                          >
-                            <Badge variant="outline">{type.sensorType || "Unknown"}</Badge>
-                            <span className="font-medium">
-                              {type.count?.toLocaleString() || 0}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center text-muted-foreground py-4">
-                          No sensor types available
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                        {Array.from(
+                          { length: Math.min(5, pagination.totalPages) },
+                          (_, i) => {
+                            const page = i + 1;
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => handlePageChange(page)}
+                                  isActive={page === pagination.currentPage}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          }
+                        )}
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Device Activity Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-64 overflow-auto">
-                      {summary?.devicesSummary && summary.devicesSummary.length > 0 ? (
-                        summary.devicesSummary.map((device) => (
-                          <div
-                            key={device.deviceId}
-                            className="flex items-center justify-between p-2 border rounded"
-                          >
-                            <div>
-                              <div className="font-medium">
-                                {device.deviceName || "Unknown Device"}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Last: {formatTimestamp(device.latestTimestamp)}
-                              </div>
+                        {pagination.totalPages > 5 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() =>
+                              handlePageChange(pagination.currentPage + 1)
+                            }
+                            className={
+                              !pagination.hasNextPage
+                                ? "pointer-events-none opacity-50"
+                                : "cursor-pointer"
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="summary" className="space-y-6">
+            {summary && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold">
+                        {summary?.totalRecords?.toLocaleString() ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Total Records</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold">
+                        {summary?.activeDevices ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Active Devices</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold">
+                        {summary?.sensorTypes?.length ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Sensor Types</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold">
+                        {summary?.devicesSummary?.length ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Reporting Devices</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Sensor Types Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {summary?.sensorTypes &&
+                        summary.sensorTypes.length > 0 ? (
+                          summary.sensorTypes.map((type) => (
+                            <div
+                              key={type.sensorType}
+                              className="flex items-center justify-between"
+                            >
+                              <Badge variant="outline">
+                                {type.sensorType || "Unknown"}
+                              </Badge>
+                              <span className="font-medium">
+                                {type.count?.toLocaleString() || 0}
+                              </span>
                             </div>
-                            <Badge>{device.recordCount?.toLocaleString() || 0}</Badge>
+                          ))
+                        ) : (
+                          <div className="text-center text-muted-foreground py-4">
+                            No sensor types available
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center text-muted-foreground py-4">
-                          No device activity data available
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
-        </TabsContent>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-        <TabsContent value="charts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Data Visualization
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Select a device and date range to view sensor data charts.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Device Activity Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 max-h-64 overflow-auto">
+                        {summary?.devicesSummary &&
+                        summary.devicesSummary.length > 0 ? (
+                          summary.devicesSummary.map((device) => (
+                            <div
+                              key={device.deviceId}
+                              className="flex items-center justify-between p-2 border rounded"
+                            >
+                              <div>
+                                <div className="font-medium">
+                                  {device.deviceName || "Unknown Device"}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  Last:{" "}
+                                  {formatTimestamp(device.latestTimestamp)}
+                                </div>
+                              </div>
+                              <Badge>
+                                {device.recordCount?.toLocaleString() || 0}
+                              </Badge>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center text-muted-foreground py-4">
+                            No device activity data available
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="charts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Data Visualization
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Select a device and date range to view sensor data charts.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </SidebarInset>
   );
 }

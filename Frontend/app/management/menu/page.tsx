@@ -115,8 +115,11 @@ export default function MenuManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  const [sortField, setSortField] = useState<string>("menuGroup");
+  const [sortField, setSortField] = useState<string>("group");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<number | null>(
+    null
+  );
 
   // Form states
   const [roleForm, setRoleForm] = useState({
@@ -152,6 +155,34 @@ export default function MenuManagementPage() {
 
   const handleCreateRole = async () => {
     try {
+      // Validate form data
+      if (!roleForm.name.trim()) {
+        toast.error("Role name is required");
+        return;
+      }
+      if (!roleForm.displayName.trim()) {
+        toast.error("Display name is required");
+        return;
+      }
+
+      // Check for duplicate role names
+      const existingRole = roles.find(
+        (role) => role.name.toLowerCase() === roleForm.name.toLowerCase()
+      );
+
+      if (existingRole) {
+        toast.error("A role with this name already exists");
+        return;
+      }
+
+      // Check for duplicate level
+      const existingLevel = roles.find((role) => role.level === roleForm.level);
+
+      if (existingLevel) {
+        toast.error("A role with this level already exists");
+        return;
+      }
+
       await createRole(roleForm);
       setIsRoleDialogOpen(false);
       setRoleForm({
@@ -163,13 +194,31 @@ export default function MenuManagementPage() {
         isActive: true,
       });
       toast.success("Role created successfully");
+      refreshMenu(); // Refresh menu to update sidebar
     } catch (error) {
       toast.error("Failed to create role");
+      console.error("Role creation error:", error);
     }
   };
 
   const handleCreateGroup = async () => {
     try {
+      // Validate form data
+      if (!groupForm.title.trim()) {
+        toast.error("Group title is required");
+        return;
+      }
+
+      // Check for duplicate group titles
+      const existingGroup = menuGroups.find(
+        (group) => group.title.toLowerCase() === groupForm.title.toLowerCase()
+      );
+
+      if (existingGroup) {
+        toast.error("A menu group with this title already exists");
+        return;
+      }
+
       await createMenuGroup(groupForm);
       setIsGroupDialogOpen(false);
       setGroupForm({
@@ -184,6 +233,7 @@ export default function MenuManagementPage() {
       refreshMenu(); // Refresh sidebar menu
     } catch (error) {
       toast.error("Failed to create menu group");
+      console.error("Group creation error:", error);
     }
   };
 
@@ -335,7 +385,10 @@ export default function MenuManagementPage() {
     if (!editingItem) return;
 
     try {
-      await updateMenuItem(editingItem.id, itemForm);
+      await updateMenuItem(editingItem.id, {
+        ...itemForm,
+        menuGroupId: itemForm.menuGroupId,
+      });
       setIsItemDialogOpen(false);
       setEditingItem(null);
       setItemForm({
@@ -427,12 +480,19 @@ export default function MenuManagementPage() {
   const allMenuItems = getAllMenuItems();
 
   // Filter and sort items
-  const filteredItems = allMenuItems.filter(
-    (item) =>
+  const filteredItems = allMenuItems.filter((item) => {
+    // Text search filter
+    const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.groupTitle.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      item.groupTitle.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Group filter
+    const matchesGroup =
+      selectedGroupFilter === null || item.groupId === selectedGroupFilter;
+
+    return matchesSearch && matchesGroup;
+  });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     let aValue, bValue;
@@ -488,6 +548,11 @@ export default function MenuManagementPage() {
   // Reset page when search changes
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleGroupFilterChange = (groupId: number | null) => {
+    setSelectedGroupFilter(groupId);
     setCurrentPage(1);
   };
 
@@ -618,52 +683,95 @@ export default function MenuManagementPage() {
                           <Label htmlFor="group-sort" className="text-right">
                             Sort Order
                           </Label>
-                          <div className="col-span-3 flex gap-2">
-                            <Input
-                              id="group-sort"
-                              type="number"
-                              value={groupForm.sortOrder}
-                              onChange={(e) =>
-                                setGroupForm({
-                                  ...groupForm,
-                                  sortOrder: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              className="flex-1"
-                            />
-                            <div className="flex flex-col gap-1">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
+                          <div className="col-span-3 space-y-2">
+                            <div className="flex gap-2">
+                              <Input
+                                id="group-sort"
+                                type="number"
+                                min="0"
+                                value={groupForm.sortOrder}
+                                onChange={(e) =>
                                   setGroupForm({
                                     ...groupForm,
                                     sortOrder: Math.max(
                                       0,
-                                      groupForm.sortOrder - 1
+                                      parseInt(e.target.value) || 0
                                     ),
                                   })
                                 }
-                                className="h-5 w-5 p-0"
-                              >
-                                <ArrowUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setGroupForm({
-                                    ...groupForm,
-                                    sortOrder: groupForm.sortOrder + 1,
-                                  })
-                                }
-                                className="h-5 w-5 p-0"
-                              >
-                                <ArrowDown className="h-3 w-3" />
-                              </Button>
+                                className="flex-1"
+                              />
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    setGroupForm({
+                                      ...groupForm,
+                                      sortOrder: Math.max(
+                                        0,
+                                        groupForm.sortOrder - 1
+                                      ),
+                                    })
+                                  }
+                                  disabled={groupForm.sortOrder <= 0}
+                                  className="h-8 w-8 p-0"
+                                  title="Decrease order (move up)"
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    setGroupForm({
+                                      ...groupForm,
+                                      sortOrder: groupForm.sortOrder + 1,
+                                    })
+                                  }
+                                  className="h-8 w-8 p-0"
+                                  title="Increase order (move down)"
+                                >
+                                  <ArrowDown className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Auto-suggest next available order
+                                    const maxOrder = Math.max(
+                                      0,
+                                      ...menuGroups.map((g) => g.sortOrder)
+                                    );
+                                    setGroupForm({
+                                      ...groupForm,
+                                      sortOrder: maxOrder + 1,
+                                    });
+                                  }}
+                                  className="h-8 w-8 p-0"
+                                  title="Set to next available order"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
+                            {menuGroups.length > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                Current orders:{" "}
+                                {menuGroups
+                                  .map((g) => g.sortOrder)
+                                  .sort((a, b) => a - b)
+                                  .join(", ")}{" "}
+                                | Suggested:{" "}
+                                {Math.max(
+                                  0,
+                                  ...menuGroups.map((g) => g.sortOrder)
+                                ) + 1}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -827,6 +935,31 @@ export default function MenuManagementPage() {
                       className="pl-9 w-full sm:w-64"
                     />
                   </div>
+                  <Select
+                    value={selectedGroupFilter?.toString() || "all"}
+                    onValueChange={(value) =>
+                      handleGroupFilterChange(
+                        value === "all" ? null : parseInt(value)
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue placeholder="Filter by Group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Groups</SelectItem>
+                      {menuGroups && Array.isArray(menuGroups)
+                        ? menuGroups.map((group) => (
+                            <SelectItem
+                              key={group.id}
+                              value={group.id.toString()}
+                            >
+                              {group.title} ({group.items?.length || 0} items)
+                            </SelectItem>
+                          ))
+                        : null}
+                    </SelectContent>
+                  </Select>
                   <CrudPermission module="menuManagement" operation="create">
                     <Dialog
                       open={isItemDialogOpen}
@@ -922,52 +1055,124 @@ export default function MenuManagementPage() {
                           <div className="grid grid-cols-3 gap-4">
                             <div>
                               <Label htmlFor="item-sort">Sort Order</Label>
-                              <div className="flex gap-2">
-                                <Input
-                                  id="item-sort"
-                                  type="number"
-                                  value={itemForm.sortOrder}
-                                  onChange={(e) =>
-                                    setItemForm({
-                                      ...itemForm,
-                                      sortOrder: parseInt(e.target.value) || 0,
-                                    })
-                                  }
-                                  className="flex-1"
-                                />
-                                <div className="flex flex-col gap-1">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
+                              <div className="space-y-2">
+                                <div className="flex gap-2">
+                                  <Input
+                                    id="item-sort"
+                                    type="number"
+                                    min="0"
+                                    value={itemForm.sortOrder}
+                                    onChange={(e) =>
                                       setItemForm({
                                         ...itemForm,
                                         sortOrder: Math.max(
                                           0,
-                                          itemForm.sortOrder - 1
+                                          parseInt(e.target.value) || 0
                                         ),
                                       })
                                     }
-                                    className="h-5 w-5 p-0"
-                                  >
-                                    <ArrowUp className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      setItemForm({
-                                        ...itemForm,
-                                        sortOrder: itemForm.sortOrder + 1,
-                                      })
-                                    }
-                                    className="h-5 w-5 p-0"
-                                  >
-                                    <ArrowDown className="h-3 w-3" />
-                                  </Button>
+                                    className="flex-1"
+                                  />
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        setItemForm({
+                                          ...itemForm,
+                                          sortOrder: Math.max(
+                                            0,
+                                            itemForm.sortOrder - 1
+                                          ),
+                                        })
+                                      }
+                                      disabled={itemForm.sortOrder <= 0}
+                                      className="h-7 w-7 p-0"
+                                      title="Decrease order (move up)"
+                                    >
+                                      <ArrowUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        setItemForm({
+                                          ...itemForm,
+                                          sortOrder: itemForm.sortOrder + 1,
+                                        })
+                                      }
+                                      className="h-7 w-7 p-0"
+                                      title="Increase order (move down)"
+                                    >
+                                      <ArrowDown className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Auto-suggest next available order for the selected group
+                                        const selectedGroup = menuGroups.find(
+                                          (g) => g.id === itemForm.menuGroupId
+                                        );
+                                        if (
+                                          selectedGroup &&
+                                          selectedGroup.items
+                                        ) {
+                                          const maxOrder = Math.max(
+                                            0,
+                                            ...selectedGroup.items.map(
+                                              (i) => i.sortOrder
+                                            )
+                                          );
+                                          setItemForm({
+                                            ...itemForm,
+                                            sortOrder: maxOrder + 1,
+                                          });
+                                        } else {
+                                          setItemForm({
+                                            ...itemForm,
+                                            sortOrder: 1,
+                                          });
+                                        }
+                                      }}
+                                      className="h-7 w-7 p-0"
+                                      title="Set to next available order in group"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
+                                {itemForm.menuGroupId > 0 &&
+                                  (() => {
+                                    const selectedGroup = menuGroups.find(
+                                      (g) => g.id === itemForm.menuGroupId
+                                    );
+                                    if (
+                                      selectedGroup &&
+                                      selectedGroup.items &&
+                                      selectedGroup.items.length > 0
+                                    ) {
+                                      const orders = selectedGroup.items
+                                        .map((i) => i.sortOrder)
+                                        .sort((a, b) => a - b);
+                                      const maxOrder = Math.max(0, ...orders);
+                                      return (
+                                        <div className="text-xs text-muted-foreground">
+                                          Group "{selectedGroup.title}" orders:{" "}
+                                          {orders.join(", ")} | Suggested:{" "}
+                                          {maxOrder + 1}
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div className="text-xs text-muted-foreground">
+                                        First item in group - suggested order: 1
+                                      </div>
+                                    );
+                                  })()}
                               </div>
                             </div>
                             <div>
@@ -1528,99 +1733,147 @@ export default function MenuManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {roles && Array.isArray(roles)
-                  ? roles.map((role) => (
-                      <Card key={role.id}>
-                        <CardHeader>
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <Badge className={role.color}>
-                              {role.displayName}
-                            </Badge>
-                            <span>Menu View</span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            {menuGroups && Array.isArray(menuGroups)
-                              ? menuGroups
-                                  .filter(
-                                    (group) =>
-                                      !group.minRoleLevel ||
-                                      group.minRoleLevel <= role.level
-                                  )
-                                  .map((group) => {
-                                    const GroupIcon = getIconComponent(
-                                      group.icon
-                                    );
-                                    return (
-                                      <div
-                                        key={group.id}
-                                        className="border rounded-lg p-3"
-                                      >
-                                        <div className="font-medium text-sm flex items-center gap-2">
-                                          <GroupIcon className="h-4 w-4 text-sidebar-foreground/60" />
-                                          {group.title}
-                                          {group.requiresDeveloperMode && (
-                                            <Badge
-                                              variant="outline"
-                                              className="text-xs"
-                                            >
-                                              Dev
-                                            </Badge>
+                  ? [...new Set(roles.map((r) => r.id))] // Remove duplicate role IDs
+                      .map((roleId) => roles.find((r) => r.id === roleId)!) // Get unique roles
+                      .filter(Boolean)
+                      .map((role) => (
+                        <Card key={`preview-role-${role.id}`}>
+                          <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Badge className={role.color}>
+                                {role.displayName}
+                              </Badge>
+                              <span>Menu View</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {menuGroups && Array.isArray(menuGroups)
+                                ? [...new Set(menuGroups.map((g) => g.id))] // Remove duplicate group IDs
+                                    .map(
+                                      (groupId) =>
+                                        menuGroups.find(
+                                          (g) => g.id === groupId
+                                        )!
+                                    ) // Get unique groups
+                                    .filter(Boolean)
+                                    .filter(
+                                      (group) =>
+                                        group.isActive && // Only show active groups
+                                        (!group.minRoleLevel ||
+                                          group.minRoleLevel <= role.level)
+                                    )
+                                    .sort(
+                                      (a, b) =>
+                                        (a.sortOrder || 0) - (b.sortOrder || 0)
+                                    ) // Sort by order
+                                    .map((group) => {
+                                      const GroupIcon = getIconComponent(
+                                        group.icon
+                                      );
+
+                                      // Get unique items for this group
+                                      const uniqueItems =
+                                        group.items &&
+                                        Array.isArray(group.items)
+                                          ? [
+                                              ...new Set(
+                                                group.items.map((i) => i.id)
+                                              ),
+                                            ]
+                                              .map(
+                                                (itemId) =>
+                                                  group.items!.find(
+                                                    (i) => i.id === itemId
+                                                  )!
+                                              )
+                                              .filter(Boolean)
+                                              .filter(
+                                                (item) =>
+                                                  item.isActive && // Only show active items
+                                                  (!item.minRoleLevel ||
+                                                    item.minRoleLevel <=
+                                                      role.level)
+                                              )
+                                              .sort(
+                                                (a, b) =>
+                                                  (a.sortOrder || 0) -
+                                                  (b.sortOrder || 0)
+                                              ) // Sort by order
+                                          : [];
+
+                                      // Only show group if it has visible items or no items constraint
+                                      if (
+                                        group.items &&
+                                        group.items.length > 0 &&
+                                        uniqueItems.length === 0
+                                      ) {
+                                        return null;
+                                      }
+
+                                      return (
+                                        <div
+                                          key={`preview-group-${group.id}`}
+                                          className="border rounded-lg p-3"
+                                        >
+                                          <div className="font-medium text-sm flex items-center gap-2">
+                                            <GroupIcon className="h-4 w-4 text-sidebar-foreground/60" />
+                                            {group.title}
+                                            {group.requiresDeveloperMode && (
+                                              <Badge
+                                                variant="outline"
+                                                className="text-xs"
+                                              >
+                                                Dev
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {uniqueItems.length > 0 && (
+                                            <div className="ml-6 mt-2 space-y-1">
+                                              {uniqueItems.map((item) => {
+                                                const ItemIcon =
+                                                  getIconComponent(item.icon);
+                                                return (
+                                                  <div
+                                                    key={`preview-item-${item.id}`}
+                                                    className="text-sm text-muted-foreground flex items-center gap-2"
+                                                  >
+                                                    <ItemIcon className="h-3 w-3 text-sidebar-foreground/60" />
+                                                    • {item.title}
+                                                    {item.requiresDeveloperMode && (
+                                                      <Badge
+                                                        variant="outline"
+                                                        className="text-xs"
+                                                      >
+                                                        Dev
+                                                      </Badge>
+                                                    )}
+                                                    {item.badgeText && (
+                                                      <Badge
+                                                        variant={
+                                                          item.badgeVariant as any
+                                                        }
+                                                        className="text-xs"
+                                                      >
+                                                        {item.badgeText}
+                                                      </Badge>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
                                           )}
                                         </div>
-                                        <div className="ml-6 mt-2 space-y-1">
-                                          {group.items &&
-                                          Array.isArray(group.items)
-                                            ? group.items
-                                                .filter(
-                                                  (item) =>
-                                                    !item.minRoleLevel ||
-                                                    item.minRoleLevel <=
-                                                      role.level
-                                                )
-                                                .map((item) => {
-                                                  const ItemIcon =
-                                                    getIconComponent(item.icon);
-                                                  return (
-                                                    <div
-                                                      key={item.id}
-                                                      className="text-sm text-muted-foreground flex items-center gap-2"
-                                                    >
-                                                      <ItemIcon className="h-3 w-3 text-sidebar-foreground/60" />
-                                                      • {item.title}
-                                                      {item.requiresDeveloperMode && (
-                                                        <Badge
-                                                          variant="outline"
-                                                          className="text-xs"
-                                                        >
-                                                          Dev
-                                                        </Badge>
-                                                      )}
-                                                      {item.badgeText && (
-                                                        <Badge
-                                                          variant={
-                                                            item.badgeVariant as any
-                                                          }
-                                                          className="text-xs"
-                                                        >
-                                                          {item.badgeText}
-                                                        </Badge>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                })
-                                            : null}
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                              : null}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
+                                      );
+                                    })
+                                    .filter(Boolean) // Remove null entries
+                                : null}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
                   : null}
               </div>
             </TabsContent>

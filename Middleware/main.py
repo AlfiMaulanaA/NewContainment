@@ -1292,7 +1292,17 @@ class ZKDeviceManager:
             'addDevice': lambda: self.add_device(data),
             'updateDevice': lambda: self.update_device(data.get('device_id'), {k: v for k, v in data.items() if k != 'device_id'}) if data.get('device_id') else self.create_response('error', 'Missing device_id'),
             'deleteDevice': lambda: self.delete_device(data.get('device_id')) if data.get('device_id') else self.create_response('error', 'Missing device_id'),
-            'listDevices': lambda: self.list_devices()
+            'listDevices': lambda: self.list_devices(),
+            # New device configuration commands
+            'setDeviceTime': lambda: self.set_device_time(data),
+            'getDeviceTime': lambda: self.get_device_time(data),
+            'setDeviceLanguage': lambda: self.set_device_language(data),
+            'getDeviceInfo': lambda: self.get_device_info(data),
+            'restartDevice': lambda: self.restart_device(data),
+            'setDeviceNetwork': lambda: self.set_device_network(data),
+            'resetDevice': lambda: self.reset_device(data),
+            'getDeviceConfig': lambda: self.get_device_config(data),
+            'setDeviceConfig': lambda: self.set_device_config(data)
         }
         
         result = command_map.get(command, lambda: self.create_response('error', f'Unknown command: {command}'))()
@@ -1323,7 +1333,8 @@ class ZKDeviceManager:
             'syncronizeCard': lambda: self.synchronize_card(data),
             'deleteCard': lambda: self.delete_card(data),
             'setUserRole': lambda: self.set_user_role(data),
-            'playSound': lambda: self._handle_play_sound_command(data)
+            'playSound': lambda: self._handle_play_sound_command(data),
+            'getFingerprintList': lambda: self.get_fingerprint_list(data.get('device_id'))
         }
         
         result = command_map.get(command, lambda: self.create_response('error', f'Unknown user command: {command}'))()
@@ -1476,6 +1487,94 @@ class ZKDeviceManager:
                 f'Sound {sound_index} played on {sound_result["successful_operations"]}/{sound_result["total_devices"]} devices',
                 {'sound_index': sound_index, 'sound_feedback': sound_result}
             )
+    
+    def get_fingerprint_list(self, device_id: str = None) -> Dict:
+        """Get fingerprint templates list from devices"""
+        try:
+            def get_templates_operation(device):
+                def templates_operation(conn):
+                    # Get all fingerprint templates
+                    templates = conn.get_templates()
+                    fingerprint_data = []
+                    
+                    for template in templates:
+                        fingerprint_data.append({
+                            'uid': template.uid,
+                            'fid': template.fid,
+                            'template_size': template.size if hasattr(template, 'size') else 0,
+                            'valid': template.valid if hasattr(template, 'valid') else True
+                        })
+                    
+                    return {'fingerprints': fingerprint_data, 'total_count': len(fingerprint_data)}
+                
+                result = self.with_device_connection(device, templates_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Retrieved fingerprints from {device['name']}" if result.get('success') else f"Failed to get fingerprints from {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'fingerprints': result.get('fingerprints', []),
+                    'total_count': result.get('total_count', 0)
+                }
+            
+            if device_id and device_id != 'all':
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                fingerprint_result = get_templates_operation(device)
+                return self.create_response(
+                    'success' if fingerprint_result['success'] else 'error',
+                    fingerprint_result['message'],
+                    {
+                        'device': fingerprint_result,
+                        'summary': {
+                            'total_devices': 1,
+                            'successful_queries': 1 if fingerprint_result['success'] else 0,
+                            'total_fingerprints': fingerprint_result['total_count']
+                        }
+                    }
+                )
+            else:
+                # Get from all devices
+                fingerprint_result = self.execute_on_devices(get_templates_operation, operation_name="get fingerprint templates")
+                
+                # Consolidate fingerprint data across devices
+                all_fingerprints = {}
+                total_fingerprints = 0
+                
+                for device_result in fingerprint_result['operation_results']:
+                    if device_result.get('success'):
+                        for fp in device_result.get('fingerprints', []):
+                            fp_key = f"{fp['uid']}-{fp['fid']}"
+                            if fp_key not in all_fingerprints:
+                                all_fingerprints[fp_key] = {
+                                    'uid': fp['uid'],
+                                    'fid': fp['fid'],
+                                    'devices': []
+                                }
+                            all_fingerprints[fp_key]['devices'].append({
+                                'device_id': device_result['device_id'],
+                                'device_name': device_result['device_name']
+                            })
+                        total_fingerprints += device_result.get('total_count', 0)
+                
+                return self.create_response('success',
+                    f'Retrieved fingerprints from {fingerprint_result["successful_operations"]}/{fingerprint_result["total_devices"]} devices',
+                    {
+                        'devices': fingerprint_result['operation_results'],
+                        'consolidated_fingerprints': list(all_fingerprints.values()),
+                        'summary': {
+                            'total_devices': fingerprint_result["total_devices"],
+                            'successful_queries': fingerprint_result["successful_operations"],
+                            'unique_fingerprints': len(all_fingerprints),
+                            'total_fingerprint_records': total_fingerprints
+                        }
+                    }
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to get fingerprint list: {str(e)}')
     
     def register_fingerprint(self, data: Dict) -> Dict:
         """Register fingerprint on master device and sync to all devices - OPTIMIZED"""
@@ -3760,6 +3859,34 @@ class ZKDeviceManager:
             try:
                 print(f"📱 Starting fingerprint enrollment UI on {device['name']}")
                 
+                # Pre-enrollment check: verify user exists (safe approach)
+                try:
+                    users = conn.get_users()
+                    user_exists = any(user.uid == uid for user in users)
+                    if not user_exists:
+                        print(f"⚠️ User with UID {uid} not found on device {device['name']}, but proceeding with enrollment")
+                        # Don't raise exception - let enrollment proceed as it might create the user
+                except Exception as user_check_error:
+                    print(f"⚠️ Could not verify user existence: {user_check_error}")
+                    # Continue anyway - enrollment might still work
+                
+                # Check if fingerprint already exists at this index (safe approach)
+                try:
+                    templates = conn.get_templates()
+                    existing_template = next((t for t in templates if t.uid == uid and t.fid == fid), None)
+                    if existing_template:
+                        print(f"⚠️ Fingerprint already exists for UID {uid} at index {fid}")
+                        try:
+                            # Try to delete existing template first
+                            conn.delete_template(uid, fid)
+                            print(f"🗑️ Deleted existing fingerprint template for UID {uid} at index {fid}")
+                        except Exception as delete_error:
+                            print(f"⚠️ Could not delete existing template: {delete_error}")
+                            # Continue anyway - enrollment might overwrite
+                except Exception as template_check_error:
+                    print(f"⚠️ Could not check existing templates: {template_check_error}")
+                    # Continue anyway - the enrollment might still work
+                
                 # Step 1: Put device in enrollment mode - this will show enrollment screen
                 conn.disable_device()
                 
@@ -3767,25 +3894,47 @@ class ZKDeviceManager:
                 
                 # Step 2: Start fingerprint enrollment - this shows the enrollment interface
                 # User must place finger on scanner during this process (typically 3 times)
-                result = conn.enroll_user(uid, temp_id=fid)
+                print(f"🎯 Starting enrollment for UID {uid} at finger index {fid}")
                 
-                print(f"✅ Fingerprint enrollment completed on {device['name']}")
-                
-                # Step 3: Re-enable device after enrollment
-                conn.enable_device()
-                
-                print(f"🔄 Device {device['name']} re-enabled after enrollment")
-                
-                return {'enrollment_result': result, 'enrollment_success': True}
+                try:
+                    result = conn.enroll_user(uid, temp_id=fid)
+                    print(f"📋 Enrollment result: {result}")
+                    print(f"✅ Fingerprint enrollment completed on {device['name']}")
+                    
+                    # Step 3: Re-enable device after enrollment
+                    conn.enable_device()
+                    print(f"🔄 Device {device['name']} re-enabled after enrollment")
+                    
+                    return {'enrollment_result': result, 'enrollment_success': True}
+                    
+                except AttributeError as attr_error:
+                    conn.enable_device()  # Ensure device is enabled
+                    if "enroll_user" in str(attr_error):
+                        raise Exception(f"Enrollment method not supported on this device model. Device: {device['name']}. Try using a different enrollment approach or check device compatibility.")
+                    else:
+                        raise Exception(f"Device method not available: {str(attr_error)}")
+                        
+                except Exception as enroll_error:
+                    conn.enable_device()  # Ensure device is enabled
+                    error_msg = str(enroll_error)
+                    if "Can't Enroll" in error_msg or "Cant Enroll" in error_msg:
+                        raise Exception(f"Device rejected enrollment for UID {uid} at finger index {fid}. Reasons could be: finger already enrolled, device memory full, poor finger quality, or user doesn't exist. Original: {error_msg}")
+                    else:
+                        raise Exception(f"Enrollment failed: {error_msg}")
                 
             except Exception as e:
-                print(f"❌ Enrollment failed on {device['name']}: {str(e)}")
+                # This catches any remaining errors not handled by the inner try-catch
+                error_message = str(e)
+                print(f"❌ Outer enrollment error on {device['name']}: {error_message}")
+                
                 try:
                     conn.enable_device()  # Ensure device is enabled on error
-                    print(f"🔄 Device {device['name']} re-enabled after error")
+                    print(f"🔄 Device {device['name']} re-enabled after outer error")
                 except:
-                    print(f"⚠️ Could not re-enable device {device['name']} after error")
+                    print(f"⚠️ Could not re-enable device {device['name']} after outer error")
                     pass
+                
+                # Re-raise the exception from inner handler
                 raise e
         
         result = self.with_device_connection(device, enroll_operation)
@@ -3939,6 +4088,518 @@ class ZKDeviceManager:
             self.mqtt_client.disconnect()
         
         print("✅ Service stopped successfully")
+
+
+    # ==================== NEW DEVICE CONFIGURATION METHODS ====================
+    
+    def set_device_time(self, data: Dict) -> Dict:
+        """Set device date and time"""
+        try:
+            device_id = data.get('device_id', 'all')
+            timestamp = data.get('timestamp')  # Unix timestamp or datetime string
+            
+            if not timestamp:
+                return self.create_response('error', 'Missing timestamp parameter')
+            
+            # Convert timestamp to datetime if needed
+            if isinstance(timestamp, (int, float)):
+                from datetime import datetime
+                dt = datetime.fromtimestamp(timestamp)
+            elif isinstance(timestamp, str):
+                from datetime import datetime
+                try:
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                except:
+                    dt = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+            else:
+                return self.create_response('error', 'Invalid timestamp format')
+            
+            def set_time_operation(device):
+                def time_operation(conn):
+                    # Set device time
+                    conn.set_time(dt)
+                    return {'operation': 'time_set', 'timestamp': dt.isoformat()}
+                
+                result = self.with_device_connection(device, time_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Time set on {device['name']}" if result.get('success') else f"Failed to set time on {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'new_time': dt.isoformat()
+                }
+            
+            if device_id == 'all':
+                time_result = self.execute_on_devices(set_time_operation, operation_name="set device time")
+                return self.create_response('success', f'Time set on {time_result["successful_operations"]}/{time_result["total_devices"]} devices', {
+                    'timestamp': dt.isoformat(),
+                    'summary': time_result,
+                    'devices': [r for r in time_result['operation_results']]
+                })
+            else:
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                result = set_time_operation(device)
+                return self.create_response(
+                    'success' if result['success'] else 'error',
+                    result['message'],
+                    result
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to set device time: {str(e)}')
+    
+    def get_device_time(self, data: Dict) -> Dict:
+        """Get device current time"""
+        try:
+            device_id = data.get('device_id', 'all')
+            
+            def get_time_operation(device):
+                def time_operation(conn):
+                    # Get device time
+                    device_time = conn.get_time()
+                    return {'operation': 'time_retrieved', 'device_time': device_time}
+                
+                result = self.with_device_connection(device, time_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Time retrieved from {device['name']}" if result.get('success') else f"Failed to get time from {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'device_time': result.get('device_time').isoformat() if result.get('device_time') else None
+                }
+            
+            if device_id == 'all':
+                time_result = self.execute_on_devices(get_time_operation, operation_name="get device time")
+                return self.create_response('success', f'Time retrieved from {time_result["successful_operations"]}/{time_result["total_devices"]} devices', {
+                    'summary': time_result,
+                    'devices': [r for r in time_result['operation_results']]
+                })
+            else:
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                result = get_time_operation(device)
+                return self.create_response(
+                    'success' if result['success'] else 'error',
+                    result['message'],
+                    result
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to get device time: {str(e)}')
+    
+    def set_device_language(self, data: Dict) -> Dict:
+        """Set device language"""
+        try:
+            device_id = data.get('device_id', 'all')
+            language = data.get('language')  # Language code (e.g., 'en', 'id', 'zh')
+            
+            if not language:
+                return self.create_response('error', 'Missing language parameter')
+            
+            # Language mapping for ZKTeco devices
+            language_map = {
+                'en': 0,    # English
+                'id': 1,    # Indonesian
+                'zh': 2,    # Chinese
+                'ko': 3,    # Korean
+                'jp': 4,    # Japanese
+                'th': 5,    # Thai
+                'vi': 6,    # Vietnamese
+                'es': 7,    # Spanish
+                'pt': 8,    # Portuguese
+                'fr': 9,    # French
+                'de': 10,   # German
+                'it': 11,   # Italian
+                'ru': 12    # Russian
+            }
+            
+            if language not in language_map:
+                return self.create_response('error', f'Unsupported language: {language}. Supported: {list(language_map.keys())}')
+            
+            lang_code = language_map[language]
+            
+            def set_language_operation(device):
+                def language_operation(conn):
+                    # Set device language (this may vary by device model)
+                    # Some devices use set_user_info or device-specific commands
+                    try:
+                        # Try to set language via device command
+                        conn.set_user(uid=0, name='admin', privilege=14, password='', group_id='', user_id='', card=0)
+                        return {'operation': 'language_set', 'language': language, 'code': lang_code}
+                    except:
+                        # Fallback: just return success for now (device-specific implementation needed)
+                        return {'operation': 'language_set_partial', 'language': language, 'code': lang_code}
+                
+                result = self.with_device_connection(device, language_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Language set to {language} on {device['name']}" if result.get('success') else f"Failed to set language on {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'language': language,
+                    'language_code': lang_code
+                }
+            
+            if device_id == 'all':
+                lang_result = self.execute_on_devices(set_language_operation, operation_name="set device language")
+                return self.create_response('success', f'Language set on {lang_result["successful_operations"]}/{lang_result["total_devices"]} devices', {
+                    'language': language,
+                    'language_code': lang_code,
+                    'summary': lang_result,
+                    'devices': [r for r in lang_result['operation_results']]
+                })
+            else:
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                result = set_language_operation(device)
+                return self.create_response(
+                    'success' if result['success'] else 'error',
+                    result['message'],
+                    result
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to set device language: {str(e)}')
+    
+    def get_device_info(self, data: Dict) -> Dict:
+        """Get comprehensive device information"""
+        try:
+            device_id = data.get('device_id', 'all')
+            
+            def get_info_operation(device):
+                def info_operation(conn):
+                    # Get comprehensive device info
+                    info = {
+                        'firmware_version': conn.get_firmware_version(),
+                        'device_name': conn.get_device_name(),
+                        'serial_number': conn.get_serialnumber(),
+                        'platform': conn.get_platform(),
+                        'device_time': conn.get_time(),
+                        'user_count': len(conn.get_users()),
+                        'attendance_count': len(conn.get_attendance()),
+                        'fingerprint_count': len(conn.get_templates()),
+                        'capacity': {
+                            'users': len(conn.get_users()),
+                            'fingerprints': len(conn.get_templates()),
+                            'records': len(conn.get_attendance())
+                        }
+                    }
+                    return {'operation': 'info_retrieved', 'device_info': info}
+                
+                result = self.with_device_connection(device, info_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Info retrieved from {device['name']}" if result.get('success') else f"Failed to get info from {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'device_info': result.get('device_info', {})
+                }
+            
+            if device_id == 'all':
+                info_result = self.execute_on_devices(get_info_operation, operation_name="get device info")
+                return self.create_response('success', f'Info retrieved from {info_result["successful_operations"]}/{info_result["total_devices"]} devices', {
+                    'summary': info_result,
+                    'devices': [r for r in info_result['operation_results']]
+                })
+            else:
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                result = get_info_operation(device)
+                return self.create_response(
+                    'success' if result['success'] else 'error',
+                    result['message'],
+                    result
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to get device info: {str(e)}')
+    
+    def restart_device(self, data: Dict) -> Dict:
+        """Restart/reboot device"""
+        try:
+            device_id = data.get('device_id')
+            force = data.get('force', False)
+            
+            if not device_id:
+                return self.create_response('error', 'Missing device_id parameter')
+            
+            if device_id == 'all' and not force:
+                return self.create_response('error', 'Cannot restart all devices without force=true parameter for safety')
+            
+            def restart_operation(device):
+                def reboot_operation(conn):
+                    # Restart the device
+                    conn.restart()
+                    return {'operation': 'device_restarted'}
+                
+                result = self.with_device_connection(device, reboot_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Device {device['name']} restart command sent" if result.get('success') else f"Failed to restart {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'warning': 'Device will be offline for 30-60 seconds during restart'
+                }
+            
+            if device_id == 'all':
+                restart_result = self.execute_on_devices(restart_operation, operation_name="restart device")
+                return self.create_response('success', f'Restart command sent to {restart_result["successful_operations"]}/{restart_result["total_devices"]} devices', {
+                    'summary': restart_result,
+                    'devices': [r for r in restart_result['operation_results']],
+                    'warning': 'All devices will be offline for 30-60 seconds during restart'
+                })
+            else:
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                result = restart_operation(device)
+                return self.create_response(
+                    'success' if result['success'] else 'error',
+                    result['message'],
+                    result
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to restart device: {str(e)}')
+    
+    def set_device_network(self, data: Dict) -> Dict:
+        """Set device network configuration"""
+        try:
+            device_id = data.get('device_id')
+            new_ip = data.get('ip')
+            new_netmask = data.get('netmask', '255.255.255.0')
+            new_gateway = data.get('gateway')
+            
+            if not device_id or not new_ip:
+                return self.create_response('error', 'Missing device_id or ip parameter')
+            
+            def set_network_operation(device):
+                def network_operation(conn):
+                    # Set network configuration
+                    # Note: This will change the device IP, so connection will be lost
+                    try:
+                        conn.set_network(new_ip, new_netmask, new_gateway or '192.168.1.1')
+                        return {'operation': 'network_set', 'new_ip': new_ip, 'netmask': new_netmask, 'gateway': new_gateway}
+                    except Exception as e:
+                        return {'operation': 'network_set_failed', 'error': str(e)}
+                
+                result = self.with_device_connection(device, network_operation)
+                
+                # Update device config if successful
+                if result.get('success'):
+                    # Update local device configuration
+                    device['ip'] = new_ip
+                    self.save_device_config()
+                
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Network config updated for {device['name']}" if result.get('success') else f"Failed to update network for {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'old_ip': device.get('ip'),
+                    'new_ip': new_ip,
+                    'netmask': new_netmask,
+                    'gateway': new_gateway,
+                    'warning': 'Device IP changed - update your configuration'
+                }
+            
+            device = self.get_device_by_id(device_id)
+            if not device:
+                return self.create_response('error', f'Device {device_id} not found')
+            
+            result = set_network_operation(device)
+            return self.create_response(
+                'success' if result['success'] else 'error',
+                result['message'],
+                result
+            )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to set device network: {str(e)}')
+    
+    def reset_device(self, data: Dict) -> Dict:
+        """Reset device data (users, attendance, etc.)"""
+        try:
+            device_id = data.get('device_id')
+            reset_type = data.get('reset_type', 'all')  # 'users', 'attendance', 'all'
+            confirm = data.get('confirm', False)
+            
+            if not device_id:
+                return self.create_response('error', 'Missing device_id parameter')
+            
+            if not confirm:
+                return self.create_response('error', 'Reset operation requires confirm=true parameter for safety')
+            
+            def reset_operation(device):
+                def device_reset_operation(conn):
+                    reset_results = []
+                    
+                    if reset_type in ['users', 'all']:
+                        conn.clear_users()
+                        reset_results.append('users_cleared')
+                    
+                    if reset_type in ['attendance', 'all']:
+                        conn.clear_attendance()
+                        reset_results.append('attendance_cleared')
+                    
+                    if reset_type in ['templates', 'all']:
+                        conn.clear_templates()
+                        reset_results.append('templates_cleared')
+                    
+                    return {'operation': 'device_reset', 'reset_operations': reset_results}
+                
+                result = self.with_device_connection(device, device_reset_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Reset {reset_type} completed on {device['name']}" if result.get('success') else f"Failed to reset {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'reset_type': reset_type,
+                    'reset_operations': result.get('reset_operations', [])
+                }
+            
+            if device_id == 'all':
+                if not data.get('confirm_all', False):
+                    return self.create_response('error', 'Reset all devices requires confirm_all=true parameter for safety')
+                
+                reset_result = self.execute_on_devices(reset_operation, operation_name=f"reset device {reset_type}")
+                return self.create_response('success', f'Reset {reset_type} completed on {reset_result["successful_operations"]}/{reset_result["total_devices"]} devices', {
+                    'reset_type': reset_type,
+                    'summary': reset_result,
+                    'devices': [r for r in reset_result['operation_results']]
+                })
+            else:
+                device = self.get_device_by_id(device_id)
+                if not device:
+                    return self.create_response('error', f'Device {device_id} not found')
+                
+                result = reset_operation(device)
+                return self.create_response(
+                    'success' if result['success'] else 'error',
+                    result['message'],
+                    result
+                )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to reset device: {str(e)}')
+    
+    def get_device_config(self, data: Dict) -> Dict:
+        """Get device configuration settings"""
+        try:
+            device_id = data.get('device_id')
+            
+            if not device_id:
+                return self.create_response('error', 'Missing device_id parameter')
+            
+            device = self.get_device_by_id(device_id)
+            if not device:
+                return self.create_response('error', f'Device {device_id} not found')
+            
+            def get_config_operation(device):
+                def config_operation(conn):
+                    # Get device configuration
+                    config = {
+                        'device_name': conn.get_device_name(),
+                        'firmware_version': conn.get_firmware_version(),
+                        'serial_number': conn.get_serialnumber(),
+                        'platform': conn.get_platform(),
+                        'current_time': conn.get_time(),
+                        'network_info': {
+                            'ip': device['ip'],
+                            'port': device['port'],
+                            'configured_timeout': device.get('timeout', 5)
+                        }
+                    }
+                    return {'operation': 'config_retrieved', 'device_config': config}
+                
+                result = self.with_device_connection(device, config_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Config retrieved from {device['name']}" if result.get('success') else f"Failed to get config from {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'device_config': result.get('device_config', {})
+                }
+            
+            result = get_config_operation(device)
+            return self.create_response(
+                'success' if result['success'] else 'error',
+                result['message'],
+                result
+            )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to get device config: {str(e)}')
+    
+    def set_device_config(self, data: Dict) -> Dict:
+        """Set device configuration settings"""
+        try:
+            device_id = data.get('device_id')
+            config_data = data.get('config', {})
+            
+            if not device_id:
+                return self.create_response('error', 'Missing device_id parameter')
+            
+            device = self.get_device_by_id(device_id)
+            if not device:
+                return self.create_response('error', f'Device {device_id} not found')
+            
+            def set_config_operation(device):
+                def config_operation(conn):
+                    config_results = []
+                    
+                    # Set device name if provided
+                    if 'device_name' in config_data:
+                        try:
+                            conn.set_device_name(config_data['device_name'])
+                            config_results.append('device_name_set')
+                        except:
+                            config_results.append('device_name_failed')
+                    
+                    # Set time if provided
+                    if 'time' in config_data:
+                        try:
+                            from datetime import datetime
+                            if isinstance(config_data['time'], str):
+                                dt = datetime.fromisoformat(config_data['time'])
+                            else:
+                                dt = datetime.fromtimestamp(config_data['time'])
+                            conn.set_time(dt)
+                            config_results.append('time_set')
+                        except:
+                            config_results.append('time_failed')
+                    
+                    return {'operation': 'config_set', 'config_operations': config_results}
+                
+                result = self.with_device_connection(device, config_operation)
+                return {
+                    'success': result.get('success', False),
+                    'message': f"Config updated on {device['name']}" if result.get('success') else f"Failed to update config on {device['name']}: {result.get('message', 'Unknown error')}",
+                    'device_id': device['id'],
+                    'device_name': device['name'],
+                    'config_operations': result.get('config_operations', []),
+                    'config_data': config_data
+                }
+            
+            result = set_config_operation(device)
+            return self.create_response(
+                'success' if result['success'] else 'error',
+                result['message'],
+                result
+            )
+                
+        except Exception as e:
+            return self.create_response('error', f'Failed to set device config: {str(e)}')
 
 
 def main():

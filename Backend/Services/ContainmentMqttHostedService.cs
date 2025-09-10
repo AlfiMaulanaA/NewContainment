@@ -15,6 +15,7 @@ namespace Backend.Services
         private readonly int _minIntervalSeconds;
         private readonly Dictionary<int, (string Topic, string Payload, DateTime ReceivedAt)> _dataBuffer = new();
         private Timer? _batchSaveTimer;
+        private readonly Dictionary<int, Timer> _deviceIntervalTimers = new();
 
         public ContainmentMqttHostedService(
             ILogger<ContainmentMqttHostedService> logger,
@@ -26,21 +27,21 @@ namespace Backend.Services
             _serviceProvider = serviceProvider;
             _mqttService = mqttService;
             _configuration = configuration;
-            
+
             // Load interval configuration from environment variables
-            _saveIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_SAVE_INTERVAL") ?? 
+            _saveIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_SAVE_INTERVAL") ??
                                            _configuration["SensorData:SaveInterval"] ?? "60");
-            _minIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_MIN_INTERVAL") ?? 
+            _minIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_MIN_INTERVAL") ??
                                           _configuration["SensorData:MinInterval"] ?? "60");
-            
-            _logger.LogInformation("Sensor data save interval: {SaveInterval}s, min interval: {MinInterval}s", 
+
+            _logger.LogInformation("Sensor data save interval: {SaveInterval}s, min interval: {MinInterval}s",
                 _saveIntervalSeconds, _minIntervalSeconds);
-                
+
             // Initialize batch save timer if save interval is configured
             if (_saveIntervalSeconds > _minIntervalSeconds)
             {
-                _batchSaveTimer = new Timer(BatchSaveCallback, null, 
-                    TimeSpan.FromSeconds(_saveIntervalSeconds), 
+                _batchSaveTimer = new Timer(BatchSaveCallback, null,
+                    TimeSpan.FromSeconds(_saveIntervalSeconds),
                     TimeSpan.FromSeconds(_saveIntervalSeconds));
                 _logger.LogInformation("Batch save timer initialized with {SaveInterval}s interval", _saveIntervalSeconds);
             }
@@ -69,7 +70,7 @@ namespace Backend.Services
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
-                    
+
                     // Check if MQTT is still connected, reconnect if needed
                     if (!_mqttService.IsConnected)
                     {
@@ -107,7 +108,7 @@ namespace Backend.Services
             {
                 attempts++;
                 _logger.LogInformation("Waiting for MQTT connection... Attempt {Attempt}/{MaxAttempts}", attempts, maxAttempts);
-                
+
                 try
                 {
                     await _mqttService.ConnectAsync();
@@ -140,11 +141,11 @@ namespace Backend.Services
                 // For the current implementation, we'll assume the topic is for a specific containment
                 // In the future, you might want to extract containment ID from topic pattern
                 // For now, we'll use a default containment ID of 1 or extract from somewhere
-                
+
                 // Extract containment ID from topic or payload if available
                 // For this example, let's assume we need to determine containment ID
                 // You might want to modify this based on your MQTT topic structure
-                
+
                 int containmentId = ExtractContainmentIdFromTopicOrPayload(topic, payload);
 
                 using var scope = _serviceProvider.CreateScope();
@@ -211,12 +212,12 @@ namespace Backend.Services
                     if (!string.IsNullOrEmpty(device.Topic))
                     {
                         await _mqttService.SubscribeAsync(device.Topic, HandleSensorMessage);
-                        _logger.LogInformation("Subscribed to sensor device topic: {Topic} for device {DeviceName} (ID: {DeviceId})", 
+                        _logger.LogInformation("Subscribed to sensor device topic: {Topic} for device {DeviceName} (ID: {DeviceId})",
                             device.Topic, device.Name, device.Id);
                     }
                     else
                     {
-                        _logger.LogWarning("Sensor device {DeviceName} (ID: {DeviceId}) has no topic configured", 
+                        _logger.LogWarning("Sensor device {DeviceName} (ID: {DeviceId}) has no topic configured",
                             device.Name, device.Id);
                     }
                 }
@@ -240,44 +241,45 @@ namespace Backend.Services
                     _logger.LogWarning("Could not extract device ID from topic: {Topic}", topic);
                     return;
                 }
-                
+
                 _logger.LogDebug("Processing sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
 
-                // Check if batch saving is enabled (when save interval is different from min interval)
-                if (_batchSaveTimer != null && _saveIntervalSeconds > _minIntervalSeconds)
+                // Use dynamic interval checking
+                var shouldSave = await ShouldSaveWithDynamicInterval(deviceId.Value, DateTime.UtcNow);
+                if (shouldSave)
                 {
-                    _logger.LogDebug("Using batch saving for device {DeviceId} (Save: {SaveInterval}s > Min: {MinInterval}s)", 
-                        deviceId, _saveIntervalSeconds, _minIntervalSeconds);
-                    // Use buffer for batch saving
-                    if (ShouldBufferData(deviceId.Value))
-                    {
-                        _dataBuffer[deviceId.Value] = (topic, payload, DateTime.UtcNow);
-                        _logger.LogTrace("Buffered sensor data for device {DeviceId} - will save in next batch", deviceId);
-                    }
-                    return;
+                    _logger.LogDebug("Saving sensor data for device {DeviceId} based on dynamic interval", deviceId);
+                    await SaveSensorDataAsync(deviceId.Value, topic, payload);
+                    _logger.LogInformation("Successfully stored sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
                 }
                 else
                 {
-                    _logger.LogDebug("Using immediate saving for device {DeviceId} (Save: {SaveInterval}s <= Min: {MinInterval}s)", 
-                        deviceId, _saveIntervalSeconds, _minIntervalSeconds);
-                    // Use immediate saving with min interval throttling
-                    if (!ShouldSaveData(deviceId.Value))
-                    {
-                        _logger.LogDebug("Skipping data save for device {DeviceId} due to {MinInterval}s interval throttling", 
-                            deviceId, _minIntervalSeconds);
-                        return;
-                    }
-                    
-                    _logger.LogDebug("Saving sensor data immediately for device {DeviceId}", deviceId);
-                    // Process and store sensor data immediately
-                    await SaveSensorDataAsync(deviceId.Value, topic, payload);
+                    _logger.LogDebug("Skipping data save for device {DeviceId} due to dynamic interval configuration", deviceId);
                 }
-                
-                _logger.LogInformation("Successfully stored sensor data for device {DeviceId} from topic {Topic}", deviceId, topic);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing sensor message from topic {Topic}: {Payload}", topic, payload);
+            }
+        }
+
+        private async Task<bool> ShouldSaveWithDynamicInterval(int deviceId, DateTime timestamp)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var intervalService = scope.ServiceProvider.GetRequiredService<ISensorDataIntervalService>();
+                
+                var shouldSave = await intervalService.ShouldSaveByIntervalAsync(deviceId, timestamp);
+                
+                _logger.LogDebug("Dynamic interval check for device {DeviceId}: {ShouldSave}", deviceId, shouldSave);
+                return shouldSave;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking dynamic interval for device {DeviceId}, falling back to legacy method", deviceId);
+                // Fallback to legacy method
+                return ShouldSaveData(deviceId);
             }
         }
 
@@ -291,10 +293,10 @@ namespace Backend.Services
 
             var timeSinceLastSave = DateTime.UtcNow - _lastSaveTime[deviceId];
             var shouldSave = timeSinceLastSave.TotalSeconds >= _minIntervalSeconds;
-            
-            _logger.LogDebug("Device {DeviceId}: Time since last save: {TimeSinceLastSave:F1}s, Min interval: {MinInterval}s, Should save: {ShouldSave}", 
+
+            _logger.LogDebug("Device {DeviceId}: Time since last save: {TimeSinceLastSave:F1}s, Min interval: {MinInterval}s, Should save: {ShouldSave}",
                 deviceId, timeSinceLastSave.TotalSeconds, _minIntervalSeconds, shouldSave);
-                
+
             return shouldSave;
         }
 
@@ -315,16 +317,16 @@ namespace Backend.Services
         {
             using var scope = _serviceProvider.CreateScope();
             var sensorDataService = scope.ServiceProvider.GetRequiredService<IDeviceSensorDataService>();
-            
-            _logger.LogDebug("Saving sensor data to database for device {DeviceId} at {Timestamp}", 
+
+            _logger.LogDebug("Saving sensor data to database for device {DeviceId} at {Timestamp}",
                 deviceId, DateTime.UtcNow.ToString("HH:mm:ss.fff"));
-            
+
             await sensorDataService.ParseAndStoreSensorDataAsync(deviceId, topic, payload);
-            
+
             // Update last save time
             _lastSaveTime[deviceId] = DateTime.UtcNow;
-            
-            _logger.LogDebug("Successfully saved sensor data for device {DeviceId}, next save allowed after {NextSaveTime}", 
+
+            _logger.LogDebug("Successfully saved sensor data for device {DeviceId}, next save allowed after {NextSaveTime}",
                 deviceId, DateTime.UtcNow.AddSeconds(_minIntervalSeconds).ToString("HH:mm:ss"));
         }
 
@@ -391,7 +393,7 @@ namespace Backend.Services
                 // Try to find device by name or topic match in topic
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<Backend.Data.AppDbContext>();
-                
+
                 var devices = dbContext.Devices.ToList();
                 foreach (var device in devices)
                 {
@@ -401,7 +403,7 @@ namespace Backend.Services
                         _logger.LogDebug("Found device {DeviceId} by exact topic match: {Topic}", device.Id, topic);
                         return device.Id;
                     }
-                    
+
                     // Then try name-based matching
                     if (!string.IsNullOrEmpty(device.Name))
                     {

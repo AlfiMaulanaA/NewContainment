@@ -117,7 +117,7 @@ namespace Backend.Controllers
             try
             {
                 var data = await _sensorDataService.GetLatestSensorDataByDeviceAsync(deviceId);
-                
+
                 if (data == null)
                 {
                     return NotFound(new ApiResponse<DeviceSensorData>
@@ -250,7 +250,7 @@ namespace Backend.Controllers
             {
                 var timeRange = TimeSpan.FromHours(hours);
                 var history = await _sensorDataService.GetDataHistoryAsync(deviceId, dataKey, timeRange);
-                
+
                 return Ok(new ApiResponse<IEnumerable<object>>
                 {
                     Success = true,
@@ -338,9 +338,9 @@ namespace Backend.Controllers
             {
                 var start = startDate ?? DateTime.UtcNow.AddDays(-7);
                 var end = endDate ?? DateTime.UtcNow;
-                
+
                 var data = await _sensorDataService.GetAggregatedDataAsync(deviceId, dataKey, interval, start, end);
-                
+
                 return Ok(new ApiResponse<IEnumerable<object>>
                 {
                     Success = true,
@@ -408,8 +408,8 @@ namespace Backend.Controllers
             try
             {
                 var result = await _sensorDataService.ParseAndStoreSensorDataAsync(
-                    deviceId, 
-                    request.Topic, 
+                    deviceId,
+                    request.Topic,
                     request.Payload);
 
                 return Ok(new ApiResponse<DeviceSensorData>

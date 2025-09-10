@@ -35,7 +35,7 @@ namespace Backend.Services
                 new Claim("UserId", user.Id.ToString()),
                 new Claim("RoleLevel", user.RoleLevel.ToString()) // Add role level for frontend
             };
-            
+
             // Add database role information if available
             if (user.DatabaseRole != null)
             {

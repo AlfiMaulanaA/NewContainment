@@ -30,7 +30,7 @@ namespace Backend.Controllers
             try
             {
                 var status = await _containmentStatusService.GetStatusByContainmentIdAsync(containmentId);
-                
+
                 if (status == null)
                 {
                     // Try to initialize default status if not found
@@ -97,17 +97,17 @@ namespace Backend.Controllers
         /// </summary>
         [HttpPost("{containmentId}/process")]
         public async Task<ActionResult<ContainmentStatus>> ProcessMqttPayload(
-            int containmentId, 
+            int containmentId,
             [FromBody] object payload)
         {
             try
             {
                 var jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
                 var status = await _containmentStatusService.ProcessMqttPayloadAsync(containmentId, jsonPayload);
-                
+
                 return CreatedAtAction(
-                    nameof(GetStatus), 
-                    new { containmentId = containmentId }, 
+                    nameof(GetStatus),
+                    new { containmentId = containmentId },
                     status);
             }
             catch (ArgumentException ex)

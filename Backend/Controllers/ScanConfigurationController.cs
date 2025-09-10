@@ -134,7 +134,7 @@ namespace Backend.Controllers
 
                 _logger.LogInformation("Created scan configuration {Id}", configuration.Id);
 
-                return CreatedAtAction(nameof(GetScanConfiguration), 
+                return CreatedAtAction(nameof(GetScanConfiguration),
                     new { id = configuration.Id }, configuration);
             }
             catch (Exception ex)

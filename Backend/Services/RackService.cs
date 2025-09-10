@@ -107,7 +107,7 @@ namespace Backend.Services
 
             // Then delete the rack
             _context.Racks.Remove(rack);
-            
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -120,7 +120,7 @@ namespace Backend.Services
                 .ToListAsync();
 
             var deletedCount = racks.Count;
-            
+
             foreach (var rack in racks)
             {
                 // First delete all devices in this rack
@@ -128,7 +128,7 @@ namespace Backend.Services
                 {
                     _context.Devices.Remove(device);
                 }
-                
+
                 // Then remove the rack
                 _context.Racks.Remove(rack);
             }

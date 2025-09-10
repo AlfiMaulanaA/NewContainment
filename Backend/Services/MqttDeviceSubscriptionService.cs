@@ -28,7 +28,7 @@ namespace Backend.Services
                 try
                 {
                     await ConnectAndSubscribeToDeviceTopics(stoppingToken);
-                    
+
                     // Keep the service running and check connection every 30 seconds
                     await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 }
@@ -56,7 +56,7 @@ namespace Backend.Services
                 using var scope = _serviceProvider.CreateScope();
                 var mqttConfigService = scope.ServiceProvider.GetRequiredService<IMqttConfigurationService>();
                 var config = await mqttConfigService.GetEffectiveConfigurationAsync();
-                
+
                 if (!config.ContainsKey("IsEnabled") || !(bool)config["IsEnabled"])
                 {
                     _logger.LogInformation("MQTT is disabled, skipping device subscription");
@@ -200,14 +200,14 @@ namespace Backend.Services
                 using var scope = _serviceProvider.CreateScope();
                 // Just log the MQTT message as requested
                 _logger.LogInformation("MQTT Data - Device {DeviceId}, Topic: {Topic}, Payload: {Payload}", deviceId, topic, payload);
-                
+
                 _logger.LogDebug("Logged MQTT data for device {DeviceId} from topic {Topic}", deviceId, topic);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing MQTT message from topic: {Topic}", e.ApplicationMessage.Topic);
             }
-            
+
             return Task.CompletedTask;
         }
 
@@ -235,7 +235,7 @@ namespace Backend.Services
                 // Try to find device by name in topic
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                
+
                 var devices = dbContext.Devices.Where(d => d.IsActive).ToList();
                 foreach (var device in devices)
                 {
@@ -261,7 +261,7 @@ namespace Backend.Services
         private async Task OnDisconnected(MqttClientDisconnectedEventArgs e)
         {
             _logger.LogWarning("MQTT client disconnected: {Reason}", e.Reason);
-            
+
             if (!e.ClientWasConnected)
             {
                 _logger.LogError("Failed to connect to MQTT broker");

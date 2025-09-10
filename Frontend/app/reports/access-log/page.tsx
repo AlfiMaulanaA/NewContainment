@@ -40,10 +40,9 @@ import {
   Building,
   History,
   Filter,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
   ArrowUpDown,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { AccessLog, AccessMethod, accessLogService } from "@/lib/api-service";
@@ -60,12 +59,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ACCESS_METHODS = [
+  { value: AccessMethod.Fingerprint, label: "Fingerprint", icon: Fingerprint },
+  { value: AccessMethod.BMS, label: "BMS", icon: Building },
   { value: AccessMethod.Password, label: "Password", icon: Key },
   { value: AccessMethod.Card, label: "Card", icon: CreditCard },
-  { value: AccessMethod.Fingerprint, label: "Fingerprint", icon: Fingerprint },
-  { value: AccessMethod.Software, label: "Software", icon: Monitor },
   { value: AccessMethod.Face, label: "Face", icon: UserSquare },
-  { value: AccessMethod.BMS, label: "BMS", icon: Building },
+  { value: AccessMethod.Software, label: "Software", icon: Monitor },
 ];
 
 interface AccessLogResponse {
@@ -106,22 +105,26 @@ export default function AccessLogPage() {
     endDate: "",
     searchTerm: "",
   });
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    pageSize: 50,
-    totalRecords: 0,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  });
 
   useEffect(() => {
     loadInitialData();
   }, []);
 
   useEffect(() => {
-    loadAccessLogs();
-  }, [filters.page]);
+    // Re-fetch data whenever filters change, except for `page` change
+    const { page, ...rest } = filters;
+    const loadData = async () => {
+      await loadAccessLogs();
+      await loadSummaryData();
+    };
+    loadData();
+  }, [
+    filters.via,
+    filters.user,
+    filters.startDate,
+    filters.endDate,
+    filters.searchTerm,
+  ]);
 
   const loadInitialData = async () => {
     try {
@@ -148,21 +151,12 @@ export default function AccessLogPage() {
       if (filters.user) params.user = filters.user;
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
+      if (filters.searchTerm) params.searchTerm = filters.searchTerm;
 
       const response = await accessLogService.getAccessLogs(params);
 
       if (response.success && response.data && Array.isArray(response.data)) {
         setAccessLogs(response.data);
-        console.log("Access logs loaded:", response.data);
-        // Simple pagination calculation since backend now returns direct data
-        setPagination({
-          currentPage: filters.page,
-          pageSize: filters.pageSize,
-          totalRecords: response.data.length,
-          totalPages: Math.ceil(response.data.length / filters.pageSize),
-          hasNextPage: response.data.length >= filters.pageSize,
-          hasPreviousPage: filters.page > 1,
-        });
       } else {
         throw new Error(response.message || "Failed to load access logs");
       }
@@ -178,7 +172,6 @@ export default function AccessLogPage() {
 
   const loadSummaryData = async () => {
     try {
-      // Ambil string, bukan objek
       const response = await accessLogService.getAccessLogSummary(
         filters.startDate || undefined,
         filters.endDate || undefined
@@ -195,17 +188,16 @@ export default function AccessLogPage() {
     }
   };
 
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = (key: string, value: string | number) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: key === "pageSize" ? parseInt(value) : value,
-      page: key !== "page" ? 1 : parseInt(value), // Reset to first page when filters change, except for page changes
+      [key]: value,
+      page: key !== "page" ? 1 : prev.page,
     }));
   };
 
   const applyFilters = () => {
-    loadAccessLogs();
-    loadSummaryData();
+    setFilters((prev) => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
@@ -248,18 +240,17 @@ export default function AccessLogPage() {
 
   const exportToCSV = () => {
     try {
-      if (!filteredLogs || filteredLogs.length === 0) {
+      if (!accessLogs || accessLogs.length === 0) {
         toast.error("No data to export");
         return;
       }
 
-      const csvData = filteredLogs.map((item) => ({
+      const csvData = accessLogs.map((item) => ({
         User: item.user || "N/A",
         "Access Method": getAccessMethodLabel(item.via),
         Trigger: item.trigger || "N/A",
         Timestamp: formatTimestamp(item.timestamp),
         Success: item.isSuccess ? "Yes" : "No",
-        "IP Address": item.ipAddress || "N/A",
       }));
 
       const csvString = [
@@ -285,7 +276,7 @@ export default function AccessLogPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      toast.success(`Exported ${filteredLogs.length} records to CSV`);
+      toast.success(`Exported ${accessLogs.length} records to CSV`);
     } catch (error: any) {
       console.error("Error exporting CSV:", error);
       toast.error(
@@ -294,25 +285,13 @@ export default function AccessLogPage() {
     }
   };
 
-  const filteredLogs = useMemo(() => {
-    if (!filters.searchTerm) return accessLogs;
-
-    const searchTerm = filters.searchTerm.toLowerCase();
-    return accessLogs.filter(
-      (log) =>
-        log.user.toLowerCase().includes(searchTerm) ||
-        log.trigger.toLowerCase().includes(searchTerm) ||
-        getAccessMethodLabel(log.via).toLowerCase().includes(searchTerm)
-    );
-  }, [accessLogs, filters.searchTerm]);
-
   // Use the sortable table hook
   const {
     sorted: sortedLogs,
     sortField,
     sortDirection,
     handleSort,
-  } = useSortableTable(filteredLogs);
+  } = useSortableTable(accessLogs);
 
   // Pagination logic for client-side pagination
   const startIndex = (filters.page - 1) * filters.pageSize;
@@ -320,7 +299,7 @@ export default function AccessLogPage() {
   const paginatedLogs = sortedLogs.slice(startIndex, endIndex);
 
   // Update pagination state based on filtered data
-  const totalRecords = filteredLogs.length;
+  const totalRecords = sortedLogs.length;
   const totalPages = Math.ceil(totalRecords / filters.pageSize);
   const updatedPagination = {
     currentPage: filters.page,
@@ -331,15 +310,14 @@ export default function AccessLogPage() {
     hasPreviousPage: filters.page > 1,
   };
 
-  // Function to render sort icon
   const renderSortIcon = (field: string) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="h-4 w-4" />;
+      return <ArrowUpDown className="h-4 w-4 text-muted-foreground" />;
     }
     return sortDirection === "asc" ? (
-      <ArrowUpDown className="h-4 w-4" />
+      <ArrowUpDown className="h-4 w-4 animate-pulse" />
     ) : (
-      <ArrowUpDown className="h-4 w-4" />
+      <ArrowUpDown className="h-4 w-4 animate-pulse" />
     );
   };
 
@@ -371,7 +349,7 @@ export default function AccessLogPage() {
           <Button
             onClick={exportToCSV}
             variant="outline"
-            disabled={filteredLogs.length === 0}
+            disabled={accessLogs.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
@@ -474,7 +452,6 @@ export default function AccessLogPage() {
                     value={filters.pageSize.toString()}
                     onValueChange={(value) => {
                       handleFilterChange("pageSize", value);
-                      handleFilterChange("page", "1"); // Reset to first page
                     }}
                   >
                     <SelectTrigger>
@@ -529,6 +506,25 @@ export default function AccessLogPage() {
                     <TableRow>
                       <TableHead
                         className="cursor-pointer select-none hover:bg-muted/50"
+                        onClick={() => handleSort("timestamp")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Timestamp
+                          {renderSortIcon("timestamp")}
+                        </div>
+                      </TableHead>
+
+                      <TableHead
+                        className="cursor-pointer select-none hover:bg-muted/50"
+                        onClick={() => handleSort("isSuccess")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Status
+                          {renderSortIcon("isSuccess")}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer select-none hover:bg-muted/50"
                         onClick={() => handleSort("user")}
                       >
                         <div className="flex items-center gap-2">
@@ -554,24 +550,6 @@ export default function AccessLogPage() {
                           {renderSortIcon("trigger")}
                         </div>
                       </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("timestamp")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Timestamp
-                          {renderSortIcon("timestamp")}
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("isSuccess")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Status
-                          {renderSortIcon("isSuccess")}
-                        </div>
-                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -580,34 +558,32 @@ export default function AccessLogPage() {
                         const IconComponent = getAccessMethodIcon(log.via);
                         return (
                           <TableRow key={log.id}>
+                            <TableCell className="font-mono text-sm">
+                              {formatTimestamp(log.timestamp)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={log.isSuccess ? "success" : "danger"}
+                              >
+                                {log.isSuccess === true ? (
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                ) : (
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                )}
+                                {log.isSuccess ? "Success" : "Failed"}
+                              </Badge>
+                            </TableCell>
+
                             <TableCell>
                               <div className="font-medium">{log.user}</div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <IconComponent className="h-4 w-4" />
-                                <Badge variant="outline">
-                                  {getAccessMethodLabel(log.via)}
-                                </Badge>
+                                {getAccessMethodLabel(log.via)}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="max-w-md truncate">
-                                {log.trigger}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {formatTimestamp(log.timestamp)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  log.isSuccess ? "default" : "destructive"
-                                }
-                              >
-                                {log.isSuccess ? "Success" : "Failed"}
-                              </Badge>
-                            </TableCell>
+                            <TableCell>{log.description}</TableCell>
                           </TableRow>
                         );
                       })
@@ -657,43 +633,6 @@ export default function AccessLogPage() {
                             }
                           />
                         </PaginationItem>
-
-                        {/* First page */}
-                        {updatedPagination.currentPage > 2 && (
-                          <>
-                            <PaginationItem>
-                              <PaginationLink
-                                onClick={() => handlePageChange(1)}
-                                className="cursor-pointer"
-                              >
-                                1
-                              </PaginationLink>
-                            </PaginationItem>
-                            {updatedPagination.currentPage > 3 && (
-                              <PaginationItem>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            )}
-                          </>
-                        )}
-
-                        {/* Previous page */}
-                        {updatedPagination.hasPreviousPage && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() =>
-                                handlePageChange(
-                                  updatedPagination.currentPage - 1
-                                )
-                              }
-                              className="cursor-pointer"
-                            >
-                              {updatedPagination.currentPage - 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {/* Current page */}
                         <PaginationItem>
                           <PaginationLink
                             isActive={true}
@@ -702,46 +641,6 @@ export default function AccessLogPage() {
                             {updatedPagination.currentPage}
                           </PaginationLink>
                         </PaginationItem>
-
-                        {/* Next page */}
-                        {updatedPagination.hasNextPage && (
-                          <PaginationItem>
-                            <PaginationLink
-                              onClick={() =>
-                                handlePageChange(
-                                  updatedPagination.currentPage + 1
-                                )
-                              }
-                              className="cursor-pointer"
-                            >
-                              {updatedPagination.currentPage + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )}
-
-                        {/* Last page */}
-                        {updatedPagination.currentPage <
-                          updatedPagination.totalPages - 1 && (
-                          <>
-                            {updatedPagination.currentPage <
-                              updatedPagination.totalPages - 2 && (
-                              <PaginationItem>
-                                <PaginationEllipsis />
-                              </PaginationItem>
-                            )}
-                            <PaginationItem>
-                              <PaginationLink
-                                onClick={() =>
-                                  handlePageChange(updatedPagination.totalPages)
-                                }
-                                className="cursor-pointer"
-                              >
-                                {updatedPagination.totalPages}
-                              </PaginationLink>
-                            </PaginationItem>
-                          </>
-                        )}
-
                         <PaginationItem>
                           <PaginationNext
                             onClick={() =>

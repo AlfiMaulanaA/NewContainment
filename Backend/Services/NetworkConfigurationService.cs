@@ -158,13 +158,13 @@ namespace Backend.Services
                 await BackupNetworkConfigAsync();
 
                 var interfacesContent = GenerateInterfacesFileContent(configurations);
-                
+
                 // Write to file with proper permissions
                 await File.WriteAllTextAsync(INTERFACES_FILE_PATH, interfacesContent);
-                
+
                 // Set proper permissions (requires sudo)
                 await ExecuteCommandAsync("sudo", $"chmod 644 {INTERFACES_FILE_PATH}");
-                
+
                 _logger.LogInformation("Network interfaces file updated successfully");
                 return true;
             }
@@ -178,7 +178,7 @@ namespace Backend.Services
         private string GenerateInterfacesFileContent(List<NetworkConfiguration> configurations)
         {
             var content = new StringBuilder();
-            
+
             // Header
             content.AppendLine("# This file describes the network interfaces available on your system");
             content.AppendLine("# and how to activate them. For more information, see interfaces(5).");
@@ -194,10 +194,10 @@ namespace Backend.Services
             foreach (var config in configurations.OrderBy(c => c.InterfaceType))
             {
                 var interfaceName = config.InterfaceType.ToString().ToLower();
-                
+
                 content.AppendLine($"# {config.InterfaceType} interface configuration");
                 content.AppendLine($"auto {interfaceName}");
-                
+
                 if (config.ConfigMethod == NetworkConfigMethod.DHCP)
                 {
                     content.AppendLine($"iface {interfaceName} inet dhcp");
@@ -270,7 +270,7 @@ namespace Backend.Services
                 {
                     var parts = command.Split(' ', 2);
                     var result = await ExecuteCommandAsync(parts[0], parts[1]);
-                    if (result.Contains("success", StringComparison.OrdinalIgnoreCase) || 
+                    if (result.Contains("success", StringComparison.OrdinalIgnoreCase) ||
                         result.Contains("started", StringComparison.OrdinalIgnoreCase))
                     {
                         _logger.LogInformation($"Network service restarted successfully using: {command}");
@@ -467,7 +467,7 @@ namespace Backend.Services
             {
                 // Get existing configuration
                 var existing = await GetConfigurationByInterfaceAsync(interfaceType);
-                
+
                 if (existing != null)
                 {
                     // Update to DHCP
@@ -482,7 +482,7 @@ namespace Backend.Services
                         SecondaryDns = null,
                         Metric = null
                     };
-                    
+
                     await UpdateConfigurationAsync(existing.Id, dhcpRequest, userId);
                 }
                 else
@@ -493,10 +493,10 @@ namespace Backend.Services
                         InterfaceType = interfaceType,
                         ConfigMethod = NetworkConfigMethod.DHCP
                     };
-                    
+
                     await CreateConfigurationAsync(dhcpRequest, userId);
                 }
-                
+
                 _logger.LogInformation($"Interface {interfaceType} reverted to DHCP by user {userId}");
                 return true;
             }
@@ -512,12 +512,12 @@ namespace Backend.Services
             try
             {
                 var configurations = await GetAllConfigurationsAsync();
-                
+
                 foreach (var config in configurations.Where(c => c.ConfigMethod == NetworkConfigMethod.Static))
                 {
                     await RevertInterfaceToDhcpAsync(config.InterfaceType, userId);
                 }
-                
+
                 _logger.LogInformation($"All static configurations cleared by user {userId}");
                 return true;
             }
@@ -534,21 +534,21 @@ namespace Backend.Services
             {
                 var configurations = new List<NetworkConfiguration>();
                 var content = await ReadNetworkInterfacesFileAsync();
-                
+
                 if (string.IsNullOrEmpty(content))
                     return configurations;
 
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 NetworkConfiguration? currentConfig = null;
-                
+
                 foreach (var line in lines)
                 {
                     var trimmedLine = line.Trim();
-                    
+
                     // Skip comments and empty lines
                     if (trimmedLine.StartsWith("#") || string.IsNullOrEmpty(trimmedLine))
                         continue;
-                    
+
                     // Parse interface declarations
                     if (trimmedLine.StartsWith("iface "))
                     {
@@ -557,15 +557,15 @@ namespace Backend.Services
                         {
                             var interfaceName = parts[1];
                             var configType = parts[3]; // dhcp or static
-                            
+
                             // Determine interface type
                             if (interfaceName.Equals("eth0", StringComparison.OrdinalIgnoreCase))
                             {
                                 currentConfig = new NetworkConfiguration
                                 {
                                     InterfaceType = NetworkInterfaceType.ETH0,
-                                    ConfigMethod = configType.Equals("dhcp", StringComparison.OrdinalIgnoreCase) 
-                                        ? NetworkConfigMethod.DHCP 
+                                    ConfigMethod = configType.Equals("dhcp", StringComparison.OrdinalIgnoreCase)
+                                        ? NetworkConfigMethod.DHCP
                                         : NetworkConfigMethod.Static,
                                     IsActive = true,
                                     CreatedAt = DateTime.UtcNow,
@@ -577,8 +577,8 @@ namespace Backend.Services
                                 currentConfig = new NetworkConfiguration
                                 {
                                     InterfaceType = NetworkInterfaceType.ETH1,
-                                    ConfigMethod = configType.Equals("dhcp", StringComparison.OrdinalIgnoreCase) 
-                                        ? NetworkConfigMethod.DHCP 
+                                    ConfigMethod = configType.Equals("dhcp", StringComparison.OrdinalIgnoreCase)
+                                        ? NetworkConfigMethod.DHCP
                                         : NetworkConfigMethod.Static,
                                     IsActive = true,
                                     CreatedAt = DateTime.UtcNow,
@@ -615,27 +615,27 @@ namespace Backend.Services
                             currentConfig.Metric = trimmedLine.Replace("metric ", "").Trim();
                         }
                     }
-                    
+
                     // If we hit another interface or the end, save current config
                     if (currentConfig != null && (trimmedLine.StartsWith("iface ") || trimmedLine.StartsWith("auto ")))
                     {
-                        if (currentConfig.InterfaceType != default && 
+                        if (currentConfig.InterfaceType != default &&
                             !configurations.Any(c => c.InterfaceType == currentConfig.InterfaceType))
                         {
                             configurations.Add(currentConfig);
                         }
-                        
+
                         currentConfig = null;
                     }
                 }
-                
+
                 // Add the last configuration if it exists
-                if (currentConfig != null && currentConfig.InterfaceType != default && 
+                if (currentConfig != null && currentConfig.InterfaceType != default &&
                     !configurations.Any(c => c.InterfaceType == currentConfig.InterfaceType))
                 {
                     configurations.Add(currentConfig);
                 }
-                
+
                 _logger.LogInformation($"Parsed {configurations.Count} configurations from interfaces file");
                 return configurations;
             }

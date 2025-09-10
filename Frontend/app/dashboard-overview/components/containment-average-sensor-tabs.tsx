@@ -1,58 +1,165 @@
 "use client";
 
-import { Droplet, Thermometer, Bolt, Activity } from "lucide-react";
+import {
+  Droplet,
+  Thermometer,
+  Wind,
+  Waves,
+  Filter,
+  Gauge,
+  Activity,
+  Wifi,
+  WifiOff,
+  Zap,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import {
-  devicesApi,
-  deviceSensorDataApi,
-  Device,
-} from "@/lib/api-service";
+import { devicesApi, deviceSensorDataApi, Device } from "@/lib/api-service";
 import { mqttClient } from "@/lib/mqtt";
 
-interface SensorRealtimeData {
+// Data key mapping interface
+interface DataKeyMapping {
+  displayName: string;
+  unit: string;
+  icon: any;
+  color: string;
+  bgColor: string;
+  thresholds: {
+    warning?: number;
+    critical?: number;
+    lowWarning?: number;
+    warningHigh?: number;
+    warningLow?: number;
+    reverse?: boolean;
+  };
+}
+
+interface SensorDataMappings {
+  [sensorType: string]: {
+    [dataKey: string]: DataKeyMapping;
+  };
+}
+
+// Data key mappings for each sensor type
+const SENSOR_DATA_MAPPINGS: SensorDataMappings = {
+  Temperature: {
+    temp: {
+      displayName: "Temperature",
+      unit: "°C",
+      icon: Thermometer,
+      color: "text-rose-500",
+      bgColor: "bg-rose-100 dark:bg-rose-900",
+      thresholds: { warning: 30, critical: 35 },
+    },
+    hum: {
+      displayName: "Humidity",
+      unit: "%",
+      icon: Droplet,
+      color: "text-blue-500",
+      bgColor: "bg-blue-100 dark:bg-blue-900",
+      thresholds: { warning: 80, critical: 90, lowWarning: 20 },
+    },
+  },
+  "Air Flow": {
+    air_flow_lpm: {
+      displayName: "Air Flow",
+      unit: "L/min",
+      icon: Wind,
+      color: "text-sky-500",
+      bgColor: "bg-sky-100 dark:bg-sky-900",
+      thresholds: { warning: 10, critical: 5, reverse: true }, // lower is worse
+    },
+    air_pressure_hpa: {
+      displayName: "Pressure",
+      unit: "hPa",
+      icon: Gauge,
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-100 dark:bg-emerald-900",
+      thresholds: { warningHigh: 1020, warningLow: 980 },
+    },
+  },
+  Dust: {
+    dust_level_ug_m3: {
+      displayName: "Dust Level",
+      unit: "µg/m³",
+      icon: Filter,
+      color: "text-amber-500",
+      bgColor: "bg-amber-100 dark:bg-amber-900",
+      thresholds: { warning: 25, critical: 50 },
+    },
+  },
+  "Dust Sensor": {
+    dust_level_ug_m3: {
+      displayName: "Dust Level",
+      unit: "µg/m³",
+      icon: Filter,
+      color: "text-amber-500",
+      bgColor: "bg-amber-100 dark:bg-amber-900",
+      thresholds: { warning: 25, critical: 50 },
+    },
+  },
+  Vibration: {
+    vibration_magnitude: {
+      displayName: "Vibration",
+      unit: "m/s²",
+      icon: Waves,
+      color: "text-violet-500",
+      bgColor: "bg-violet-100 dark:bg-violet-900",
+      thresholds: { warning: 1.5, critical: 2.0 },
+    },
+  },
+};
+
+interface DeviceData {
   deviceId: number;
+  deviceName: string;
+  sensorType: string;
+  topic: string;
   currentValue: any;
   timestamp: Date;
   status: "normal" | "warning" | "critical" | "offline";
 }
 
-interface SensorGroup {
-  sensorType: string;
-  devices: Device[];
-  realtimeData: Record<number, SensorRealtimeData>;
-  average: {
-    value: number;
-    status: "normal" | "warning" | "critical" | "offline";
-    lastUpdated: Date;
-  };
+interface ParsedSensorData {
+  dataKey: string; // "temp", "hum", "air_flow_lpm", etc.
+  displayName: string; // "Temperature", "Humidity", etc.
+  unit: string;
+  value: number;
+  deviceId: number;
+  timestamp: Date;
+  status: "normal" | "warning" | "critical" | "offline";
 }
 
-interface AverageData {
-  humidity: number;
-  temperature: number;
-  power: number;
-  humidityStatus: "normal" | "warning" | "critical" | "offline";
-  temperatureStatus: "normal" | "warning" | "critical" | "offline";
+interface SensorAverageData {
+  dataKey: string;
+  displayName: string;
+  unit: string;
+  averageValue: number;
+  deviceCount: number;
+  activeDeviceCount: number;
+  status: "normal" | "warning" | "critical" | "offline";
   lastUpdated: Date;
+  icon: any;
+  color: string;
+  bgColor: string;
 }
 
-export default function SensorDashboard() {
+export default function SensorAverageComponent() {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [sensorGroups, setSensorGroups] = useState<Record<string, SensorGroup>>({});
-  const [averageData, setAverageData] = useState<AverageData>({
-    humidity: 0,
-    temperature: 0,
-    power: (Math.random() * (150 - 100) + 100), // Keep power as dummy
-    humidityStatus: "offline",
-    temperatureStatus: "offline",
-    lastUpdated: new Date()
-  });
+  const [deviceDataMap, setDeviceDataMap] = useState<Map<number, DeviceData>>(
+    new Map()
+  );
+  const [parsedSensorDataList, setParsedSensorDataList] = useState<
+    ParsedSensorData[]
+  >([]);
+  const [sensorAverages, setSensorAverages] = useState<
+    Map<string, SensorAverageData>
+  >(new Map());
   const [mqttConnected, setMqttConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Setup MQTT connection monitoring
+  // Setup MQTT connection
   useEffect(() => {
     const connectionListener = (connected: boolean) => {
       setMqttConnected(connected);
@@ -66,27 +173,34 @@ export default function SensorDashboard() {
     };
   }, []);
 
-  // Load initial data
+  // Load devices data
   useEffect(() => {
-    loadInitialData();
+    loadDevices();
   }, []);
 
-  // Subscribe to MQTT topics for sensor devices
+  // Subscribe to MQTT topics when devices are loaded and MQTT is connected
   useEffect(() => {
     if (!mqttConnected || devices.length === 0) return;
 
-    const sensorDevices = devices.filter(device => device.type === "Sensor" && device.topic);
+    // Filter devices: Sensor or PDU
+    const mqttDevices = devices.filter(
+      (device) =>
+        (device.type === "Sensor" || device.type === "PDU") && device.topic
+    );
+
     const subscriptions = new Map<string, () => void>();
 
-    sensorDevices.forEach(device => {
+    mqttDevices.forEach((device) => {
       if (device.topic) {
         const callback = (topic: string, message: string) => {
           try {
             const parsedData = JSON.parse(message);
-            updateRealtimeData(device.id, device.sensorType!, parsedData);
+            updateDeviceData(device, parsedData);
           } catch (error) {
-            console.error(`Failed to parse MQTT data for device ${device.id}:`, error);
-            updateRealtimeData(device.id, device.sensorType!, message);
+            console.error(
+              `Failed to parse MQTT data for device ${device.id}:`,
+              error
+            );
           }
         };
 
@@ -100,242 +214,265 @@ export default function SensorDashboard() {
     });
 
     return () => {
-      subscriptions.forEach(unsubscribe => unsubscribe());
+      subscriptions.forEach((unsubscribe) => unsubscribe());
     };
   }, [mqttConnected, devices]);
 
-  // Update power dummy data every 5 seconds
+  // Parse sensor data when device data changes
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAverageData(prev => ({
-        ...prev,
-        power: (Math.random() * (150 - 100) + 100)
-      }));
-    }, 5000);
+    parseSensorData();
+  }, [deviceDataMap]);
 
-    return () => clearInterval(interval);
-  }, []);
+  // Calculate averages when parsed data changes
+  useEffect(() => {
+    calculateSensorAverages();
+  }, [parsedSensorDataList]);
 
-  const loadInitialData = async () => {
+  const loadDevices = async () => {
     setLoading(true);
-    try {
-      const devicesResult = await devicesApi.getDevices();
-      
-      if (devicesResult.success && devicesResult.data) {
-        const sensorDevices = devicesResult.data.filter(device => device.type === "Sensor");
-        setDevices(sensorDevices);
-        initializeSensorGroups(sensorDevices);
 
-        // Load historical data for initial averages
-        loadHistoricalData().catch(error => {
-          console.warn("Historical data loading failed:", error);
+    try {
+      const result = await devicesApi.getDevices();
+
+      if (result.success && result.data) {
+        // Filter hanya Sensor dan PDU
+        const filteredDevices = result.data.filter(
+          (device) => device.type === "Sensor" || device.type === "PDU"
+        );
+        setDevices(filteredDevices);
+
+        // Initialize device data map
+        const initialDataMap = new Map<number, DeviceData>();
+        filteredDevices.forEach((device) => {
+          if (device.sensorType) {
+            initialDataMap.set(device.id, {
+              deviceId: device.id,
+              deviceName: device.name,
+              sensorType: device.sensorType,
+              topic: device.topic || "",
+              currentValue: null,
+              timestamp: new Date(),
+              status: "offline",
+            });
+          }
         });
+        setDeviceDataMap(initialDataMap);
       }
-    } catch (error: any) {
-      console.error("Error loading initial data:", error);
+    } catch (error) {
+      console.error("Error loading devices:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const initializeSensorGroups = (devices: Device[]) => {
-    const groups: Record<string, SensorGroup> = {};
+  const updateDeviceData = (device: Device, mqttData: any) => {
+    setDeviceDataMap((prev) => {
+      const updated = new Map(prev);
+      const deviceData = updated.get(device.id);
 
-    devices.forEach(device => {
-      if (device.sensorType && device.type === "Sensor") {
-        if (!groups[device.sensorType]) {
-          groups[device.sensorType] = {
-            sensorType: device.sensorType,
-            devices: [],
-            realtimeData: {},
-            average: {
-              value: 0,
-              status: "offline",
-              lastUpdated: new Date()
-            }
-          };
+      if (deviceData) {
+        // Update device data
+        deviceData.currentValue = mqttData;
+        deviceData.timestamp = new Date();
+        deviceData.status = "normal"; // Will be calculated in parsing
+
+        updated.set(device.id, deviceData);
+      }
+
+      return updated;
+    });
+  };
+
+  const parseSensorData = () => {
+    const parsedData: ParsedSensorData[] = [];
+
+    deviceDataMap.forEach((deviceData) => {
+      if (!deviceData.currentValue || !deviceData.sensorType) return;
+
+      const sensorMapping = SENSOR_DATA_MAPPINGS[deviceData.sensorType];
+      if (!sensorMapping) {
+        return;
+      }
+
+      const mqttData = deviceData.currentValue;
+
+      // Parse each data key for this sensor type
+      Object.keys(sensorMapping).forEach((dataKey) => {
+        const mapping: DataKeyMapping = sensorMapping[dataKey];
+        if (!mapping) return;
+
+        let value = 0;
+
+        // Extract value based on data key
+        if (dataKey === "vibration_magnitude") {
+          // Special case: calculate magnitude from x,y,z components
+          if (
+            mqttData.vibration_x !== undefined &&
+            mqttData.vibration_y !== undefined &&
+            mqttData.vibration_z !== undefined
+          ) {
+            value = Math.sqrt(
+              Math.pow(mqttData.vibration_x, 2) +
+                Math.pow(mqttData.vibration_y, 2) +
+                Math.pow(mqttData.vibration_z, 2)
+            );
+          }
+        } else {
+          // Regular data extraction
+          value = mqttData[dataKey] || 0;
         }
-        groups[device.sensorType].devices.push(device);
-        
-        // Initialize realtime data
-        groups[device.sensorType].realtimeData[device.id] = {
-          deviceId: device.id,
-          currentValue: null,
-          timestamp: new Date(),
-          status: "offline"
-        };
-      }
+
+        if (value > 0) {
+          // Calculate status based on thresholds
+          const status = calculateDataKeyStatus(
+            dataKey,
+            value,
+            mapping.thresholds
+          );
+
+          parsedData.push({
+            dataKey: `${deviceData.sensorType}-${dataKey}`,
+            displayName: mapping.displayName,
+            unit: mapping.unit,
+            value,
+            deviceId: deviceData.deviceId,
+            timestamp: deviceData.timestamp,
+            status,
+          });
+        } else {
+          console.log(`❌ Value is 0 or invalid for ${dataKey}:`, value);
+        }
+      });
     });
 
-    setSensorGroups(groups);
+    setParsedSensorDataList(parsedData);
   };
 
-  const updateRealtimeData = (deviceId: number, sensorType: string, data: any) => {
-    setSensorGroups(prevGroups => {
-      const updatedGroups = { ...prevGroups };
-      
-      if (updatedGroups[sensorType] && updatedGroups[sensorType].realtimeData[deviceId]) {
-        const timestamp = new Date();
-        const realtimeData = updatedGroups[sensorType].realtimeData[deviceId];
-        
-        // Update current value
-        realtimeData.currentValue = data;
-        realtimeData.timestamp = timestamp;
-        realtimeData.status = calculateStatus(sensorType, data);
-        
-        // Recalculate group average
-        updatedGroups[sensorType].average = calculateGroupAverage(updatedGroups[sensorType]);
-        
-        // Update the main average data
-        updateMainAverages(updatedGroups);
+  const calculateDataKeyStatus = (
+    dataKey: string,
+    value: number,
+    thresholds: DataKeyMapping["thresholds"]
+  ): "normal" | "warning" | "critical" | "offline" => {
+    if (value === 0) return "offline";
+
+    // Handle different threshold types
+    if (thresholds.reverse) {
+      // Lower values are worse (e.g., air flow)
+      return value <= (thresholds.critical || 0)
+        ? "critical"
+        : value <= (thresholds.warning || 0)
+        ? "warning"
+        : "normal";
+    } else if (thresholds.warningHigh && thresholds.warningLow) {
+      // Range-based (e.g., pressure)
+      return value > thresholds.warningHigh || value < thresholds.warningLow
+        ? "warning"
+        : "normal";
+    } else if (thresholds.lowWarning) {
+      // Two-way threshold (e.g., humidity)
+      return value > (thresholds.critical || 999)
+        ? "critical"
+        : value > (thresholds.warning || 999) || value < thresholds.lowWarning
+        ? "warning"
+        : "normal";
+    } else {
+      // Standard higher-is-worse (e.g., temperature, dust)
+      return value > (thresholds.critical || 999)
+        ? "critical"
+        : value > (thresholds.warning || 999)
+        ? "warning"
+        : "normal";
+    }
+  };
+
+  const calculateSensorAverages = () => {
+    const averagesMap = new Map<string, SensorAverageData>();
+
+    // Group parsed data by data key (e.g., "Temperature-temp", "Temperature-hum")
+    const dataByKey = new Map<string, ParsedSensorData[]>();
+
+    parsedSensorDataList.forEach((parsedData) => {
+      if (!dataByKey.has(parsedData.dataKey)) {
+        dataByKey.set(parsedData.dataKey, []);
       }
-      
-      return updatedGroups;
+      dataByKey.get(parsedData.dataKey)!.push(parsedData);
     });
-  };
 
-  const updateMainAverages = (groups: Record<string, SensorGroup>) => {
-    let humidity = 0;
-    let temperature = 0;
-    let humidityStatus: "normal" | "warning" | "critical" | "offline" = "offline";
-    let temperatureStatus: "normal" | "warning" | "critical" | "offline" = "offline";
-
-    // Calculate both temperature and humidity from Temperature sensors
-    // Since Temperature sensors contain both temp and hum data
-    if (groups["Temperature"]) {
-      const tempGroup = groups["Temperature"];
-      const activeData = Object.values(tempGroup.realtimeData).filter(
-        data => data.status !== "offline" && data.currentValue
+    // Calculate average for each unique data key
+    dataByKey.forEach((dataList, dataKey) => {
+      const activeData = dataList.filter(
+        (d) => d.status !== "offline" && d.value > 0
       );
 
       if (activeData.length > 0) {
-        let totalTemp = 0;
-        let totalHum = 0;
-        let tempCriticalCount = 0;
-        let tempWarningCount = 0;
-        let humCriticalCount = 0;
-        let humWarningCount = 0;
+        let totalValue = 0;
+        let criticalCount = 0;
+        let warningCount = 0;
 
-        activeData.forEach(data => {
-          const tempValue = extractNumericValue("Temperature", data.currentValue);
-          const humValue = extractNumericValue("Humidity", data.currentValue);
-          
-          totalTemp += tempValue;
-          totalHum += humValue;
-          
-          // Calculate status for temperature
-          const tempStatus = calculateStatus("Temperature", data.currentValue);
-          if (tempStatus === "critical") tempCriticalCount++;
-          else if (tempStatus === "warning") tempWarningCount++;
-          
-          // Calculate status for humidity
-          const humStatus = calculateStatus("Humidity", data.currentValue);
-          if (humStatus === "critical") humCriticalCount++;
-          else if (humStatus === "warning") humWarningCount++;
+        activeData.forEach((data) => {
+          totalValue += data.value;
+
+          if (data.status === "critical") criticalCount++;
+          else if (data.status === "warning") warningCount++;
         });
 
-        temperature = totalTemp / activeData.length;
-        humidity = totalHum / activeData.length;
-        
-        temperatureStatus = tempCriticalCount > 0 ? "critical" : tempWarningCount > 0 ? "warning" : "normal";
-        humidityStatus = humCriticalCount > 0 ? "critical" : humWarningCount > 0 ? "warning" : "normal";
+        const averageValue = totalValue / activeData.length;
+        const status: "normal" | "warning" | "critical" | "offline" =
+          criticalCount > 0
+            ? "critical"
+            : warningCount > 0
+            ? "warning"
+            : "normal";
+
+        // Get visual info from first data item
+        const firstData = dataList[0];
+        const [sensorType, rawDataKey] = dataKey.split("-");
+        const sensorMapping = SENSOR_DATA_MAPPINGS[sensorType];
+        const dataMapping: DataKeyMapping | undefined =
+          sensorMapping?.[rawDataKey];
+
+        if (dataMapping) {
+          averagesMap.set(dataKey, {
+            dataKey,
+            displayName: firstData.displayName,
+            unit: firstData.unit,
+            averageValue,
+            deviceCount: dataList.length,
+            activeDeviceCount: activeData.length,
+            status,
+            lastUpdated: new Date(),
+            icon: dataMapping.icon,
+            color: dataMapping.color,
+            bgColor: dataMapping.bgColor,
+          });
+        }
+      } else {
+        // No active data
+        const firstData = dataList[0];
+        const [sensorType, rawDataKey] = dataKey.split("-");
+        const sensorMapping = SENSOR_DATA_MAPPINGS[sensorType];
+        const dataMapping: DataKeyMapping | undefined =
+          sensorMapping?.[rawDataKey];
+
+        if (dataMapping) {
+          averagesMap.set(dataKey, {
+            dataKey,
+            displayName: firstData.displayName,
+            unit: firstData.unit,
+            averageValue: 0,
+            deviceCount: dataList.length,
+            activeDeviceCount: 0,
+            status: "offline",
+            lastUpdated: new Date(),
+            icon: dataMapping.icon,
+            color: dataMapping.color,
+            bgColor: dataMapping.bgColor,
+          });
+        }
       }
-    }
-
-    setAverageData(prev => ({
-      ...prev,
-      humidity,
-      temperature,
-      humidityStatus,
-      temperatureStatus,
-      lastUpdated: new Date()
-    }));
-  };
-
-  const calculateStatus = (sensorType: string, data: any): "normal" | "warning" | "critical" | "offline" => {
-    if (!data || typeof data !== "object") return "offline";
-
-    switch (sensorType) {
-      case "Temperature":
-        const temp = data.temp || data.temperature;
-        return temp > 35 ? "critical" : temp > 30 ? "warning" : "normal";
-      
-      case "Humidity":
-        const hum = data.hum || data.humidity;
-        return hum > 80 ? "warning" : hum < 20 ? "warning" : "normal";
-      
-      default:
-        return "normal";
-    }
-  };
-
-  const calculateGroupAverage = (group: SensorGroup) => {
-    const activeData = Object.values(group.realtimeData).filter(
-      data => data.status !== "offline" && data.currentValue
-    );
-
-    if (activeData.length === 0) {
-      return { value: 0, status: "offline" as const, lastUpdated: new Date() };
-    }
-
-    let totalValue = 0;
-    let criticalCount = 0;
-    let warningCount = 0;
-
-    activeData.forEach(data => {
-      const value = extractNumericValue(group.sensorType, data.currentValue);
-      totalValue += value;
-      
-      if (data.status === "critical") criticalCount++;
-      else if (data.status === "warning") warningCount++;
     });
 
-    const averageValue = totalValue / activeData.length;
-    const status: "normal" | "warning" | "critical" | "offline" = criticalCount > 0 ? "critical" : warningCount > 0 ? "warning" : "normal";
-
-    return {
-      value: averageValue,
-      status,
-      lastUpdated: new Date()
-    };
-  };
-
-  const extractNumericValue = (sensorType: string, data: any): number => {
-    if (!data || typeof data !== "object") return 0;
-
-    switch (sensorType) {
-      case "Temperature":
-        return data.temp || data.temperature || 0;
-      case "Humidity":
-        return data.hum || data.humidity || 0;
-      default:
-        return 0;
-    }
-  };
-
-  const loadHistoricalData = async () => {
-    try {
-      const result = await deviceSensorDataApi.getLatestSensorData(50);
-      
-      if (result.success && result.data && Array.isArray(result.data)) {
-        result.data.forEach(sensorData => {
-          if (sensorData.device?.sensorType) {
-            try {
-              const parsedPayload = JSON.parse(sensorData.rawPayload);
-              updateRealtimeData(
-                sensorData.deviceId,
-                sensorData.device.sensorType,
-                parsedPayload
-              );
-            } catch (parseError) {
-              // Skip invalid payloads
-            }
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Error loading historical data:", error);
-    }
+    setSensorAverages(averagesMap);
   };
 
   const getStatusStyles = (status: string) => {
@@ -345,79 +482,53 @@ export default function SensorDashboard() {
           border: "border-emerald-500/30",
           topBorder: "border-t-emerald-500",
           bg: "bg-emerald-500/5",
-          text: "text-emerald-600 dark:text-emerald-400"
+          text: "text-emerald-600 dark:text-emerald-400",
         };
       case "warning":
         return {
           border: "border-amber-500/30",
           topBorder: "border-t-amber-500",
           bg: "bg-amber-500/5",
-          text: "text-amber-600 dark:text-amber-400"
+          text: "text-amber-600 dark:text-amber-400",
         };
       case "critical":
         return {
           border: "border-red-500/30",
           topBorder: "border-t-red-500",
           bg: "bg-red-500/5",
-          text: "text-red-600 dark:text-red-400"
+          text: "text-red-600 dark:text-red-400",
         };
       case "offline":
         return {
           border: "border-gray-500/30",
           topBorder: "border-t-gray-500",
           bg: "bg-gray-500/5",
-          text: "text-gray-600 dark:text-gray-400"
+          text: "text-gray-600 dark:text-gray-400",
         };
       default:
         return {
           border: "border-blue-500/30",
           topBorder: "border-t-blue-500",
           bg: "bg-blue-500/5",
-          text: "text-blue-600 dark:text-blue-400"
+          text: "text-blue-600 dark:text-blue-400",
         };
     }
   };
 
-  const cardData = [
-    {
-      title: "Humidity",
-      value: averageData.humidity > 0 ? `${averageData.humidity.toFixed(1)}%` : "-- --",
-      icon: <Droplet className="h-8 w-8 text-blue-500 dark:text-blue-400" />,
-      color: "bg-blue-500/10 dark:bg-blue-400/10",
-      status: averageData.humidityStatus,
-      isReal: true
-    },
-    {
-      title: "Temperature",
-      value: averageData.temperature > 0 ? `${averageData.temperature.toFixed(1)}°C` : "-- --",
-      icon: <Thermometer className="h-8 w-8 text-red-500 dark:text-red-400" />,
-      color: "bg-red-500/10 dark:bg-red-400/10", 
-      status: averageData.temperatureStatus,
-      isReal: true
-    },
-    {
-      title: "Power",
-      value: `${averageData.power.toFixed(1)} W`,
-      icon: <Bolt className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />,
-      color: "bg-yellow-500/10 dark:bg-yellow-400/10",
-      status: "normal" as const,
-      isReal: false
-    },
-  ];
-
   if (loading) {
     return (
-      <div className="">
-        <Card className="w-full rounded-lg mx-auto">
+      <div className="w-full">
+        <Card className="rounded-lg mx-auto">
           <CardHeader className="mb-2">
             <CardTitle className="flex items-center gap-1 md:gap-2 text-xl md:text-2xl font-bold text-foreground">
               <Activity className="h-4 w-5 md:h-8 md:w-6 text-green-500 dark:text-green-400" />
-              Average Data
+              Sensor Average Data
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-2">Loading devices...</span>
             </div>
           </CardContent>
         </Card>
@@ -425,80 +536,119 @@ export default function SensorDashboard() {
     );
   }
 
+  const averageCards = Array.from(sensorAverages.values()).map((average) => {
+    return {
+      title: average.displayName,
+      value:
+        average.averageValue > 0
+          ? `${average.averageValue.toFixed(1)}${average.unit}`
+          : "-- --",
+      icon: <average.icon className={`h-8 w-8 ${average.color}`} />,
+      color: average.bgColor,
+      status: average.status,
+      deviceCount: average.deviceCount,
+      activeDeviceCount: average.activeDeviceCount,
+    };
+  });
+
   return (
-    <div className="">
-      <Card className="w-full rounded-lg">
+    <div className="w-full">
+      <Card className="rounded-lg">
         <CardHeader className="mb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
             <CardTitle className="flex items-center gap-1 md:gap-2 text-xl md:text-2xl font-bold text-foreground">
               <Activity className="h-4 w-5 md:h-8 md:w-6 text-green-500 dark:text-green-400" />
-              Average Data
+              Sensor Average Data
             </CardTitle>
-            
+
             <div className="flex items-center gap-2">
-              <Badge 
+              <Badge
                 variant={mqttConnected ? "default" : "destructive"}
                 className="text-xs"
               >
-                {mqttConnected ? "🟢 Live" : "🔴 Offline"}
+                {mqttConnected ? (
+                  <span className="flex items-center gap-1">
+                    <Wifi className="h-3 w-3" /> Live
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <WifiOff className="h-3 w-3" /> Offline
+                  </span>
+                )}
               </Badge>
-              <div className="text-xs text-muted-foreground">
-                {averageData.lastUpdated.toLocaleTimeString()}
+              <div className="text-xs text-muted-foreground hidden sm:block">
+                Devices: {devices.length} | Active:{" "}
+                {
+                  Array.from(deviceDataMap.values()).filter(
+                    (d) => d.status !== "offline"
+                  ).length
+                }
               </div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-2">
-            {cardData.map((card, index) => {
-              const statusStyles = getStatusStyles(card.status);
-              
-              return (
-                <Card
-                  key={index}
-                  className={`flex-1 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border-2 ${statusStyles.border} hover:bg-accent/30 border-t-4 ${statusStyles.topBorder} ${statusStyles.bg}`}
-                >
-                  <CardContent className="flex items-center gap-4 p-4 relative">
-                    {/* Status indicator */}
-                    <div className="absolute top-2 right-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        card.status === "normal" ? "bg-emerald-500" :
-                        card.status === "warning" ? "bg-amber-500" :
-                        card.status === "critical" ? "bg-red-500" :
-                        "bg-gray-400"
-                      }`} />
-                    </div>
-                    
-                    <div className={`p-3 rounded-full ${card.color} flex-shrink-0`}>
-                      {card.icon}
-                    </div>
-                    <div className="flex flex-col flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="text-base font-medium text-muted-foreground">
-                          {card.title}
+          {averageCards.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+              {averageCards.map((card, index) => {
+                const statusStyles = getStatusStyles(card.status);
+
+                return (
+                  <Card
+                    key={`${card.title}-${index}`}
+                    className={`min-w-0 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border-2 ${statusStyles.border} hover:bg-accent/30 border-t-4 ${statusStyles.topBorder} ${statusStyles.bg}`}
+                  >
+                    <CardContent className="flex items-center gap-3 p-3 sm:p-4 relative min-h-[120px] sm:min-h-[140px]">
+                      <div className="absolute top-2 right-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            card.status === "normal"
+                              ? "bg-emerald-500"
+                              : card.status === "warning"
+                              ? "bg-amber-500"
+                              : card.status === "critical"
+                              ? "bg-red-500"
+                              : "bg-gray-400"
+                          }`}
+                        />
+                      </div>
+
+                      <div
+                        className={`p-2 sm:p-3 rounded-full ${card.color} flex-shrink-0`}
+                      >
+                        {card.icon}
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="text-sm sm:text-base font-medium text-muted-foreground truncate">
+                            {card.title}
+                          </div>
                         </div>
-                        {!card.isReal && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            Demo
-                          </Badge>
-                        )}
+                        <div className="text-xl sm:text-2xl lg:text-2xl font-bold text-foreground mb-1 truncate">
+                          {card.value}
+                        </div>
+                        <div
+                          className={`text-xs font-medium capitalize ${statusStyles.text}`}
+                        >
+                          {card.status} • {card.activeDeviceCount}/
+                          {card.deviceCount} devices
+                        </div>
                       </div>
-                      <div className="text-3xl font-bold text-foreground mb-1">
-                        {card.value}
-                      </div>
-                      <div className={`text-xs font-medium capitalize ${statusStyles.text}`}>
-                        {card.status}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-          
-          {/* Footer info */}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex justify-center items-center py-8">
+              <div className="text-muted-foreground">
+                No sensor data available
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 text-xs text-muted-foreground text-center">
-            Real-time data from {devices.filter(d => d.type === "Sensor").length} sensor devices
+            Real-time data from {devices.length} devices (Sensor & PDU)
             {mqttConnected && " • Live MQTT connection active"}
           </div>
         </CardContent>

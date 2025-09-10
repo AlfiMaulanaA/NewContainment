@@ -56,10 +56,10 @@ namespace Backend.Services
         {
             // Cek apakah sudah ada emergency aktif untuk tipe ini
             var activeEmergency = await GetActiveEmergencyAsync(emergencyType);
-            
+
             if (activeEmergency != null)
             {
-                _logger.LogWarning("Emergency {EmergencyType} is already active since {StartTime}", 
+                _logger.LogWarning("Emergency {EmergencyType} is already active since {StartTime}",
                     emergencyType, activeEmergency.StartTime);
                 return;
             }
@@ -80,14 +80,14 @@ namespace Backend.Services
             _context.EmergencyReports.Add(emergency);
             await _context.SaveChangesAsync();
 
-            _logger.LogWarning("EMERGENCY STARTED: {EmergencyType} at {StartTime}", 
+            _logger.LogWarning("EMERGENCY STARTED: {EmergencyType} at {StartTime}",
                 emergencyType, emergency.StartTime);
         }
 
         private async Task EndEmergencyAsync(string emergencyType, string rawPayload)
         {
             var activeEmergency = await GetActiveEmergencyAsync(emergencyType);
-            
+
             if (activeEmergency == null)
             {
                 _logger.LogInformation("No active emergency found for {EmergencyType} to end", emergencyType);
@@ -105,7 +105,7 @@ namespace Backend.Services
             _context.EmergencyReports.Update(activeEmergency);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("EMERGENCY ENDED: {EmergencyType} at {EndTime}. Duration: {Duration}", 
+            _logger.LogInformation("EMERGENCY ENDED: {EmergencyType} at {EndTime}. Duration: {Duration}",
                 emergencyType, activeEmergency.EndTime, activeEmergency.Duration);
         }
 
@@ -185,7 +185,7 @@ namespace Backend.Services
 
             // Calculate total duration client-side for each emergency type
             var summaries = new List<EmergencyReportSummary>();
-            
+
             foreach (var basicSummary in basicSummaries)
             {
                 // Get all records for this emergency type to calculate duration

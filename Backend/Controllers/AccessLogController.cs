@@ -55,7 +55,7 @@ namespace Backend.Controllers
             try
             {
                 var accessLog = await _accessLogService.GetAccessLogByIdAsync(id);
-                
+
                 if (accessLog == null)
                 {
                     return NotFound(new ApiResponse<AccessLog>
@@ -100,12 +100,10 @@ namespace Backend.Controllers
                     });
                 }
 
-                // Set IP address from request
-                accessLog.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                
+
                 var createdLog = await _accessLogService.CreateAccessLogAsync(accessLog);
-                
-                return CreatedAtAction(nameof(GetAccessLog), 
+
+                return CreatedAtAction(nameof(GetAccessLog),
                     new { id = createdLog.Id },
                     new ApiResponse<AccessLog>
                     {
@@ -133,12 +131,10 @@ namespace Backend.Controllers
         {
             try
             {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var accessLog = await _accessLogService.LogSoftwareAccessAsync(
-                    request.User, 
-                    request.Trigger, 
-                    request.AdditionalData, 
-                    ipAddress);
+                    request.User,
+                    request.Trigger,
+                    request.AdditionalData);
 
                 return Ok(new ApiResponse<AccessLog>
                 {

@@ -18,14 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  LogOut,
-  Mail,
-  User2,
-  School,
-  Unlock,
-  Code,
-} from "lucide-react";
+import { LogOut, Mail, User2, School, Unlock, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -81,10 +74,12 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   // Add more icons as needed
 };
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment Monitoring";
+const appName =
+  process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment Monitoring";
 export function DynamicSidebar() {
   const pathname = usePathname();
-  const { isDeveloperMode, getFormattedRemainingTime, isDynamicMenuLoading } = useDeveloperMode();
+  const { isDeveloperMode, getFormattedRemainingTime, isDynamicMenuLoading } =
+    useDeveloperMode();
   const { menuData, isLoading: menuLoading, refreshMenu } = useDynamicMenu();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -103,7 +98,7 @@ export function DynamicSidebar() {
         // Update currentUser with photo data for ThemeAvatar component
         setCurrentUser((prev: any) => ({
           ...prev,
-          photoPath: result.data.photoPath
+          photoPath: result?.data?.photoPath,
         }));
       }
     } catch (error) {
@@ -167,7 +162,7 @@ export function DynamicSidebar() {
             <div className="flex flex-col items-center gap-2">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <span className="text-sm text-muted-foreground">
-                {isDynamicMenuLoading ? 'Updating menu...' : 'Loading menu...'}
+                {isDynamicMenuLoading ? "Updating menu..." : "Loading menu..."}
               </span>
             </div>
           </div>
@@ -223,7 +218,10 @@ export function DynamicSidebar() {
                 {group.items.map((item) => {
                   const IconComponent = getIcon(item.icon);
                   return (
-                    <SidebarMenuItem key={item.id} className="sidebar-menu-item">
+                    <SidebarMenuItem
+                      key={item.id}
+                      className="sidebar-menu-item"
+                    >
                       <SidebarMenuButton
                         asChild
                         isActive={pathname === item.url}
@@ -233,7 +231,10 @@ export function DynamicSidebar() {
                           <IconComponent className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110 transition-all duration-200" />
                           <span className="truncate">{item.title}</span>
                           {item.badgeText && (
-                            <Badge variant={item.badgeVariant as any} className="ml-auto text-xs">
+                            <Badge
+                              variant={item.badgeVariant as any}
+                              className="ml-auto text-xs"
+                            >
                               {item.badgeText}
                             </Badge>
                           )}
@@ -303,7 +304,8 @@ export function DynamicSidebar() {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-sidebar-foreground/70">
-                    {menuData?.userRole.displayName || getRoleDisplayName(currentUser?.role)}
+                    {menuData?.userRole.displayName ||
+                      getRoleDisplayName(currentUser?.role)}
                   </span>
                 </div>
               </div>
@@ -336,9 +338,12 @@ export function DynamicSidebar() {
               </h3>
               <div className="flex items-center gap-2 mb-4">
                 <Badge
-                  className={menuData?.userRole.color || getRoleColor(currentUser?.role)}
+                  className={
+                    menuData?.userRole.color || getRoleColor(currentUser?.role)
+                  }
                 >
-                  {menuData?.userRole.displayName || getRoleDisplayName(currentUser?.role)}
+                  {menuData?.userRole.displayName ||
+                    getRoleDisplayName(currentUser?.role)}
                 </Badge>
                 <p className="text-sm text-muted-foreground italic">
                   IOT Containment System User
@@ -360,7 +365,8 @@ export function DynamicSidebar() {
                 <User2 className="w-4 h-4 text-primary" />
                 <span>
                   <span className="font-medium text-foreground">Role:</span>{" "}
-                  {menuData?.userRole.displayName || getRoleDisplayName(currentUser?.role)}
+                  {menuData?.userRole.displayName ||
+                    getRoleDisplayName(currentUser?.role)}
                 </span>
               </p>
               <p className="flex items-center gap-2">

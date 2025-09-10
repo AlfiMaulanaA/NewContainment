@@ -20,12 +20,12 @@ namespace Backend.Controllers
         public async Task<IActionResult> CreateBackup()
         {
             var result = await _backupService.CreateBackupAsync();
-            
+
             if (result)
             {
                 return Ok(new { message = "Backup created successfully" });
             }
-            
+
             return BadRequest(new { message = "Failed to create backup" });
         }
 
@@ -54,12 +54,12 @@ namespace Backend.Controllers
         public async Task<IActionResult> CleanupOldBackups([FromQuery] int keepLastN = 4)
         {
             var result = await _backupService.DeleteOldBackupsAsync(keepLastN);
-            
+
             if (result)
             {
                 return Ok(new { message = $"Old backups cleaned up, kept last {keepLastN}" });
             }
-            
+
             return BadRequest(new { message = "Failed to cleanup old backups" });
         }
 

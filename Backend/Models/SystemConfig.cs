@@ -6,34 +6,34 @@ namespace Backend.Models
     {
         [Key]
         public int Id { get; set; }
-        
+
         // Modular I2C Addresses
         public int ModularI2cAddress1 { get; set; } = 34;
         public int ModularI2cAddress2 { get; set; } = 37;
         public int ModularI2cRelay1Address { get; set; } = 57;
-        
+
         // Debug mode
         public bool Debug { get; set; } = true;
-        
+
         // Interval controls (in seconds)
         public int IntervalControlLight { get; set; } = 120;
         public int IntervalControlSelenoid { get; set; } = 2;
         public int IntervalDoorLock { get; set; } = 4;
         public int IntervalOpenFrontDoor { get; set; } = 2;
         public int IntervalOpenBackDoor { get; set; } = 2;
-        
+
         // Temperature settings
         public bool TempEmergency { get; set; } = true;
         public double TempUpperThreshold { get; set; } = 60.0;
         public double TempBottomThreshold { get; set; } = 50.0;
-        
+
         // Metadata
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public int CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public bool IsActive { get; set; } = true;
-        
+
         // Navigation properties
         public virtual User? CreatedByUser { get; set; }
         public virtual User? UpdatedByUser { get; set; }
@@ -43,7 +43,7 @@ namespace Backend.Models
     {
         [Key]
         public int Id { get; set; }
-        
+
         // Optocoupler pins (1-7)
         public int PirSensorPin { get; set; } = 1;
         public int FssPin { get; set; } = 2;
@@ -52,26 +52,26 @@ namespace Backend.Models
         public int ButtonBackDoorPin { get; set; } = 5;
         public int LimitSwitchBackDoorPin { get; set; } = 6;
         public int LimitSwitchFrontDoor { get; set; } = 7;
-        
+
         // Relay pins (1-7)
         public int RelayLightPin { get; set; } = 1;
         public int RelayMagneticBackDoorPin { get; set; } = 6;
         public int RelayMagneticPin { get; set; } = 7;
-        
+
         // Relay mini pins (1-6)
         public int RelayMiniSelenoidOpen { get; set; } = 1;
         public int RelayMiniSelenoidClose { get; set; } = 2;
         public int RelayMiniFrontDoorPin { get; set; } = 3;
         public int RelayMiniBackDoorPin { get; set; } = 4;
         public int RelayMiniDoorEmergency { get; set; } = 5;
-        
+
         // Metadata
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public int CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
         public bool IsActive { get; set; } = true;
-        
+
         // Navigation properties
         public virtual User? CreatedByUser { get; set; }
         public virtual User? UpdatedByUser { get; set; }
@@ -104,12 +104,12 @@ namespace Backend.Models
         public int ButtonBackDoorPin { get; set; } = 5;
         public int LimitSwitchBackDoorPin { get; set; } = 6;
         public int LimitSwitchFrontDoor { get; set; } = 7;
-        
+
         // Relay pins (1-7)
         public int RelayLightPin { get; set; } = 1;
         public int RelayMagneticBackDoorPin { get; set; } = 6;
         public int RelayMagneticPin { get; set; } = 7;
-        
+
         // Relay mini pins (1-6)
         public int RelayMiniSelenoidOpen { get; set; } = 1;
         public int RelayMiniSelenoidClose { get; set; } = 2;

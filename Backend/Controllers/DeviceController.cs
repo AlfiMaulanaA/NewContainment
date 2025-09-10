@@ -18,7 +18,7 @@ namespace Backend.Controllers
         private readonly Backend.Data.AppDbContext _context;
 
         public DeviceController(
-            IDeviceService deviceService, 
+            IDeviceService deviceService,
             IDeviceStatusMonitoringService deviceStatusService,
             Backend.Data.AppDbContext context)
         {
@@ -45,7 +45,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<Device>> GetDevice(int id)
         {
             var device = await _deviceService.GetDeviceByIdAsync(id);
-            
+
             if (device == null)
             {
                 return NotFound();
@@ -111,7 +111,7 @@ namespace Backend.Controllers
             };
 
             var updatedDevice = await _deviceService.UpdateDeviceAsync(id, device, userId);
-            
+
             if (updatedDevice == null)
             {
                 return NotFound();
@@ -124,7 +124,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteDevice(int id)
         {
             var result = await _deviceService.DeleteDeviceAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -144,7 +144,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<DeviceActivityStatus>> GetDeviceStatus(int id)
         {
             var status = await _deviceStatusService.GetDeviceActivityStatusAsync(id);
-            
+
             if (status == null)
             {
                 return NotFound();
@@ -190,26 +190,26 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         [StringLength(50)]
         public string Type { get; set; } = string.Empty;
-        
+
         [Required]
         public int RackId { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         [StringLength(100)]
         public string? SerialNumber { get; set; }
-        
+
         [StringLength(100)]
         public string? Topic { get; set; }
-        
+
         [StringLength(50)]
         public string? SensorType { get; set; }
-        
+
         public int? UCapacity { get; set; }
     }
 
@@ -218,26 +218,26 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         [StringLength(50)]
         public string Type { get; set; } = string.Empty;
-        
+
         [Required]
         public int RackId { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         [StringLength(100)]
         public string? SerialNumber { get; set; }
-        
+
         [StringLength(100)]
         public string? Topic { get; set; }
-        
+
         [StringLength(50)]
         public string? SensorType { get; set; }
-        
+
         public int? UCapacity { get; set; }
     }
 

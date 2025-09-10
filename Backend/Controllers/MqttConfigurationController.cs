@@ -25,7 +25,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<MqttConfiguration>> GetActiveConfiguration()
         {
             var configuration = await _mqttConfigurationService.GetActiveConfigurationAsync();
-            
+
             if (configuration == null)
             {
                 return NotFound("No active MQTT configuration found");
@@ -52,7 +52,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<MqttConfiguration>> GetConfiguration(int id)
         {
             var configuration = await _mqttConfigurationService.GetConfigurationByIdAsync(id);
-            
+
             if (configuration == null)
             {
                 return NotFound();
@@ -126,7 +126,7 @@ namespace Backend.Controllers
             };
 
             var updatedConfiguration = await _mqttConfigurationService.UpdateConfigurationAsync(id, configuration, userId);
-            
+
             if (updatedConfiguration == null)
             {
                 return NotFound();
@@ -139,7 +139,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteConfiguration(int id)
         {
             var result = await _mqttConfigurationService.DeleteConfigurationAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -158,7 +158,7 @@ namespace Backend.Controllers
             }
 
             var result = await _mqttConfigurationService.SetActiveConfigurationAsync(id, userId);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -194,7 +194,7 @@ namespace Backend.Controllers
             }
 
             var result = await _mqttConfigurationService.ToggleMqttAsync(request.Enabled, userId);
-            
+
             if (!result)
             {
                 return BadRequest("No active MQTT configuration found");
@@ -226,17 +226,18 @@ namespace Backend.Controllers
         public async Task<IActionResult> TestConnection(int id)
         {
             var configuration = await _mqttConfigurationService.GetConfigurationByIdAsync(id);
-            
+
             if (configuration == null)
             {
                 return NotFound();
             }
 
             var result = await _mqttConfigurationService.TestConnectionAsync(configuration);
-            
-            return Ok(new { 
-                success = result, 
-                message = result ? "Connection successful" : "Connection failed" 
+
+            return Ok(new
+            {
+                success = result,
+                message = result ? "Connection successful" : "Connection failed"
             });
         }
 
@@ -260,10 +261,11 @@ namespace Backend.Controllers
             };
 
             var result = await _mqttConfigurationService.TestConnectionAsync(configuration);
-            
-            return Ok(new { 
-                success = result, 
-                message = result ? "Connection successful" : "Connection failed" 
+
+            return Ok(new
+            {
+                success = result,
+                message = result ? "Connection successful" : "Connection failed"
             });
         }
 
@@ -279,7 +281,7 @@ namespace Backend.Controllers
         {
             var effectiveConfig = await _mqttConfigurationService.GetEffectiveConfigurationAsync();
             var isConnected = _mqttService.IsConnected;
-            
+
             return Ok(new
             {
                 IsConnected = isConnected,
@@ -317,33 +319,33 @@ namespace Backend.Controllers
     {
         [Required]
         public bool IsEnabled { get; set; } = true;
-        
+
         [Required]
         public bool UseEnvironmentConfig { get; set; } = true;
-        
+
         [StringLength(255)]
         public string? BrokerHost { get; set; }
-        
+
         public int? BrokerPort { get; set; } = 1883;
-        
+
         [StringLength(100)]
         public string? Username { get; set; }
-        
+
         [StringLength(255)]
         public string? Password { get; set; }
-        
+
         [StringLength(100)]
         public string? ClientId { get; set; }
-        
+
         public bool UseSsl { get; set; } = false;
-        
+
         public int KeepAliveInterval { get; set; } = 60;
-        
+
         public int ReconnectDelay { get; set; } = 5;
-        
+
         [StringLength(1000)]
         public string? TopicPrefix { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
     }
@@ -352,33 +354,33 @@ namespace Backend.Controllers
     {
         [Required]
         public bool IsEnabled { get; set; } = true;
-        
+
         [Required]
         public bool UseEnvironmentConfig { get; set; } = true;
-        
+
         [StringLength(255)]
         public string? BrokerHost { get; set; }
-        
+
         public int? BrokerPort { get; set; } = 1883;
-        
+
         [StringLength(100)]
         public string? Username { get; set; }
-        
+
         [StringLength(255)]
         public string? Password { get; set; }
-        
+
         [StringLength(100)]
         public string? ClientId { get; set; }
-        
+
         public bool UseSsl { get; set; } = false;
-        
+
         public int KeepAliveInterval { get; set; } = 60;
-        
+
         public int ReconnectDelay { get; set; } = 5;
-        
+
         [StringLength(1000)]
         public string? TopicPrefix { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
     }
@@ -394,21 +396,21 @@ namespace Backend.Controllers
         [Required]
         [StringLength(255)]
         public string BrokerHost { get; set; } = string.Empty;
-        
+
         [Required]
         public int BrokerPort { get; set; } = 1883;
-        
+
         [StringLength(100)]
         public string? Username { get; set; }
-        
+
         [StringLength(255)]
         public string? Password { get; set; }
-        
+
         [StringLength(100)]
         public string? ClientId { get; set; }
-        
+
         public bool UseSsl { get; set; } = false;
-        
+
         public int KeepAliveInterval { get; set; } = 60;
     }
 }

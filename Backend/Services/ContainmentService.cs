@@ -69,7 +69,7 @@ namespace Backend.Services
                 .Include(c => c.Racks)
                     .ThenInclude(r => r.Devices)
                 .FirstOrDefaultAsync(c => c.Id == id);
-                
+
             if (containment == null)
             {
                 return false;
@@ -82,14 +82,14 @@ namespace Backend.Services
                 {
                     _context.Devices.Remove(device);
                 }
-                
+
                 // Then remove the rack
                 _context.Racks.Remove(rack);
             }
 
             // Finally remove the containment
             _context.Containments.Remove(containment);
-            
+
             await _context.SaveChangesAsync();
             return true;
         }

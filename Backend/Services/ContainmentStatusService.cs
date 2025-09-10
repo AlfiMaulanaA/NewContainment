@@ -12,7 +12,7 @@ namespace Backend.Services
         private readonly IEmergencyReportService _emergencyReportService;
 
         public ContainmentStatusService(
-            AppDbContext context, 
+            AppDbContext context,
             ILogger<ContainmentStatusService> logger,
             IEmergencyReportService emergencyReportService)
         {
@@ -88,7 +88,7 @@ namespace Backend.Services
             try
             {
                 var payloadData = JsonSerializer.Deserialize<JsonElement>(jsonPayload);
-                
+
                 var status = new ContainmentStatus
                 {
                     ContainmentId = containmentId,

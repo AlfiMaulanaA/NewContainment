@@ -67,6 +67,7 @@ export default function MaintenancePage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [calendarLoading, setCalendarLoading] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -243,18 +244,31 @@ export default function MaintenancePage() {
   };
 
   const handleStatusUpdate = async (id: number, status: string) => {
-    const request: UpdateMaintenanceStatusRequest = { status };
-    const response = await maintenanceApi.updateMaintenanceStatus(id, request);
-    if (response.success) {
-      toast.success("Status updated successfully");
-      loadData();
-      // Refresh calendar data if we're on calendar tab
-      if (activeTab === "calendar") {
-        const calendarData = await loadCalendarData();
-        setCalendarMaintenances(calendarData);
+    try {
+      setUpdatingStatus(id);
+      const request: UpdateMaintenanceStatusRequest = { status };
+      const response = await maintenanceApi.updateMaintenanceStatus(id, request);
+      
+      if (response.success) {
+        toast.success("Status updated successfully");
+        
+        // Refresh data
+        await loadData();
+        
+        // Refresh calendar data if we're on calendar tab
+        if (activeTab === "calendar") {
+          const calendarData = await loadCalendarData();
+          setCalendarMaintenances(calendarData);
+        }
+      } else {
+        console.error("Failed to update status:", response);
+        toast.error(response.message || "Failed to update status");
       }
-    } else {
-      toast.error(response.message || "Failed to update status");
+    } catch (error) {
+      console.error("Error updating maintenance status:", error);
+      toast.error("An unexpected error occurred while updating status");
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -542,6 +556,7 @@ export default function MaintenancePage() {
                             selected={startDate}
                             onSelect={setStartDate}
                             initialFocus
+                            disabled={(date) => date < new Date()}
                           />
                         </PopoverContent>
                       </Popover>
@@ -576,6 +591,11 @@ export default function MaintenancePage() {
                             selected={endDate}
                             onSelect={setEndDate}
                             initialFocus
+                            disabled={(date) => {
+                              const today = new Date();
+                              const minDate = startDate || today;
+                              return date < minDate;
+                            }}
                           />
                         </PopoverContent>
                       </Popover>
@@ -712,10 +732,14 @@ export default function MaintenancePage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Select value={maintenance.status} onValueChange={(value) => handleStatusUpdate(maintenance.id, value)}>
-                            <SelectTrigger className="w-32">
+                          <Select 
+                            value={maintenance.status} 
+                            onValueChange={(value) => handleStatusUpdate(maintenance.id, value)}
+                            disabled={updatingStatus === maintenance.id}
+                          >
+                            <SelectTrigger className={cn("w-32", updatingStatus === maintenance.id && "opacity-50 cursor-not-allowed")}>
                               <Badge variant={getStatusBadgeVariant(maintenance.status)}>
-                                {maintenance.status}
+                                {updatingStatus === maintenance.id ? "Updating..." : maintenance.status}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent>
@@ -830,10 +854,14 @@ export default function MaintenancePage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Select value={maintenance.status} onValueChange={(value) => handleStatusUpdate(maintenance.id, value)}>
-                            <SelectTrigger className="w-32">
+                          <Select 
+                            value={maintenance.status} 
+                            onValueChange={(value) => handleStatusUpdate(maintenance.id, value)}
+                            disabled={updatingStatus === maintenance.id}
+                          >
+                            <SelectTrigger className={cn("w-32", updatingStatus === maintenance.id && "opacity-50 cursor-not-allowed")}>
                               <Badge variant={getStatusBadgeVariant(maintenance.status)}>
-                                {maintenance.status}
+                                {updatingStatus === maintenance.id ? "Updating..." : maintenance.status}
                               </Badge>
                             </SelectTrigger>
                             <SelectContent>
@@ -927,15 +955,17 @@ export default function MaintenancePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-7 gap-1 mb-4">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                    <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground border-b">
+                {/* Calendar Header - Day Labels */}
+                <div className="grid grid-cols-7 gap-0 mb-2">
+                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                    <div key={day} className="h-8 flex items-center justify-center text-sm font-semibold text-gray-600 bg-gray-100 border border-gray-200 first:rounded-tl-lg last:rounded-tr-lg">
                       {day}
                     </div>
                   ))}
                 </div>
                 
-                <div className="grid grid-cols-7 gap-1">
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-0 border border-gray-200 rounded-b-lg overflow-hidden">
                   {generateCalendarDays().map((day, index) => {
                     const maintenancesForDay = getMaintenancesForDate(day);
                     const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -946,40 +976,79 @@ export default function MaintenancePage() {
                       <div
                         key={index}
                         className={cn(
-                          "min-h-[120px] p-2 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors",
-                          !isCurrentMonth && "text-muted-foreground bg-gray-50/50",
-                          isSelected && "bg-blue-50 border-blue-300",
-                          isCurrentDay && "bg-yellow-50 border-yellow-300"
+                          "min-h-[80px] md:min-h-[100px] p-2 border-r border-b border-gray-200 transition-all duration-200 relative group cursor-pointer",
+                          "hover:bg-blue-50 hover:border-blue-300",
+                          !isCurrentMonth && "text-muted-foreground bg-gray-50/70",
+                          isSelected && "bg-blue-100 border-blue-400",
+                          isCurrentDay && "bg-gradient-to-br from-blue-50 to-blue-100 font-semibold",
+                          (index + 1) % 7 === 0 && "border-r-0", // Remove right border for last column in each row
+                          index >= generateCalendarDays().length - 7 && "border-b-0" // Remove bottom border for last row
                         )}
                         onClick={() => setSelectedDate(day)}
                       >
+                        {/* Day number - positioned at top left */}
                         <div className={cn(
-                          "text-sm font-medium mb-1",
-                          isCurrentDay && "text-yellow-700 font-bold"
+                          "text-sm font-medium mb-2 flex items-center justify-start",
+                          isCurrentDay && "text-blue-700 font-bold",
+                          isSelected && "text-blue-600",
+                          !isCurrentMonth && "text-gray-400"
                         )}>
-                          {format(day, "d")}
+                          <span className={cn(
+                            "min-w-[20px] h-5 flex items-center justify-center",
+                            isCurrentDay && "bg-blue-600 text-white rounded-full text-xs font-bold"
+                          )}>
+                            {format(day, "d")}
+                          </span>
                         </div>
                         
-                        <div className="space-y-1">
-                          {maintenancesForDay.slice(0, 3).map((maintenance) => (
+                        {/* Maintenance items with compact layout */}
+                        <div className="space-y-1 overflow-hidden">
+                          {maintenancesForDay.slice(0, 1).map((maintenance) => (
                             <div
                               key={maintenance.id}
                               className={cn(
-                                "text-xs p-1 rounded text-white truncate cursor-pointer hover:opacity-80",
+                                "text-[9px] md:text-[10px] px-1 py-0.5 rounded text-white font-medium",
+                                "cursor-pointer hover:scale-[1.02] transition-all duration-150",
+                                "shadow-sm border border-white/20 leading-tight",
                                 getStatusColor(maintenance.status)
                               )}
                               onClick={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
                                 openViewDialog(maintenance);
                               }}
-                              title={`${maintenance.name} - ${maintenance.status}`}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.zIndex = '10';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.zIndex = '1';
+                              }}
+                              title={`${maintenance.name}\nStatus: ${maintenance.status}\nTarget: ${getTargetName(maintenance)}\nAssigned: ${maintenance.assignedToUser?.name || 'Unknown'}`}
                             >
-                              {maintenance.name}
+                              <div className="truncate max-w-full">
+                                {maintenance.name.length > 12 ? `${maintenance.name.substring(0, 12)}...` : maintenance.name}
+                              </div>
                             </div>
                           ))}
-                          {maintenancesForDay.length > 3 && (
-                            <div className="text-xs text-muted-foreground text-center">
-                              +{maintenancesForDay.length - 3} more
+                          
+                          {/* Show count indicator for multiple tasks */}
+                          {maintenancesForDay.length > 1 && (
+                            <div 
+                              className="text-[8px] md:text-[9px] text-gray-500 bg-gray-100 px-1 py-0.5 rounded text-center cursor-pointer hover:bg-gray-200 transition-colors border border-gray-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDate(day);
+                                // Auto scroll to selected date details
+                                setTimeout(() => {
+                                  const element = document.getElementById('selected-date-details');
+                                  if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                  }
+                                }, 100);
+                              }}
+                              title={`View all ${maintenancesForDay.length} maintenance tasks for ${format(day, "MMM d")}`}
+                            >
+                              {maintenancesForDay.length > 1 && `+${maintenancesForDay.length - 1} more`}
                             </div>
                           )}
                         </div>
@@ -988,58 +1057,96 @@ export default function MaintenancePage() {
                   })}
                 </div>
 
-                {/* Legend */}
-                <div className="mt-6 flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    <span>Completed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                    <span>In Progress</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-gray-500 rounded"></div>
-                    <span>Scheduled</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                    <span>On Hold</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    <span>Cancelled</span>
+                {/* Improved Legend with better visibility */}
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Status Legend:</h5>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
+                      <div className="w-3 h-3 bg-green-500 rounded shadow-sm"></div>
+                      <span className="font-medium">Completed</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
+                      <div className="w-3 h-3 bg-blue-500 rounded shadow-sm"></div>
+                      <span className="font-medium">In Progress</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
+                      <div className="w-3 h-3 bg-gray-500 rounded shadow-sm"></div>
+                      <span className="font-medium">Scheduled</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
+                      <div className="w-3 h-3 bg-yellow-500 rounded shadow-sm"></div>
+                      <span className="font-medium">On Hold</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
+                      <div className="w-3 h-3 bg-red-500 rounded shadow-sm"></div>
+                      <span className="font-medium">Cancelled</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Selected Date Details */}
+                {/* Enhanced Selected Date Details */}
                 {selectedDate && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-semibold mb-3">
-                      Maintenance for {format(selectedDate, "EEEE, MMMM d, yyyy")}
-                    </h4>
+                  <div id="selected-date-details" className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg text-blue-900">
+                        📅 {format(selectedDate, "EEEE, MMMM d, yyyy")}
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedDate(null)}
+                        className="text-blue-700 hover:text-blue-900"
+                      >
+                        ✕ Close
+                      </Button>
+                    </div>
+                    
                     {getMaintenancesForDate(selectedDate).length === 0 ? (
-                      <p className="text-muted-foreground">No maintenance tasks scheduled for this date.</p>
+                      <div className="text-center py-6">
+                        <div className="text-6xl mb-2">📝</div>
+                        <p className="text-gray-600 font-medium">No maintenance tasks scheduled</p>
+                        <p className="text-sm text-gray-500">This date is free for scheduling new maintenance</p>
+                      </div>
                     ) : (
-                      <div className="space-y-2">
-                        {getMaintenancesForDate(selectedDate).map((maintenance) => (
+                      <div className="space-y-3">
+                        <div className="text-sm text-blue-700 font-medium mb-3">
+                          📋 {getMaintenancesForDate(selectedDate).length} maintenance task(s) scheduled
+                        </div>
+                        {getMaintenancesForDate(selectedDate).map((maintenance, index) => (
                           <div
                             key={maintenance.id}
-                            className="flex items-center justify-between p-3 bg-white rounded border cursor-pointer hover:border-gray-300"
+                            className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200"
                             onClick={() => openViewDialog(maintenance)}
                           >
                             <div className="flex-1">
-                              <div className="font-medium">{maintenance.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {getTargetName(maintenance)} • {maintenance.assignedToUser?.name || `User #${maintenance.assignTo}`}
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-bold text-gray-500">#{index + 1}</span>
+                                <div className="font-semibold text-gray-900">{maintenance.name}</div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {format(new Date(maintenance.startTask), "MMM dd")} - {format(new Date(maintenance.endTask), "MMM dd")}
+                              <div className="text-sm text-gray-600 mb-1">
+                                🎯 <strong>Target:</strong> {getTargetName(maintenance)}
                               </div>
+                              <div className="text-sm text-gray-600 mb-1">
+                                👤 <strong>Assigned:</strong> {maintenance.assignedToUser?.name || `User #${maintenance.assignTo}`}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                ⏰ <strong>Duration:</strong> {format(new Date(maintenance.startTask), "MMM dd, HH:mm")} - {format(new Date(maintenance.endTask), "MMM dd, HH:mm")}
+                              </div>
+                              {maintenance.description && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  📄 <strong>Description:</strong> {maintenance.description.substring(0, 100)}{maintenance.description.length > 100 ? '...' : ''}
+                                </div>
+                              )}
                             </div>
-                            <Badge variant={getStatusBadgeVariant(maintenance.status)}>
-                              {maintenance.status}
-                            </Badge>
+                            <div className="ml-4 flex flex-col items-end gap-2">
+                              <Badge 
+                                variant={getStatusBadgeVariant(maintenance.status)}
+                                className="shadow-sm"
+                              >
+                                {maintenance.status}
+                              </Badge>
+                              <div className="text-xs text-gray-400">Click to view details</div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1150,7 +1257,7 @@ export default function MaintenancePage() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "PPP") : "Pick a date"}
+                        {startDate ? format(startDate, "MMM dd, yyyy") : "Pick a date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -1159,6 +1266,7 @@ export default function MaintenancePage() {
                         selected={startDate}
                         onSelect={setStartDate}
                         initialFocus
+                        disabled={(date) => date < new Date()}
                       />
                     </PopoverContent>
                   </Popover>
@@ -1175,7 +1283,7 @@ export default function MaintenancePage() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "PPP") : "Pick a date"}
+                        {endDate ? format(endDate, "MMM dd, yyyy") : "Pick a date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -1184,6 +1292,11 @@ export default function MaintenancePage() {
                         selected={endDate}
                         onSelect={setEndDate}
                         initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          const minDate = startDate || today;
+                          return date < minDate;
+                        }}
                       />
                     </PopoverContent>
                   </Popover>

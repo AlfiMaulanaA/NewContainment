@@ -69,7 +69,7 @@ namespace Backend.Controllers
                 }
 
                 await _mqttService.ConnectAsync();
-                
+
                 return Ok(new
                 {
                     message = "Successfully connected to MQTT broker",
@@ -94,7 +94,7 @@ namespace Backend.Controllers
                 }
 
                 await _mqttService.DisconnectAsync();
-                
+
                 return Ok(new
                 {
                     message = "Successfully disconnected from MQTT broker",
@@ -178,14 +178,14 @@ namespace Backend.Controllers
             try
             {
                 var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? _configuration["Mqtt:UseWebSocket"] ?? "false");
-                
+
                 if (!useWebSocket)
                 {
                     return BadRequest(new { message = "WebSocket is not enabled in configuration" });
                 }
 
                 var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? _configuration["Mqtt:WebSocketUri"];
-                
+
                 if (string.IsNullOrEmpty(webSocketUri))
                 {
                     return BadRequest(new { message = "WebSocket URI is not configured" });
@@ -193,7 +193,7 @@ namespace Backend.Controllers
 
                 // Test connection
                 var wasConnected = _mqttService.IsConnected;
-                
+
                 if (!wasConnected)
                 {
                     await _mqttService.ConnectAsync();
@@ -202,7 +202,7 @@ namespace Backend.Controllers
                 // Test publish/subscribe
                 var testTopic = $"test/websocket/{Guid.NewGuid().ToString("N")[..8]}";
                 var testPayload = $"WebSocket test message at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
-                
+
                 string? receivedPayload = null;
                 var messageReceived = false;
 

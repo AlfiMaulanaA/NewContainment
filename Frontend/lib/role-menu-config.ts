@@ -105,13 +105,6 @@ export const DYNAMIC_MENU_CONFIG: MenuGroup[] = [
         requiredRole: RoleLevel.ADMIN,
       },
       {
-        id: 'user-activity',
-        title: 'User Activity',
-        url: '/management/user-activity',
-        icon: Activity,
-        requiredRole: RoleLevel.ADMIN,
-      },
-      {
         id: 'containments',
         title: 'Containments',
         url: '/management/containments',
@@ -130,13 +123,6 @@ export const DYNAMIC_MENU_CONFIG: MenuGroup[] = [
         title: 'Devices',
         url: '/management/devices',
         icon: Database,
-        requiredRole: RoleLevel.USER,
-      },
-      {
-        id: 'sensors',
-        title: 'Sensors',
-        url: '/management/sensors',
-        icon: Thermometer,
         requiredRole: RoleLevel.USER,
       },
       {
@@ -295,6 +281,13 @@ export const DYNAMIC_MENU_CONFIG: MenuGroup[] = [
         title: 'System Settings',
         url: '/settings/setting',
         icon: Cog,
+        requiredRole: RoleLevel.ADMIN,
+      },
+      {
+        id: 'configuration-management',
+        title: 'Configuration',
+        url: '/configuration',
+        icon: SlidersHorizontalIcon,
         requiredRole: RoleLevel.ADMIN,
       },
       {

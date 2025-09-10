@@ -29,9 +29,6 @@ namespace Backend.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("IpAddress")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IsSuccess")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -108,6 +105,77 @@ namespace Backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ActivityReports");
+                });
+
+            modelBuilder.Entity("Backend.Models.AutoSensorDataLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdditionalData")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ConfigurationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DeviceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NotificationSent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("NotificationSentAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotificationStatus")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SensorDataId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TemperatureColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TemperatureStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("TemperatureValue")
+                        .HasColumnType("decimal(8,3)");
+
+                    b.Property<decimal?>("ThresholdValue")
+                        .HasColumnType("decimal(8,3)");
+
+                    b.Property<string>("TriggerReason")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("TriggerTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ViolationType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfigurationId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("SensorDataId");
+
+                    b.ToTable("AutoSensorDataLogs");
                 });
 
             modelBuilder.Entity("Backend.Models.CameraConfig", b =>
@@ -1234,6 +1302,217 @@ namespace Backend.Migrations
                     b.ToTable("SensorConfigurations");
                 });
 
+            modelBuilder.Entity("Backend.Models.SensorDataConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoSaveOnLowerThreshold")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoSaveOnThresholdExceed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoSaveOnUpperThreshold")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ContainmentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DeviceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("EnableNotifications")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsGlobalConfiguration")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsIntervalEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsTemperatureThresholdEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotificationRecipients")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SaveIntervalSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TemperatureColdColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TemperatureColdMax")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("TemperatureCriticalColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TemperatureCriticalMin")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("TemperatureHotColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TemperatureHotMax")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TemperatureHotMin")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("TemperatureLowerThreshold")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("TemperatureNormalColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TemperatureNormalMax")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TemperatureNormalMin")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("TemperatureUpperThreshold")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("TemperatureWarmColor")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TemperatureWarmMax")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TemperatureWarmMin")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainmentId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("SensorDataConfigurations");
+                });
+
+            modelBuilder.Entity("Backend.Models.SensorDataIntervalConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ContainmentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DeviceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsGlobalConfiguration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SaveIntervalMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(15);
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContainmentId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("IsGlobalConfiguration");
+
+                    b.HasIndex("SaveIntervalMinutes");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.HasIndex("ContainmentId", "IsActive")
+                        .IsUnique()
+                        .HasFilter("[ContainmentId] IS NOT NULL AND [IsActive] = 1");
+
+                    b.HasIndex("DeviceId", "IsActive")
+                        .IsUnique()
+                        .HasFilter("[DeviceId] IS NOT NULL AND [IsActive] = 1");
+
+                    b.HasIndex("IsGlobalConfiguration", "IsActive")
+                        .IsUnique()
+                        .HasFilter("[IsGlobalConfiguration] = 1 AND [IsActive] = 1");
+
+                    b.ToTable("SensorDataIntervalConfigs");
+                });
+
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -1337,6 +1616,33 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Backend.Models.AutoSensorDataLog", b =>
+                {
+                    b.HasOne("Backend.Models.SensorDataConfiguration", "Configuration")
+                        .WithMany()
+                        .HasForeignKey("ConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Device", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.DeviceSensorData", "SensorData")
+                        .WithMany()
+                        .HasForeignKey("SensorDataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Configuration");
+
+                    b.Navigation("Device");
+
+                    b.Navigation("SensorData");
                 });
 
             modelBuilder.Entity("Backend.Models.Containment", b =>
@@ -1632,6 +1938,67 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.SensorDataConfiguration", b =>
+                {
+                    b.HasOne("Backend.Models.Containment", "Containment")
+                        .WithMany()
+                        .HasForeignKey("ContainmentId");
+
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Device", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId");
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy");
+
+                    b.Navigation("Containment");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Device");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.SensorDataIntervalConfig", b =>
+                {
+                    b.HasOne("Backend.Models.Containment", "Containment")
+                        .WithMany()
+                        .HasForeignKey("ContainmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Backend.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Device", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Backend.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Containment");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Device");
 
                     b.Navigation("UpdatedByUser");
                 });

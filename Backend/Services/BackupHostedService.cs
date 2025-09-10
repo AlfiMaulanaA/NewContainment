@@ -27,12 +27,12 @@ namespace Backend.Services
                     if (await backupService.IsBackupDueAsync())
                     {
                         _logger.LogInformation("Backup is due, starting backup process");
-                        
+
                         var success = await backupService.CreateBackupAsync();
                         if (success)
                         {
                             _logger.LogInformation("Scheduled backup completed successfully");
-                            
+
                             // Clean up old backups (keep last 4)
                             await backupService.DeleteOldBackupsAsync(4);
                         }

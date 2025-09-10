@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,15 @@ import { useMQTTConnection } from "@/hooks/useMQTTConnection";
 import { MQTTTroubleshootingGuide } from "@/components/mqtt/mqtt-troubleshooting-guide";
 import MQTTConnectionBadge from "@/components/mqtt-status";
 import { toast } from "sonner";
-import { accessLogService, AccessLog, AccessMethod } from "@/lib/api-service";
+import {
+  accessLogService,
+  AccessLog,
+  AccessMethod,
+  containmentStatusApi,
+  containmentsApi,
+  ContainmentStatus,
+  Containment,
+} from "@/lib/api-service";
 
 interface ControlState {
   frontDoorAlwaysOpen: boolean;
@@ -40,12 +48,11 @@ interface ControlState {
   ceilingState: boolean; // true = open (down), false = closed (up)
 }
 
-interface ContainmentStatus {
-  frontDoorLimitSwitch: boolean;
-  backDoorLimitSwitch: boolean;
-  lighting: boolean;
-  emergency: boolean;
-  isOnline: boolean;
+interface ContainmentData {
+  id: number;
+  name: string;
+  type: number;
+  location?: string;
 }
 
 interface PublishHistory {
@@ -58,6 +65,8 @@ interface PublishHistory {
 
 export default function ContainmentControlPage() {
   const [containmentId, setContainmentId] = useState<number | null>(null);
+  const [containmentData, setContainmentData] =
+    useState<ContainmentData | null>(null);
   const [controlState, setControlState] = useState<ControlState>({
     frontDoorAlwaysOpen: false,
     backDoorAlwaysOpen: false,
@@ -69,15 +78,9 @@ export default function ContainmentControlPage() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-  const [containmentStatus, setContainmentStatus] = useState<ContainmentStatus>(
-    {
-      frontDoorLimitSwitch: false,
-      backDoorLimitSwitch: false,
-      lighting: false,
-      emergency: false,
-      isOnline: false,
-    }
-  );
+  const [containmentStatus, setContainmentStatus] =
+    useState<ContainmentStatus | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const { publishControlCommand } = useMQTTPublish();
   const mqttStatus = useMQTTStatus();
@@ -114,15 +117,20 @@ export default function ContainmentControlPage() {
     const containmentIdFromUrl = urlParams.get("containmentId");
 
     if (containmentIdFromUrl) {
-      setContainmentId(parseInt(containmentIdFromUrl));
+      const id = parseInt(containmentIdFromUrl);
+      setContainmentId(id);
+      loadContainmentData(id);
     } else {
       // Try to get from localStorage or API
       const storedContainmentId = localStorage.getItem("selectedContainmentId");
       if (storedContainmentId) {
-        setContainmentId(parseInt(storedContainmentId));
+        const id = parseInt(storedContainmentId);
+        setContainmentId(id);
+        loadContainmentData(id);
       } else {
         // Default to 1 if not found
         setContainmentId(1);
+        loadContainmentData(1);
       }
     }
 
@@ -133,14 +141,30 @@ export default function ContainmentControlPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load containment status from backend API
+  const loadContainmentStatus = useCallback(async () => {
+    if (!containmentId) return;
+
+    try {
+      const result = await containmentStatusApi.getLatestStatus(containmentId);
+      if (result.success && result.data) {
+        setContainmentStatus(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to load containment status:", error);
+    }
+  }, [containmentId]);
+
   // Load containment status on component mount and periodically
   useEffect(() => {
-    loadContainmentStatus();
+    if (containmentId) {
+      loadContainmentStatus();
 
-    // Refresh status every 10 seconds
-    const interval = setInterval(loadContainmentStatus, 10000);
-    return () => clearInterval(interval);
-  }, [mqttStatus]); // Re-run when MQTT status changes
+      // Refresh status every 10 seconds
+      const interval = setInterval(loadContainmentStatus, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [containmentId, mqttStatus, loadContainmentStatus]); // Re-run when containment ID, MQTT status, or load function changes
 
   const addToHistory = (command: string, success: boolean) => {
     const historyItem: PublishHistory = {
@@ -272,124 +296,202 @@ export default function ContainmentControlPage() {
     setIsPublishing(false);
   };
 
-  // Load containment status (mock function - replace with actual API call)
-  const loadContainmentStatus = async () => {
+  // Load containment data
+  const loadContainmentData = async (id: number) => {
     try {
-      // TODO: Replace with actual API call to get containment status
-      // const response = await containmentApi.getStatus();
-      // setContainmentStatus(response.data);
-
-      // Mock data for now
-      setContainmentStatus({
-        frontDoorLimitSwitch: Math.random() > 0.5,
-        backDoorLimitSwitch: Math.random() > 0.5,
-        lighting: Math.random() > 0.5,
-        emergency: Math.random() > 0.8, // Less likely to be in emergency
-        isOnline: mqttStatus === "connected",
-      });
+      setLoading(true);
+      const result = await containmentsApi.getContainments();
+      if (result.success && result.data) {
+        const containment = result.data.find((c) => c.id === id);
+        if (containment) {
+          setContainmentData({
+            id: containment.id,
+            name: containment.name,
+            type: containment.type,
+            location: containment.location,
+          });
+        }
+      }
     } catch (error) {
-      console.error("Failed to load containment status:", error);
+      console.error("Failed to load containment data:", error);
+      toast.error("Failed to load containment data");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Check if advanced controls should be shown
+  const shouldShowAdvancedControls = () => {
+    return containmentId === 1 && containmentData?.type === 1;
   };
 
   const isConnected = mqttStatus === "connected";
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <RefreshCw className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading containment data...</span>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div>
-        {/* Door Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DoorOpen className="h-5 w-5 text-green-500" />
-              Door Controls
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Manual Door Open Buttons */}
+    <div className="space-y-6">
+      {/* Door Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DoorOpen className="h-5 w-5 text-green-500" />
+            Door Controls
+            {containmentData && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - {containmentData.name}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {shouldShowAdvancedControls() && (
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">
-                Manual Door Control
+                Ceiling Control
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <Button
-                  onClick={handleOpenFrontDoor}
-                  disabled={!isConnected || isPublishing}
+                  onClick={() => handleCeilingControl(true)}
+                  disabled={
+                    !isConnected || isPublishing || controlState.ceilingState
+                  }
+                  variant={controlState.ceilingState ? "default" : "outline"}
                   className="h-12 flex items-center justify-center gap-2"
                 >
-                  <DoorOpen className="h-4 w-4" />
-                  Open Front Door
+                  <ArrowDown className="h-4 w-4" />
+                  Open Ceiling (Down)
                 </Button>
 
                 <Button
-                  onClick={handleOpenBackDoor}
-                  disabled={!isConnected || isPublishing}
+                  onClick={() => handleCeilingControl(false)}
+                  disabled={
+                    !isConnected || isPublishing || !controlState.ceilingState
+                  }
+                  variant={!controlState.ceilingState ? "default" : "outline"}
                   className="h-12 flex items-center justify-center gap-2"
                 >
-                  <DoorOpen className="h-4 w-4" />
-                  Open Back Door
+                  <ArrowUp className="h-4 w-4" />
+                  Close Ceiling (Up)
                 </Button>
               </div>
-            </div>
 
-            <Separator />
-
-            {/* Always Open Toggles */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Always Open Mode
-              </h3>
-
-              {/* Front Door Always Open */}
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+              {/* Current ceiling status */}
+              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
                 <div className="flex items-center gap-3">
-                  {controlState.frontDoorAlwaysOpen ? (
-                    <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
+                  {controlState.ceilingState ? (
+                    <ArrowDown className="h-4 w-4 text-green-500" />
                   ) : (
-                    <DoorClosed className="h-4 w-4 text-muted-foreground" />
+                    <ArrowUp className="h-4 w-4 text-blue-500" />
                   )}
                   <div>
-                    <Label className="font-medium text-foreground">
-                      Front Door Always Open
-                    </Label>
+                    <div className="font-medium text-sm">
+                      Ceiling Status:{" "}
+                      {controlState.ceilingState
+                        ? "Open (Down)"
+                        : "Closed (Up)"}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      Keep front door permanently open
+                      Current ceiling position
                     </div>
                   </div>
                 </div>
-                <Switch
-                  checked={controlState.frontDoorAlwaysOpen}
-                  onCheckedChange={handleFrontDoorAlwaysToggle}
-                  disabled={!isConnected || isPublishing}
-                />
-              </div>
-
-              {/* Back Door Always Open */}
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  {controlState.backDoorAlwaysOpen ? (
-                    <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
-                  ) : (
-                    <DoorClosed className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <div>
-                    <Label className="font-medium text-foreground">Back Door Always Open</Label>
-                    <div className="text-xs text-muted-foreground">
-                      Keep back door permanently open
-                    </div>
-                  </div>
-                </div>
-                <Switch
-                  checked={controlState.backDoorAlwaysOpen}
-                  onCheckedChange={handleBackDoorAlwaysToggle}
-                  disabled={!isConnected || isPublishing}
-                />
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+          {/* Manual Door Open Buttons */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Manual Door Control
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                onClick={handleOpenFrontDoor}
+                disabled={!isConnected || isPublishing}
+                className="h-12 flex items-center justify-center gap-2"
+              >
+                <DoorOpen className="h-4 w-4" />
+                Open Front Door
+              </Button>
+
+              <Button
+                onClick={handleOpenBackDoor}
+                disabled={!isConnected || isPublishing}
+                className="h-12 flex items-center justify-center gap-2"
+              >
+                <DoorOpen className="h-4 w-4" />
+                Open Back Door
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Always Open Toggles */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Always Open Mode
+            </h3>
+
+            {/* Front Door Always Open */}
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-3">
+                {controlState.frontDoorAlwaysOpen ? (
+                  <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
+                ) : (
+                  <DoorClosed className="h-4 w-4 text-muted-foreground" />
+                )}
+                <div>
+                  <Label className="font-medium text-foreground">
+                    Front Door Always Open
+                  </Label>
+                  <div className="text-xs text-muted-foreground">
+                    Keep front door permanently open
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={controlState.frontDoorAlwaysOpen}
+                onCheckedChange={handleFrontDoorAlwaysToggle}
+                disabled={!isConnected || isPublishing}
+              />
+            </div>
+
+            {/* Back Door Always Open */}
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-3">
+                {controlState.backDoorAlwaysOpen ? (
+                  <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
+                ) : (
+                  <DoorClosed className="h-4 w-4 text-muted-foreground" />
+                )}
+                <div>
+                  <Label className="font-medium text-foreground">
+                    Back Door Always Open
+                  </Label>
+                  <div className="text-xs text-muted-foreground">
+                    Keep back door permanently open
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={controlState.backDoorAlwaysOpen}
+                onCheckedChange={handleBackDoorAlwaysToggle}
+                disabled={!isConnected || isPublishing}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

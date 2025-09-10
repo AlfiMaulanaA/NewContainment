@@ -31,7 +31,7 @@ namespace Backend.Controllers
             try
             {
                 var activityInfo = await _deviceActivityService.GetAllDevicesActivityAsync();
-                
+
                 return Ok(new ApiResponse<List<DeviceActivityInfo>>
                 {
                     Success = true,
@@ -59,7 +59,7 @@ namespace Backend.Controllers
             try
             {
                 var activityInfo = await _deviceActivityService.GetDeviceActivityAsync(deviceId);
-                
+
                 return Ok(new ApiResponse<DeviceActivityInfo>
                 {
                     Success = true,
@@ -95,7 +95,7 @@ namespace Backend.Controllers
             try
             {
                 var isActive = await _deviceActivityService.IsDeviceActiveAsync(deviceId);
-                
+
                 return Ok(new ApiResponse<bool>
                 {
                     Success = true,
@@ -123,7 +123,7 @@ namespace Backend.Controllers
             try
             {
                 await _deviceActivityService.UpdateDeviceActivityStatusAsync();
-                
+
                 return Ok(new ApiResponse<string>
                 {
                     Success = true,
@@ -151,7 +151,7 @@ namespace Backend.Controllers
             try
             {
                 await _deviceActivityService.UpdateSingleDeviceActivityAsync(deviceId);
-                
+
                 return Ok(new ApiResponse<string>
                 {
                     Success = true,
@@ -187,7 +187,7 @@ namespace Backend.Controllers
             try
             {
                 var allDevicesActivity = await _deviceActivityService.GetAllDevicesActivityAsync();
-                
+
                 var stats = new
                 {
                     TotalDevices = allDevicesActivity.Count,
@@ -200,7 +200,7 @@ namespace Backend.Controllers
                     DevicesWithRecentData = allDevicesActivity.Count(d => d.HasRecentData),
                     LastUpdateTime = DateTime.UtcNow
                 };
-                
+
                 return Ok(new ApiResponse<object>
                 {
                     Success = true,

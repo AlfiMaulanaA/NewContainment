@@ -54,9 +54,9 @@ namespace Backend.Controllers
             try
             {
                 var user = await _authService.RegisterAsync(
-                    request.Name, 
-                    request.Email, 
-                    request.Password, 
+                    request.Name,
+                    request.Email,
+                    request.Password,
                     request.PhoneNumber
                 );
 
@@ -113,12 +113,12 @@ namespace Backend.Controllers
                 return BadRequest(ModelState);
 
             var user = await _authService.FindUserForPasswordResetAsync(request.Email, request.Name);
-            
+
             if (user == null)
                 return NotFound(new { message = "User with the provided email and name combination not found" });
 
-            return Ok(new VerifyResetCredentialsResponse 
-            { 
+            return Ok(new VerifyResetCredentialsResponse
+            {
                 UserId = user.Id,
                 Message = "Credentials verified successfully. You can now reset your password.",
                 IsValid = true
@@ -132,12 +132,12 @@ namespace Backend.Controllers
                 return BadRequest(ModelState);
 
             var success = await _authService.ResetPasswordAsync(request.UserId, request.NewPassword);
-            
+
             if (!success)
                 return BadRequest(new { message = "Failed to reset password. User not found." });
 
-            return Ok(new ResetPasswordResponse 
-            { 
+            return Ok(new ResetPasswordResponse
+            {
                 Message = "Password reset successfully",
                 Success = true
             });

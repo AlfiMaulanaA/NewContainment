@@ -20,7 +20,7 @@ namespace Backend.Services
             var user = await _context.Users
                 .Include(u => u.DatabaseRole)
                 .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
-            
+
             if (user == null || !VerifyPassword(password, user.PasswordHash))
                 return null;
 
@@ -51,10 +51,10 @@ namespace Backend.Services
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            
+
             // Load the role relationship
             await _context.Entry(user).Reference(u => u.DatabaseRole).LoadAsync();
-            
+
             return user;
         }
 
@@ -101,11 +101,11 @@ namespace Backend.Services
 
         public async Task<User?> FindUserForPasswordResetAsync(string email, string name)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => 
-                u.Email.ToLower() == email.ToLower() && 
-                u.Name.ToLower() == name.ToLower() && 
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == email.ToLower() &&
+                u.Name.ToLower() == name.ToLower() &&
                 u.IsActive);
-            
+
             return user;
         }
 

@@ -1,30 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Settings, 
-  Wifi, 
-  RefreshCw, 
-  Save, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Settings,
+  Wifi,
+  RefreshCw,
+  Save,
   AlertTriangle,
   CheckCircle,
   Clock,
   Thermometer,
   Lightbulb,
   DoorOpen,
-  Lock
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useMQTT } from '@/hooks/useMQTT';
-import { useMQTTStatus } from '@/hooks/useMQTTStatus';
-import { useMQTTPublish } from '@/hooks/useMQTTPublish';
+  Lock,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useMQTT } from "@/hooks/useMQTT";
+import { useMQTTStatus } from "@/hooks/useMQTTStatus";
+import { useMQTTPublish } from "@/hooks/useMQTTPublish";
+import MqttStatus from "@/components/mqtt-status";
 
 // Types for system configuration
 interface SystemConfig {
@@ -57,13 +58,14 @@ const defaultConfig: SystemConfig = {
   temp_bottom_threshold: 50.0,
 };
 
-export function SystemConfigComponent() {
+export default function SystemConfigComponent() {
   const [config, setConfig] = useState<SystemConfig>(defaultConfig);
-  const [originalConfig, setOriginalConfig] = useState<SystemConfig>(defaultConfig);
+  const [originalConfig, setOriginalConfig] =
+    useState<SystemConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  
+
   // Use existing MQTT hooks
   const mqttStatus = useMQTTStatus();
   const { publishMessage } = useMQTTPublish();
@@ -74,7 +76,7 @@ export function SystemConfigComponent() {
   const TOPICS = {
     CONTROL: "IOT/Containment/Control",
     CONFIG: "IOT/Containment/Control/Config",
-    CURRENT_CONFIG: "IOT/Containment/Control/Current_Config"
+    CURRENT_CONFIG: "IOT/Containment/Control/Current_Config",
   };
 
   // Subscribe to MQTT messages
@@ -83,53 +85,56 @@ export function SystemConfigComponent() {
       if (topic === TOPICS.CURRENT_CONFIG) {
         try {
           const receivedConfig = JSON.parse(message);
-          console.log('Received current config:', receivedConfig);
-          
+          console.log("Received current config:", receivedConfig);
+
           setConfig(receivedConfig);
           setOriginalConfig(receivedConfig);
           setLastUpdated(new Date());
           setHasChanges(false);
-          toast.success('Configuration received from device');
+          toast.success("Configuration received from device");
         } catch (error) {
-          console.error('Failed to parse config message:', error);
-          toast.error('Failed to parse configuration from device');
+          console.error("Failed to parse config message:", error);
+          toast.error("Failed to parse configuration from device");
         }
       }
     };
 
     if (isConnectedStatus) {
-      subscribe(TOPICS.CURRENT_CONFIG, handleMessage, 'system-config');
+      // Perbaikan: Hapus argumen ketiga ("system-config")
+      subscribe(TOPICS.CURRENT_CONFIG, handleMessage);
       // Request current configuration on connect
       requestCurrentConfig();
     }
 
     return () => {
-      unsubscribe(TOPICS.CURRENT_CONFIG, 'system-config');
+      // Perbaikan: Hapus argumen kedua ("system-config")
+      unsubscribe(TOPICS.CURRENT_CONFIG);
     };
   }, [isConnectedStatus]);
 
   // Check for changes
   useEffect(() => {
-    const hasConfigChanges = JSON.stringify(config) !== JSON.stringify(originalConfig);
+    const hasConfigChanges =
+      JSON.stringify(config) !== JSON.stringify(originalConfig);
     setHasChanges(hasConfigChanges);
   }, [config, originalConfig]);
 
   const requestCurrentConfig = async () => {
     if (!isConnectedStatus) {
-      toast.error('MQTT not connected');
+      toast.error("MQTT not connected");
       return;
     }
 
     setIsLoading(true);
-    
+
     const payload = {
-      data: "Get Data Setting"
+      data: "Get Data Setting",
     };
 
     const success = await publishMessage(TOPICS.CONFIG, payload);
     if (success) {
-      console.log('Requested current config');
-      toast.info('Requesting current configuration...');
+      console.log("Requested current config");
+      toast.info("Requesting current configuration...");
       // Loading will be cleared when response is received
       setTimeout(() => setIsLoading(false), 5000); // Timeout after 5 seconds
     } else {
@@ -139,13 +144,13 @@ export function SystemConfigComponent() {
 
   const publishConfigChange = async (key: string, value: any) => {
     if (!isConnectedStatus) {
-      toast.error('MQTT not connected');
+      toast.error("MQTT not connected");
       return;
     }
 
     const payload = {
       data: key,
-      value: value
+      value: value,
     };
 
     const success = await publishMessage(TOPICS.CONFIG, payload);
@@ -156,26 +161,26 @@ export function SystemConfigComponent() {
   };
 
   const handleConfigChange = (key: keyof SystemConfig, value: any) => {
-    setConfig(prev => ({
+    setConfig((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
   const handleSaveChanges = async () => {
     if (!isConnectedStatus) {
-      toast.error('MQTT not connected');
+      toast.error("MQTT not connected");
       return;
     }
 
     // First publish the general config change command
     const generalPayload = {
-      data: "Change config system"
+      data: "Change config system",
     };
 
     const generalSuccess = await publishMessage(TOPICS.CONTROL, generalPayload);
     if (!generalSuccess) {
-      toast.error('Failed to initiate configuration change');
+      toast.error("Failed to initiate configuration change");
       return;
     }
 
@@ -188,31 +193,31 @@ export function SystemConfigComponent() {
     }
 
     setOriginalConfig({ ...config });
-    toast.success('All configuration changes saved');
+    toast.success("All configuration changes saved");
   };
 
   const handleEmergencyTempToggle = async (enable: boolean) => {
     if (!isConnectedStatus) {
-      toast.error('MQTT not connected');
+      toast.error("MQTT not connected");
       return;
     }
 
     const command = enable ? "Emergency Temp ON" : "Emergency Temp OFF";
     const payload = {
-      data: command
+      data: command,
     };
 
     const success = await publishMessage(TOPICS.CONFIG, payload);
     if (success) {
-      console.log(`Emergency temp ${enable ? 'enabled' : 'disabled'}`);
-      toast.success(`Emergency temperature ${enable ? 'enabled' : 'disabled'}`);
-      setConfig(prev => ({ ...prev, temp_emergency: enable }));
+      console.log(`Emergency temp ${enable ? "enabled" : "disabled"}`);
+      toast.success(`Emergency temperature ${enable ? "enabled" : "disabled"}`);
+      setConfig((prev) => ({ ...prev, temp_emergency: enable }));
     }
   };
 
   const resetToDefault = () => {
     setConfig(defaultConfig);
-    toast.info('Configuration reset to default values');
+    toast.info("Configuration reset to default values");
   };
 
   return (
@@ -228,13 +233,10 @@ export function SystemConfigComponent() {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <Badge variant={mqttStatus === "connected" ? "default" : "destructive"} className="flex items-center gap-1">
-            <Wifi className="h-3 w-3" />
-            {mqttStatus === "connected" ? 'Connected' : 'Disconnected'}
-          </Badge>
-          
+          <MqttStatus />
+
           {lastUpdated && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -246,17 +248,19 @@ export function SystemConfigComponent() {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <Button 
-          onClick={requestCurrentConfig} 
+        <Button
+          onClick={requestCurrentConfig}
           disabled={!isConnectedStatus || isLoading}
           variant="outline"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Loading...' : 'Refresh Config'}
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+          />
+          {isLoading ? "Loading..." : "Refresh Config"}
         </Button>
 
-        <Button 
-          onClick={handleSaveChanges} 
+        <Button
+          onClick={handleSaveChanges}
           disabled={!isConnectedStatus || !hasChanges}
           className="flex items-center gap-2"
         >
@@ -264,10 +268,7 @@ export function SystemConfigComponent() {
           Save Changes
         </Button>
 
-        <Button 
-          onClick={resetToDefault} 
-          variant="outline"
-        >
+        <Button onClick={resetToDefault} variant="outline">
           Reset to Default
         </Button>
 
@@ -295,29 +296,44 @@ export function SystemConfigComponent() {
                 id="i2c_addr1"
                 type="number"
                 value={config.modular_i2c_address_1}
-                onChange={(e) => handleConfigChange('modular_i2c_address_1', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "modular_i2c_address_1",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="i2c_addr2">Modular I2C Address 2</Label>
               <Input
                 id="i2c_addr2"
                 type="number"
                 value={config.modular_i2c_address_2}
-                onChange={(e) => handleConfigChange('modular_i2c_address_2', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "modular_i2c_address_2",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="i2c_relay">Modular I2C Relay 1 Address</Label>
               <Input
                 id="i2c_relay"
                 type="number"
                 value={config.modular_i2c_relay_1_address}
-                onChange={(e) => handleConfigChange('modular_i2c_relay_1_address', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "modular_i2c_relay_1_address",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
@@ -327,7 +343,9 @@ export function SystemConfigComponent() {
               <Switch
                 id="debug"
                 checked={config.debug}
-                onCheckedChange={(checked) => handleConfigChange('debug', checked)}
+                onCheckedChange={(checked) =>
+                  handleConfigChange("debug", checked)
+                }
               />
             </div>
           </CardContent>
@@ -343,7 +361,10 @@ export function SystemConfigComponent() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="interval_light" className="flex items-center gap-2">
+              <Label
+                htmlFor="interval_light"
+                className="flex items-center gap-2"
+              >
                 <Lightbulb className="h-4 w-4" />
                 Light Control Interval
               </Label>
@@ -351,24 +372,39 @@ export function SystemConfigComponent() {
                 id="interval_light"
                 type="number"
                 value={config.interval_control_light}
-                onChange={(e) => handleConfigChange('interval_control_light', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "interval_control_light",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="interval_selenoid">Selenoid Control Interval</Label>
+              <Label htmlFor="interval_selenoid">
+                Selenoid Control Interval
+              </Label>
               <Input
                 id="interval_selenoid"
                 type="number"
                 value={config.interval_control_selenoid}
-                onChange={(e) => handleConfigChange('interval_control_selenoid', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "interval_control_selenoid",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="interval_door_lock" className="flex items-center gap-2">
+              <Label
+                htmlFor="interval_door_lock"
+                className="flex items-center gap-2"
+              >
                 <Lock className="h-4 w-4" />
                 Door Lock Interval
               </Label>
@@ -376,13 +412,21 @@ export function SystemConfigComponent() {
                 id="interval_door_lock"
                 type="number"
                 value={config.interval_door_lock}
-                onChange={(e) => handleConfigChange('interval_door_lock', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "interval_door_lock",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="interval_front_door" className="flex items-center gap-2">
+              <Label
+                htmlFor="interval_front_door"
+                className="flex items-center gap-2"
+              >
                 <DoorOpen className="h-4 w-4" />
                 Front Door Open Interval
               </Label>
@@ -390,13 +434,21 @@ export function SystemConfigComponent() {
                 id="interval_front_door"
                 type="number"
                 value={config.interval_open_front_door}
-                onChange={(e) => handleConfigChange('interval_open_front_door', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "interval_open_front_door",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
-            
+
             <div>
-              <Label htmlFor="interval_back_door" className="flex items-center gap-2">
+              <Label
+                htmlFor="interval_back_door"
+                className="flex items-center gap-2"
+              >
                 <DoorOpen className="h-4 w-4" />
                 Back Door Open Interval
               </Label>
@@ -404,7 +456,12 @@ export function SystemConfigComponent() {
                 id="interval_back_door"
                 type="number"
                 value={config.interval_open_back_door}
-                onChange={(e) => handleConfigChange('interval_open_back_door', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  handleConfigChange(
+                    "interval_open_back_door",
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 className="mt-1"
               />
             </div>
@@ -428,11 +485,16 @@ export function SystemConfigComponent() {
                   type="number"
                   step="0.1"
                   value={config.temp_upper_threshold}
-                  onChange={(e) => handleConfigChange('temp_upper_threshold', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleConfigChange(
+                      "temp_upper_threshold",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
                   className="mt-1"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="temp_bottom">Bottom Threshold (°C)</Label>
                 <Input
@@ -440,31 +502,38 @@ export function SystemConfigComponent() {
                   type="number"
                   step="0.1"
                   value={config.temp_bottom_threshold}
-                  onChange={(e) => handleConfigChange('temp_bottom_threshold', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleConfigChange(
+                      "temp_bottom_threshold",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
                   className="mt-1"
                 />
               </div>
-              
+
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <Label>Emergency Temperature</Label>
                   <Switch
                     checked={config.temp_emergency}
-                    onCheckedChange={(checked) => handleEmergencyTempToggle(checked)}
+                    onCheckedChange={(checked) =>
+                      handleEmergencyTempToggle(checked)
+                    }
                   />
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => handleEmergencyTempToggle(true)}
                     disabled={!isConnectedStatus}
                   >
                     Enable
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => handleEmergencyTempToggle(false)}
                     disabled={!isConnectedStatus}
@@ -489,22 +558,38 @@ export function SystemConfigComponent() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{config.modular_i2c_address_1}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {config.modular_i2c_address_1}
+              </div>
               <div className="text-sm text-muted-foreground">I2C Address 1</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{config.interval_control_light}s</div>
-              <div className="text-sm text-muted-foreground">Light Interval</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{config.temp_upper_threshold}°C</div>
-              <div className="text-sm text-muted-foreground">Upper Threshold</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${config.temp_emergency ? 'text-green-600' : 'text-red-600'}`}>
-                {config.temp_emergency ? 'ON' : 'OFF'}
+              <div className="text-2xl font-bold text-green-600">
+                {config.interval_control_light}s
               </div>
-              <div className="text-sm text-muted-foreground">Emergency Temp</div>
+              <div className="text-sm text-muted-foreground">
+                Light Interval
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {config.temp_upper_threshold}°C
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Upper Threshold
+              </div>
+            </div>
+            <div className="text-center">
+              <div
+                className={`text-2xl font-bold ${
+                  config.temp_emergency ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {config.temp_emergency ? "ON" : "OFF"}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Emergency Temp
+              </div>
             </div>
           </div>
         </CardContent>

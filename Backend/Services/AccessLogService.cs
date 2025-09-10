@@ -70,13 +70,13 @@ namespace Backend.Services
             _context.AccessLogs.Add(accessLog);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Access log created: User={User}, Via={Via}, Trigger={Trigger}", 
+            _logger.LogInformation("Access log created: User={User}, Via={Via}, Trigger={Trigger}",
                 accessLog.User, accessLog.Via, accessLog.Trigger);
 
             return accessLog;
         }
 
-        public async Task<AccessLog> LogSoftwareAccessAsync(string user, string trigger, string? additionalData = null, string? ipAddress = null)
+        public async Task<AccessLog> LogSoftwareAccessAsync(string user, string trigger, string? additionalData = null)
         {
             var accessLog = new AccessLog
             {
@@ -84,7 +84,6 @@ namespace Backend.Services
                 Via = AccessMethod.Software,
                 Trigger = trigger,
                 AdditionalData = additionalData,
-                IpAddress = ipAddress,
                 IsSuccess = true,
                 Timestamp = DateTime.UtcNow
             };

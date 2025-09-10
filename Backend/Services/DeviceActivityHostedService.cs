@@ -13,7 +13,7 @@ namespace Backend.Services
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
-            
+
             // Default check interval every 2 minutes
             _intervalMinutes = configuration.GetValue("DeviceActivity:CheckIntervalMinutes", 2);
         }

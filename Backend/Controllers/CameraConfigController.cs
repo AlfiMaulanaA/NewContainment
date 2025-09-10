@@ -69,7 +69,7 @@ namespace Backend.Controllers
             {
                 return NotFound();
             }
-            
+
             // This is the line that was causing the error in the image.
             // The method call in your original code was missing the 'existingConfig' parameter.
             // This code block is correct as written in the provided code snippet.
@@ -78,7 +78,7 @@ namespace Backend.Controllers
             existingConfig.Port = request.Port;
             existingConfig.ApiKey = request.ApiKey;
             existingConfig.Group = request.Group;
-            
+
             var updatedConfig = await _cameraConfigService.UpdateCameraConfigAsync(id, existingConfig);
 
             if (updatedConfig == null)

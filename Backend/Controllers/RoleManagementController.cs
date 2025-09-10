@@ -77,8 +77,8 @@ namespace Backend.Controllers
                 {
                     IsCompleted = isCompleted,
                     UnmigratedUsersCount = unmigratedCount,
-                    Message = isCompleted 
-                        ? "All users are using the new role system" 
+                    Message = isCompleted
+                        ? "All users are using the new role system"
                         : $"{unmigratedCount} users need migration"
                 });
             }

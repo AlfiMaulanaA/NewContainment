@@ -6,43 +6,43 @@ namespace Backend.Models
     public class SensorConfiguration
     {
         public int Id { get; set; }
-        
+
         [Required]
         public int SensorNumber { get; set; }
-        
+
         [Required]
         [StringLength(100)]
         public string SensorName { get; set; } = string.Empty;
-        
+
         [Required]
         [Range(1, 247)]
         public int ModbusAddress { get; set; }
-        
+
         [Required]
         [StringLength(20)]
         public string ModbusPort { get; set; } = string.Empty;
-        
+
         [Required]
         [StringLength(50)]
         public string SensorType { get; set; } = string.Empty;
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         public bool IsEnabled { get; set; } = true;
-        
+
         public decimal TemperatureOffset { get; set; } = 0;
-        
+
         public decimal HumidityOffset { get; set; } = 0;
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-        
+
         public int CreatedBy { get; set; }
-        
+
         public int? UpdatedBy { get; set; }
-        
+
         // Navigation properties
         public User? CreatedByUser { get; set; }
         public User? UpdatedByUser { get; set; }
@@ -51,35 +51,35 @@ namespace Backend.Models
     public class ScanConfiguration
     {
         public int Id { get; set; }
-        
+
         [Required]
         [Range(1, 247)]
         public int MaxAddressToScan { get; set; } = 247;
-        
+
         [Required]
         [StringLength(20)]
         public string SelectedPort { get; set; } = "COM3";
-        
+
         [Required]
         [StringLength(50)]
         public string SelectedSensor { get; set; } = "XY_MD02";
-        
+
         [Range(100, 10000)]
         public int ScanTimeoutMs { get; set; } = 1000;
-        
+
         [Range(10, 1000)]
         public int ScanIntervalMs { get; set; } = 100;
-        
+
         public bool IsActive { get; set; } = true;
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-        
+
         public int CreatedBy { get; set; }
-        
+
         public int? UpdatedBy { get; set; }
-        
+
         // Navigation properties
         public User? CreatedByUser { get; set; }
         public User? UpdatedByUser { get; set; }
@@ -90,30 +90,30 @@ namespace Backend.Models
     {
         [Required]
         public int SensorNumber { get; set; }
-        
+
         [Required]
         [StringLength(100)]
         public string SensorName { get; set; } = string.Empty;
-        
+
         [Required]
         [Range(1, 247)]
         public int ModbusAddress { get; set; }
-        
+
         [Required]
         [StringLength(20)]
         public string ModbusPort { get; set; } = string.Empty;
-        
+
         [Required]
         [StringLength(50)]
         public string SensorType { get; set; } = string.Empty;
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         public bool IsEnabled { get; set; } = true;
-        
+
         public decimal TemperatureOffset { get; set; } = 0;
-        
+
         public decimal HumidityOffset { get; set; } = 0;
     }
 
@@ -122,18 +122,18 @@ namespace Backend.Models
         [Required]
         [Range(1, 247)]
         public int MaxAddressToScan { get; set; } = 247;
-        
+
         [Required]
         [StringLength(20)]
         public string SelectedPort { get; set; } = "COM3";
-        
+
         [Required]
         [StringLength(50)]
         public string SelectedSensor { get; set; } = "XY_MD02";
-        
+
         [Range(100, 10000)]
         public int ScanTimeoutMs { get; set; } = 1000;
-        
+
         [Range(10, 1000)]
         public int ScanIntervalMs { get; set; } = 100;
     }
@@ -143,7 +143,7 @@ namespace Backend.Models
         [Required]
         [StringLength(100)]
         public string SensorName { get; set; } = string.Empty;
-        
+
         [Required]
         public decimal[] ValueCalibrate { get; set; } = new decimal[2];
     }
@@ -153,18 +153,18 @@ namespace Backend.Models
     {
         [Required]
         public string Command { get; set; } = string.Empty;
-        
+
         public object? Data { get; set; }
     }
 
     public class SensorMqttResponse
     {
         public string Result { get; set; } = string.Empty;
-        
+
         public string Command { get; set; } = string.Empty;
-        
+
         public object? Data { get; set; }
-        
+
         public string? Error { get; set; }
     }
 
@@ -172,26 +172,26 @@ namespace Backend.Models
     public class SensorListData
     {
         public int NumberSensor { get; set; }
-        
+
         public SensorDataStructure DataSensor { get; set; } = new();
     }
 
     public class SensorDataStructure
     {
         public string SensorName { get; set; } = string.Empty;
-        
+
         public int ModbusAddress { get; set; }
-        
+
         public string ModbusPort { get; set; } = string.Empty;
-        
+
         public string SensorType { get; set; } = string.Empty;
-        
+
         public string? Description { get; set; }
-        
+
         public bool Enabled { get; set; }
-        
+
         public decimal? TemperatureOffset { get; set; }
-        
+
         public decimal? HumidityOffset { get; set; }
     }
 
@@ -199,33 +199,33 @@ namespace Backend.Models
     public class ScanConfigData
     {
         public int MaxAddressToScan { get; set; }
-        
+
         public string SelectedPort { get; set; } = string.Empty;
-        
+
         public string SelectedSensor { get; set; } = string.Empty;
-        
+
         public int? ScanTimeoutMs { get; set; }
-        
+
         public int? ScanIntervalMs { get; set; }
     }
 
     // Constants
     public static class SensorConstants
     {
-        public static readonly string[] SENSOR_TYPES = 
+        public static readonly string[] SENSOR_TYPES =
         {
             "XY_MD02",
-            "DHT22", 
+            "DHT22",
             "SHT30",
             "AM2302",
             "Custom"
         };
 
-        public static readonly string[] MODBUS_PORTS = 
+        public static readonly string[] MODBUS_PORTS =
         {
             "COM1",
             "COM2",
-            "COM3", 
+            "COM3",
             "COM4",
             "COM5",
             "/dev/ttyUSB0",
@@ -244,7 +244,7 @@ namespace Backend.Models
             // Mode Commands
             public const string CHANGE_MODE_READING = "change mode to reading sensor";
             public const string CHANGE_MODE_SCAN = "change mode to scan";
-            
+
             // Sensor List Commands
             public const string GET_TOTAL_SENSOR_LIST = "get total sensor list";
             public const string GET_SENSOR_LIST = "get sensor list";
@@ -252,13 +252,13 @@ namespace Backend.Models
             public const string ADD_SENSOR_LIST = "add sensor list";
             public const string REMOVE_SENSOR_LIST = "remove sensor list";
             public const string UPLOAD_SENSOR_LIST = "upload sensor list";
-            
+
             // Scan Commands
             public const string RUNNING_SCAN = "running scan";
             public const string STOP_SCAN = "stop scan";
             public const string WRITE_CONFIG_SCAN = "write config scan";
             public const string READ_CONFIG_SCAN = "read config scan";
-            
+
             // Calibration Commands
             public const string READ_CALIBRATE_SENSOR = "read calibrate sensor";
             public const string WRITE_CALIBRATE_SENSOR = "write calibrate sensor";

@@ -28,7 +28,7 @@ namespace Backend.Services
             user.CreatedAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
             user.IsActive = true;
-            
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
             return user;
@@ -82,11 +82,11 @@ namespace Backend.Services
                 // Option 1: Delete all maintenance assigned to this user (if you want to remove tasks)
                 await _context.Database.ExecuteSqlRawAsync(
                     "DELETE FROM Maintenances WHERE AssignTo = {0}", id);
-                
+
                 // Option 2: Or reassign to another user (uncomment if preferred)
                 // await _context.Database.ExecuteSqlRawAsync(
                 //     "UPDATE Maintenances SET AssignTo = 1 WHERE AssignTo = {0}", id); // reassign to admin user
-                
+
                 await _context.Database.ExecuteSqlRawAsync(
                     "UPDATE Maintenances SET CreatedBy = NULL WHERE CreatedBy = {0}", id);
                 await _context.Database.ExecuteSqlRawAsync(
@@ -105,7 +105,7 @@ namespace Backend.Services
                 // Now safe to delete the user
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
-                
+
                 await transaction.CommitAsync();
                 return true;
             }

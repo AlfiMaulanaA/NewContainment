@@ -8,22 +8,22 @@ namespace Backend.Services
         /// Updates device status based on MQTT data activity
         /// </summary>
         Task UpdateDeviceActivityStatusAsync();
-        
+
         /// <summary>
         /// Checks if a specific device is active based on MQTT data
         /// </summary>
         Task<bool> IsDeviceActiveAsync(int deviceId);
-        
+
         /// <summary>
         /// Gets device activity info including last seen time
         /// </summary>
         Task<DeviceActivityInfo> GetDeviceActivityAsync(int deviceId);
-        
+
         /// <summary>
         /// Updates single device activity status
         /// </summary>
         Task UpdateSingleDeviceActivityAsync(int deviceId);
-        
+
         /// <summary>
         /// Gets all devices with their activity status
         /// </summary>

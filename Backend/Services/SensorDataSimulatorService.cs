@@ -32,7 +32,7 @@ namespace Backend.Services
                     return;
                 }
 
-                _logger.LogInformation("Generating sample sensor data for {DeviceCount} devices, {DaysBack} days back", 
+                _logger.LogInformation("Generating sample sensor data for {DeviceCount} devices, {DaysBack} days back",
                     sensorDevices.Count, daysBack);
 
                 var sensorDataList = new List<DeviceSensorData>();
@@ -48,28 +48,28 @@ namespace Backend.Services
                     for (var day = 0; day < daysBack; day++)
                     {
                         var currentDate = startDate.AddDays(day);
-                        
+
                         for (var hour = 0; hour < 24; hour++)
                         {
                             for (var record = 0; record < recordsPerHour; record++)
                             {
                                 var timestamp = currentDate.AddHours(hour).AddMinutes(record * 10);
-                                
+
                                 // Add some daily and hourly variations
                                 var hourlyTempVariation = (decimal)(Math.Sin(hour * Math.PI / 12) * 3); // Daily cycle
                                 var randomTempVariation = (decimal)((random.NextDouble() - 0.5) * 4); // ±2°C
                                 var temperature = Math.Round(baseTemp + hourlyTempVariation + randomTempVariation, 1);
-                                
+
                                 var hourlyHumVariation = (decimal)(Math.Cos(hour * Math.PI / 12) * 5); // Inverse of temp
                                 var randomHumVariation = (decimal)((random.NextDouble() - 0.5) * 10); // ±5%
                                 var humidity = Math.Round(baseHumidity + hourlyHumVariation + randomHumVariation, 1);
-                                
+
                                 // Ensure realistic ranges
                                 temperature = Math.Max(15, Math.Min(40, temperature)); // 15-40°C
                                 humidity = Math.Max(30, Math.Min(80, humidity)); // 30-80%
 
                                 var rawPayload = $"{{\"temp\":{temperature:F1},\"hum\":{humidity:F0},\"device_id\":{device.Id},\"timestamp\":\"{timestamp:yyyy-MM-ddTHH:mm:ssZ}\"}}";
-                                
+
                                 var sensorData = new DeviceSensorData
                                 {
                                     DeviceId = device.Id,
@@ -90,18 +90,18 @@ namespace Backend.Services
                 // Bulk insert in batches to avoid memory issues
                 const int batchSize = 1000;
                 var totalRecords = sensorDataList.Count;
-                
+
                 for (int i = 0; i < totalRecords; i += batchSize)
                 {
                     var batch = sensorDataList.Skip(i).Take(batchSize).ToList();
                     _context.DeviceSensorData.AddRange(batch);
                     await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("Inserted batch {BatchNumber}/{TotalBatches} ({RecordsInserted}/{TotalRecords} records)", 
+
+                    _logger.LogInformation("Inserted batch {BatchNumber}/{TotalBatches} ({RecordsInserted}/{TotalRecords} records)",
                         (i / batchSize) + 1, (totalRecords + batchSize - 1) / batchSize, i + batch.Count, totalRecords);
                 }
 
-                _logger.LogInformation("Successfully generated {TotalRecords} sensor data records for {DeviceCount} devices", 
+                _logger.LogInformation("Successfully generated {TotalRecords} sensor data records for {DeviceCount} devices",
                     totalRecords, sensorDevices.Count);
             }
             catch (Exception ex)

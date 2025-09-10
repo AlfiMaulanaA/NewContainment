@@ -387,16 +387,89 @@ export default function RackManagementPage({
         const dustStatus =
           dust > 75 ? "critical" : dust > 35 ? "warning" : "normal";
 
+        // Extract all available dust sensor data
+        const dustValues = [];
+
+        // Primary dust measurement
+        if (dust !== undefined && dust !== null) {
+          dustValues.push({
+            label: "PM2.5",
+            value: `${dust?.toFixed(1) || "--"} µg/m³`,
+            status: dustStatus,
+          });
+        }
+
+        // Additional dust sensor fields
+        if (data.pm10 !== undefined && data.pm10 !== null) {
+          const pm10Status =
+            data.pm10 > 150
+              ? "critical"
+              : data.pm10 > 50
+              ? "warning"
+              : "normal";
+          dustValues.push({
+            label: "PM10",
+            value: `${data.pm10?.toFixed(1) || "--"} µg/m³`,
+            status: pm10Status,
+          });
+        }
+
+        if (data.pm1 !== undefined && data.pm1 !== null) {
+          const pm1Status =
+            data.pm1 > 35 ? "critical" : data.pm1 > 15 ? "warning" : "normal";
+          dustValues.push({
+            label: "PM1.0",
+            value: `${data.pm1?.toFixed(1) || "--"} µg/m³`,
+            status: pm1Status,
+          });
+        }
+
+        if (data.aqi !== undefined && data.aqi !== null) {
+          const aqiStatus =
+            data.aqi > 150 ? "critical" : data.aqi > 100 ? "warning" : "normal";
+          dustValues.push({
+            label: "AQI",
+            value: `${data.aqi?.toFixed(0) || "--"}`,
+            status: aqiStatus,
+          });
+        }
+
+        if (data.temperature !== undefined && data.temperature !== null) {
+          const tempStatus =
+            data.temperature > 35
+              ? "critical"
+              : data.temperature > 25
+              ? "warning"
+              : "normal";
+          dustValues.push({
+            label: "Temp",
+            value: `${data.temperature?.toFixed(1) || "--"}°C`,
+            status: tempStatus,
+          });
+        }
+
+        if (data.humidity !== undefined && data.humidity !== null) {
+          const humStatus = data.humidity > 70 ? "warning" : "normal";
+          dustValues.push({
+            label: "Humidity",
+            value: `${data.humidity?.toFixed(1) || "--"}%`,
+            status: humStatus,
+          });
+        }
+
+        // If no specific values found, show the raw data
+        if (dustValues.length === 0) {
+          dustValues.push({
+            label: "Dust Level",
+            value: `${dust?.toFixed(1) || "--"} µg/m³`,
+            status: dustStatus,
+          });
+        }
+
         return {
           display: `${dust?.toFixed(1) || "--"} µg/m³`,
           status: dustStatus,
-          values: [
-            {
-              label: "PM2.5",
-              value: `${dust?.toFixed(1) || "--"} µg/m³`,
-              status: dustStatus,
-            },
-          ],
+          values: dustValues,
           timestamp,
         };
 
@@ -452,15 +525,106 @@ export default function RackManagementPage({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "normal":
-        return "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-400/10 border-emerald-500/20 dark:border-emerald-400/20";
+        return "text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 dark:bg-emerald-400/15 border-emerald-500/30 dark:border-emerald-400/30";
       case "warning":
-        return "text-amber-700 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-400/10 border-amber-500/20 dark:border-amber-400/20";
+        return "text-amber-700 dark:text-amber-300 bg-amber-500/15 dark:bg-amber-400/15 border-amber-500/30 dark:border-amber-400/30";
       case "critical":
-        return "text-red-700 dark:text-red-300 bg-red-500/10 dark:bg-red-400/10 border-red-500/20 dark:border-red-400/20";
+        return "text-red-700 dark:text-red-300 bg-red-500/15 dark:bg-red-400/15 border-red-500/30 dark:border-red-400/30";
       case "offline":
-        return "text-muted-foreground bg-muted border-border";
+        return "text-gray-600 dark:text-gray-400 bg-gray-500/15 dark:bg-gray-400/15 border-gray-500/30 dark:border-gray-400/30";
       default:
-        return "text-muted-foreground bg-secondary border-border";
+        return "text-gray-600 dark:text-gray-400 bg-gray-500/10 dark:bg-gray-400/10 border-gray-500/20 dark:border-gray-400/20";
+    }
+  };
+
+  // Enhanced value-based color styling for sensor readings
+  const getValueBasedColor = (
+    value: number,
+    sensorType: string,
+    status: string
+  ) => {
+    const baseColors = getStatusColor(status);
+
+    switch (sensorType) {
+      case "Temperature":
+        if (value >= 35) {
+          return "text-red-800 dark:text-red-200 bg-gradient-to-br from-red-500/20 to-red-600/20 dark:from-red-400/20 dark:to-red-500/20 border-red-500/40 dark:border-red-400/40";
+        } else if (value >= 30) {
+          return "text-red-700 dark:text-red-300 bg-gradient-to-br from-red-500/15 to-orange-500/15 dark:from-red-400/15 dark:to-orange-400/15 border-red-500/30 dark:border-red-400/30";
+        } else if (value >= 25) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-yellow-500/15 dark:from-amber-400/15 dark:to-yellow-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else if (value >= 20) {
+          return "text-emerald-700 dark:text-emerald-300 bg-gradient-to-br from-emerald-500/15 to-green-500/15 dark:from-emerald-400/15 dark:to-green-400/15 border-emerald-500/30 dark:border-emerald-400/30";
+        } else {
+          return "text-blue-700 dark:text-blue-300 bg-gradient-to-br from-blue-500/15 to-cyan-500/15 dark:from-blue-400/15 dark:to-cyan-400/15 border-blue-500/30 dark:border-blue-400/30";
+        }
+
+      case "Humidity":
+        if (value >= 80) {
+          return "text-blue-800 dark:text-blue-200 bg-gradient-to-br from-blue-500/20 to-blue-600/20 dark:from-blue-400/20 dark:to-blue-500/20 border-blue-500/40 dark:border-blue-400/40";
+        } else if (value >= 70) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-yellow-500/15 dark:from-amber-400/15 dark:to-yellow-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else if (value >= 40) {
+          return "text-emerald-700 dark:text-emerald-300 bg-gradient-to-br from-emerald-500/15 to-green-500/15 dark:from-emerald-400/15 dark:to-green-400/15 border-emerald-500/30 dark:border-emerald-400/30";
+        } else if (value >= 30) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-orange-500/15 dark:from-amber-400/15 dark:to-orange-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else {
+          return "text-red-700 dark:text-red-300 bg-gradient-to-br from-red-500/15 to-red-600/15 dark:from-red-400/15 dark:to-red-500/15 border-red-500/30 dark:border-red-400/30";
+        }
+
+      case "Air Flow":
+        if (value >= 50) {
+          return "text-emerald-700 dark:text-emerald-300 bg-gradient-to-br from-emerald-500/15 to-green-500/15 dark:from-emerald-400/15 dark:to-green-400/15 border-emerald-500/30 dark:border-emerald-400/30";
+        } else if (value >= 30) {
+          return "text-blue-700 dark:text-blue-300 bg-gradient-to-br from-blue-500/15 to-sky-500/15 dark:from-blue-400/15 dark:to-sky-400/15 border-blue-500/30 dark:border-blue-400/30";
+        } else if (value >= 20) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-yellow-500/15 dark:from-amber-400/15 dark:to-yellow-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else if (value >= 10) {
+          return "text-red-700 dark:text-red-300 bg-gradient-to-br from-red-500/15 to-orange-500/15 dark:from-red-400/15 dark:to-orange-400/15 border-red-500/30 dark:border-red-400/30";
+        } else {
+          return "text-red-800 dark:text-red-200 bg-gradient-to-br from-red-500/20 to-red-600/20 dark:from-red-400/20 dark:to-red-500/20 border-red-500/40 dark:border-red-400/40";
+        }
+
+      case "Dust Sensor":
+        if (value >= 100) {
+          return "text-red-800 dark:text-red-200 bg-gradient-to-br from-red-500/20 to-red-600/20 dark:from-red-400/20 dark:to-red-500/20 border-red-500/40 dark:border-red-400/40";
+        } else if (value >= 75) {
+          return "text-red-700 dark:text-red-300 bg-gradient-to-br from-red-500/15 to-orange-500/15 dark:from-red-400/15 dark:to-orange-400/15 border-red-500/30 dark:border-red-400/30";
+        } else if (value >= 35) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-yellow-500/15 dark:from-amber-400/15 dark:to-yellow-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else if (value >= 15) {
+          return "text-emerald-700 dark:text-emerald-300 bg-gradient-to-br from-emerald-500/15 to-green-500/15 dark:from-emerald-400/15 dark:to-green-400/15 border-emerald-500/30 dark:border-emerald-400/30";
+        } else {
+          return "text-green-700 dark:text-green-300 bg-gradient-to-br from-green-500/15 to-emerald-500/15 dark:from-green-400/15 dark:to-emerald-400/15 border-green-500/30 dark:border-green-400/30";
+        }
+
+      case "Vibration":
+        if (value >= 3) {
+          return "text-red-800 dark:text-red-200 bg-gradient-to-br from-red-500/20 to-red-600/20 dark:from-red-400/20 dark:to-red-500/20 border-red-500/40 dark:border-red-400/40";
+        } else if (value >= 2) {
+          return "text-red-700 dark:text-red-300 bg-gradient-to-br from-red-500/15 to-orange-500/15 dark:from-red-400/15 dark:to-orange-400/15 border-red-500/30 dark:border-red-400/30";
+        } else if (value >= 1) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-yellow-500/15 dark:from-amber-400/15 dark:to-yellow-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else if (value >= 0.5) {
+          return "text-emerald-700 dark:text-emerald-300 bg-gradient-to-br from-emerald-500/15 to-green-500/15 dark:from-emerald-400/15 dark:to-green-400/15 border-emerald-500/30 dark:border-emerald-400/30";
+        } else {
+          return "text-green-700 dark:text-green-300 bg-gradient-to-br from-green-500/15 to-emerald-500/15 dark:from-green-400/15 dark:to-emerald-400/15 border-green-500/30 dark:border-green-400/30";
+        }
+
+      case "Pressure":
+        if (value >= 1050 || value <= 950) {
+          return "text-red-700 dark:text-red-300 bg-gradient-to-br from-red-500/15 to-red-600/15 dark:from-red-400/15 dark:to-red-500/15 border-red-500/30 dark:border-red-400/30";
+        } else if (
+          (value >= 1030 && value < 1050) ||
+          (value > 950 && value <= 970)
+        ) {
+          return "text-amber-700 dark:text-amber-300 bg-gradient-to-br from-amber-500/15 to-yellow-500/15 dark:from-amber-400/15 dark:to-yellow-400/15 border-amber-500/30 dark:border-amber-400/30";
+        } else {
+          return "text-emerald-700 dark:text-emerald-300 bg-gradient-to-br from-emerald-500/15 to-green-500/15 dark:from-emerald-400/15 dark:to-green-400/15 border-emerald-500/30 dark:border-emerald-400/30";
+        }
+
+      default:
+        return baseColors;
     }
   };
 
@@ -597,7 +761,7 @@ export default function RackManagementPage({
                   {racks.map((rack) => (
                     <Card
                       key={rack.id}
-                      className="group flex flex-col justify-between shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground"
+                      className="group flex flex-col shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground min-h-[400px] max-h-[600px]"
                     >
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center justify-between">
@@ -631,105 +795,196 @@ export default function RackManagementPage({
                           </div>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
+                      <CardContent className="flex-1 flex flex-col">
+                        <div className="space-y-3 flex-1">
                           {rackDevices[rack.id] &&
                           rackDevices[rack.id].length > 0 ? (
                             <div className="flex flex-col gap-2">
-                              {rackDevices[rack.id]
-                                .filter((device) => device.type === "Sensor")
-                                .map((device) => {
-                                  const visual =
-                                    device.sensorType ? SENSOR_TYPE_VISUALS[device.sensorType as keyof typeof SENSOR_TYPE_VISUALS] : undefined;
-                                  const IconComponent = visual?.icon;
-                                  const formattedData = formatSensorData(
-                                    device,
-                                    sensorData[device.id]
-                                  );
+                              {/* Container dengan scroll untuk devices */}
+                              <div
+                                className={`flex flex-col gap-2 ${
+                                  rackDevices[rack.id].filter(
+                                    (device) => device.type === "Sensor"
+                                  ).length > 3
+                                    ? "max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500"
+                                    : ""
+                                }`}
+                              >
+                                {rackDevices[rack.id]
+                                  .filter((device) => device.type === "Sensor")
+                                  .map((device, deviceIndex) => {
+                                    const visual = device.sensorType
+                                      ? SENSOR_TYPE_VISUALS[
+                                          device.sensorType as keyof typeof SENSOR_TYPE_VISUALS
+                                        ]
+                                      : undefined;
+                                    const IconComponent = visual?.icon;
+                                    const formattedData = formatSensorData(
+                                      device,
+                                      sensorData[device.id]
+                                    );
 
-                                  return (
-                                    <div
-                                      key={device.id}
-                                      className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground ${getStatusColor(
-                                        formattedData.status
-                                      )}`}
-                                    >
-                                      {/* Hapus gradien overlay */}
-                                      {formattedData.status === "critical" && (
-                                        <div className="absolute top-2 right-2">
-                                          <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
-                                        </div>
-                                      )}
-                                      <div className="relative p-3">
-                                        <div className="flex items-center justify-between mb-3">
-                                          <div className="flex items-center gap-2">
-                                            {IconComponent && (
-                                              <div
-                                                className={`relative p-2 rounded-xl shadow-lg bg-primary/10 border border-primary/20`}
-                                              >
-                                                <IconComponent
-                                                  className={`h-4 w-4 text-primary drop-shadow-sm`}
-                                                />
-                                              </div>
-                                            )}
-                                            <div className="flex flex-col">
-                                              <span className="font-bold text-xs tracking-wide uppercase">
-                                                {visual?.shortName ||
-                                                  visual?.name ||
-                                                  device.name}
-                                              </span>
-                                              <span className="text-[10px] text-muted-foreground font-medium">
-                                                {device.name.length > 15
-                                                  ? device.name.substring(
-                                                      0,
-                                                      15
-                                                    ) + "..."
-                                                  : device.name}
-                                              </span>
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            {formattedData.timestamp &&
-                                              formattedData.timestamp !==
-                                                "N/A" && (
-                                                <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground bg-secondary/20 rounded-full px-3 py-1 border border-secondary/20">
-                                                  <Clock className="h-2.5 w-2.5" />
-                                                  <span className="font-medium">
-                                                    {formattedData.timestamp}
-                                                  </span>
-                                                </div>
-                                              )}
-                                            {getStatusIcon(
-                                              formattedData.status,
-                                              "md"
-                                            )}
-                                          </div>
-                                        </div>
-                                        {formattedData.values.length > 1 && (
-                                          <div className="grid grid-cols-2 gap-1.5 mb-1">
-                                            {formattedData.values
-                                              .slice(0, 4)
-                                              .map((value, idx) => (
-                                                <div
-                                                  key={idx}
-                                                  className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center border shadow-sm ${getStatusColor(
-                                                    value.status
-                                                  )} bg-secondary/20 transition-all duration-300 hover:shadow-md`}
-                                                >
-                                                  <div className="text-xs font-bold text-foreground">
-                                                    {value.value}
-                                                  </div>
-                                                  <div className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider opacity-80">
-                                                    {value.label}
-                                                  </div>
-                                                </div>
-                                              ))}
+                                    // Extract main value for color determination
+                                    const mainValue =
+                                      formattedData.values.length > 0
+                                        ? parseFloat(
+                                            formattedData.values[0].value.replace(
+                                              /[^0-9.-]/g,
+                                              ""
+                                            )
+                                          ) || 0
+                                        : 0;
+
+                                    return (
+                                      <div
+                                        key={device.id}
+                                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 ${getValueBasedColor(
+                                          mainValue,
+                                          device.sensorType || "",
+                                          formattedData.status
+                                        )}`}
+                                      >
+                                        {/* Hapus gradien overlay */}
+                                        {formattedData.status ===
+                                          "critical" && (
+                                          <div className="absolute top-2 right-2">
+                                            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
                                           </div>
                                         )}
+                                        <div className="relative p-3">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                              {IconComponent && (
+                                                <div
+                                                  className={`relative p-2 rounded-xl shadow-lg bg-primary/10 border border-primary/20`}
+                                                >
+                                                  <IconComponent
+                                                    className={`h-4 w-4 text-primary drop-shadow-sm`}
+                                                  />
+                                                </div>
+                                              )}
+                                              <div className="flex flex-col">
+                                                <span className="font-bold text-xs tracking-wide uppercase">
+                                                  {visual?.shortName ||
+                                                    visual?.name ||
+                                                    device.name}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-medium">
+                                                  {device.name.length > 25
+                                                    ? device.name.substring(
+                                                        0,
+                                                        25
+                                                      ) + "..."
+                                                    : device.name}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {formattedData.timestamp &&
+                                                formattedData.timestamp !==
+                                                  "N/A" && (
+                                                  <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground bg-secondary/20 rounded-full px-3 py-1 border border-secondary/20">
+                                                    <Clock className="h-2.5 w-2.5" />
+                                                    <span className="font-medium">
+                                                      {formattedData.timestamp}
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              {getStatusIcon(
+                                                formattedData.status,
+                                                "md"
+                                              )}
+                                            </div>
+                                          </div>
+                                          {formattedData.values.length > 0 && (
+                                            <div
+                                              className={`grid gap-1.5 mb-1 ${
+                                                formattedData.values.length ===
+                                                1
+                                                  ? "grid-cols-1"
+                                                  : "grid-cols-2"
+                                              }`}
+                                            >
+                                              {formattedData.values
+                                                .slice(0, 4)
+                                                .map((value, idx) => {
+                                                  // Extract numeric value for color determination
+                                                  const numericValue =
+                                                    parseFloat(
+                                                      value.value.replace(
+                                                        /[^0-9.-]/g,
+                                                        ""
+                                                      )
+                                                    ) || 0;
+                                                  const sensorType =
+                                                    device.sensorType || "";
+
+                                                  return (
+                                                    <div
+                                                      key={idx}
+                                                      className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center border shadow-sm transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${getValueBasedColor(
+                                                        numericValue,
+                                                        sensorType,
+                                                        value.status
+                                                      )}`}
+                                                    >
+                                                      <div className="text-xs font-bold">
+                                                        {value.value}
+                                                      </div>
+                                                      <div className="text-[9px] font-medium uppercase tracking-wider opacity-90">
+                                                        {value.label}
+                                                      </div>
+                                                      {/* Status indicator dot */}
+                                                      {value.status ===
+                                                        "critical" && (
+                                                        <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
+                                                      )}
+                                                      {value.status ===
+                                                        "warning" && (
+                                                        <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-amber-500 rounded-full shadow-lg"></div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
+                              </div>
+
+                              {/* Indikator scroll jika ada lebih dari 3 devices */}
+                              {rackDevices[rack.id].filter(
+                                (device) => device.type === "Sensor"
+                              ).length > 3 && (
+                                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-secondary/10 rounded-lg py-2 border border-dashed border-border">
+                                  <div className="animate-bounce">
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                                      />
+                                    </svg>
+                                  </div>
+                                  <span className="font-medium">
+                                    {
+                                      rackDevices[rack.id].filter(
+                                        (device) => device.type === "Sensor"
+                                      ).length
+                                    }{" "}
+                                    sensors • Scroll to see more
+                                  </span>
+                                </div>
+                              )}
+
                               {rackDevices[rack.id].filter(
                                 (device) => device.type === "Sensor"
                               ).length === 0 && (
@@ -841,8 +1096,10 @@ export default function RackManagementPage({
                     <TableHead>#</TableHead>
                     <TableHead>Device Name</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Sensor Type</TableHead>
+                    <TableHead>MQTT Topic</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Sensor Data</TableHead>
+                    <TableHead>Description</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -865,75 +1122,33 @@ export default function RackManagementPage({
                         </div>
                       </TableCell>
                       <TableCell>
-                        {device.type === "Sensor" ? (
-                          (() => {
-                            const formattedData = formatSensorData(
-                              device,
-                              sensorData[device.id]
-                            );
-                            return (
-                              <div className="space-y-2">
-                                {/* Enhanced main display with visual improvements */}
-                                <div
-                                  className={`relative inline-flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg ${getStatusColor(
-                                    formattedData.status
-                                  )}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {getStatusIcon(formattedData.status, "md")}
-                                    <span className="font-black text-base tracking-tight">
-                                      {formattedData.display}
-                                    </span>
-                                  </div>
-                                  {formattedData.status === "critical" && (
-                                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
-                                  )}
-                                </div>
-
-                                {/* Enhanced detailed values grid */}
-                                {formattedData.values.length > 0 && (
-                                  <div className="grid grid-cols-2 gap-2">
-                                    {formattedData.values.map((value, idx) => (
-                                      <div
-                                        key={idx}
-                                        className={`relative overflow-hidden px-3 py-2 rounded-lg text-sm border shadow-sm transition-all duration-300 hover:shadow-md ${getStatusColor(
-                                          value.status
-                                        )}`}
-                                      >
-                                        <div className="font-bold text-foreground">
-                                          {value.value}
-                                        </div>
-                                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide opacity-80">
-                                          {value.label}
-                                        </div>
-                                        {value.status === "warning" && (
-                                          <div className="absolute top-1 right-1 h-2 w-2 bg-amber-400 rounded-full"></div>
-                                        )}
-                                        {value.status === "critical" && (
-                                          <div className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Enhanced timestamp display */}
-                                {formattedData.timestamp &&
-                                  formattedData.timestamp !== "N/A" && (
-                                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground rounded-full px-4 py-2 border border-border/50 bg-secondary/20">
-                                      <Clock className="h-3 w-3 text-muted-foreground" />
-                                      <span className="font-medium">
-                                        Last updated: {formattedData.timestamp}
-                                      </span>
-                                    </div>
-                                  )}
-                              </div>
-                            );
-                          })()
+                        {device.sensorType ? (
+                          <Badge variant="outline">{device.sensorType}</Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                            N/A - Not a sensor
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {device.topic ? (
+                          <span className="font-mono text-xs">
+                            {device.topic.length > 25 ? `${device.topic.substring(0, 25)}...` : device.topic}
                           </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            className={getDeviceStatusBadgeColor(device.status)}
+                          >
+                            {device.status || "Unknown"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {device.description || (
+                          <span className="text-muted-foreground">No description</span>
                         )}
                       </TableCell>
                     </TableRow>

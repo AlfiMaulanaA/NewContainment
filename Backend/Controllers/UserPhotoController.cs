@@ -89,7 +89,7 @@ namespace Backend.Controllers
                 // Update user photo path in database
                 var relativePath = $"/uploads/users/{fileName}";
                 user.PhotoPath = relativePath;
-                
+
                 var updatedUser = await _userService.UpdateUserAsync(userId, user);
                 if (updatedUser == null)
                 {
@@ -98,9 +98,9 @@ namespace Backend.Controllers
 
                 _logger.LogInformation("User photo uploaded successfully for user {UserId}: {PhotoPath}", userId, relativePath);
 
-                return Ok(new 
-                { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = "Photo uploaded successfully",
                     photoPath = relativePath,
                     photoUrl = $"{Request.Scheme}://{Request.Host}{relativePath}"
@@ -146,7 +146,7 @@ namespace Backend.Controllers
                 // Reset user photo to default
                 user.PhotoPath = "/images/avatar-user.png";
                 var updatedUser = await _userService.UpdateUserAsync(userId, user);
-                
+
                 if (updatedUser == null)
                 {
                     return BadRequest(new { success = false, message = "Failed to reset user photo" });
@@ -154,9 +154,9 @@ namespace Backend.Controllers
 
                 _logger.LogInformation("User photo deleted successfully for user {UserId}", userId);
 
-                return Ok(new 
-                { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = "Photo deleted successfully",
                     photoPath = "/images/avatar-user.png"
                 });
@@ -180,12 +180,12 @@ namespace Backend.Controllers
                 }
 
                 var photoPath = user.PhotoPath ?? "/images/avatar-user.png";
-                var photoUrl = string.IsNullOrEmpty(photoPath) || photoPath == "/images/avatar-user.png" 
+                var photoUrl = string.IsNullOrEmpty(photoPath) || photoPath == "/images/avatar-user.png"
                     ? "/images/avatar-user.png"
                     : $"{Request.Scheme}://{Request.Host}{photoPath}";
 
-                return Ok(new 
-                { 
+                return Ok(new
+                {
                     success = true,
                     photoPath = photoPath,
                     photoUrl = photoUrl

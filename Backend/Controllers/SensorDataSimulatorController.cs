@@ -38,12 +38,13 @@ namespace Backend.Controllers
                     return BadRequest("recordsPerHour must be between 1 and 60");
                 }
 
-                _logger.LogInformation("Starting sensor data generation: {DaysBack} days, {RecordsPerHour} records per hour", 
+                _logger.LogInformation("Starting sensor data generation: {DaysBack} days, {RecordsPerHour} records per hour",
                     daysBack, recordsPerHour);
 
                 await _simulatorService.GenerateSampleSensorDataAsync(daysBack, recordsPerHour);
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = "Sample sensor data generated successfully",
                     daysBack = daysBack,
                     recordsPerHour = recordsPerHour,

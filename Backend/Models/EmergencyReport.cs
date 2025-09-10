@@ -6,33 +6,33 @@ namespace Backend.Models
     {
         [Key]
         public int Id { get; set; }
-        
+
         [Required]
         [StringLength(50)]
         public string EmergencyType { get; set; } = string.Empty; // "Smoke", "FSS", "EmergencyButton", "EmergencyTemp"
-        
+
         [Required]
         public bool Status { get; set; } // true = emergency active, false = emergency cleared
-        
+
         public DateTime StartTime { get; set; }
-        
+
         public DateTime? EndTime { get; set; }
-        
+
         public TimeSpan? Duration { get; set; }
-        
+
         public bool IsActive { get; set; } = true; // false when emergency is cleared
-        
+
         [StringLength(1000)]
         public string? Notes { get; set; }
-        
+
         [StringLength(2000)]
         public string? RawMqttPayload { get; set; }
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
-    
+
     public enum EmergencyType
     {
         SmokeDetector,
@@ -40,7 +40,7 @@ namespace Backend.Models
         EmergencyButton,
         EmergencyTemp
     }
-    
+
     public class EmergencyReportSummary
     {
         public string EmergencyType { get; set; } = string.Empty;
@@ -50,7 +50,7 @@ namespace Backend.Models
         public bool CurrentlyActive { get; set; }
         public TimeSpan? CurrentActiveDuration { get; set; }
     }
-    
+
     public class EmergencyReportFilter
     {
         public string? EmergencyType { get; set; }

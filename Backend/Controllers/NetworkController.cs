@@ -108,8 +108,8 @@ namespace Backend.Controllers
                 var userId = GetCurrentUserId();
                 var configuration = await _networkService.CreateConfigurationAsync(request, userId);
 
-                return CreatedAtAction(nameof(GetConfigurationById), 
-                    new { id = configuration.Id }, 
+                return CreatedAtAction(nameof(GetConfigurationById),
+                    new { id = configuration.Id },
                     new { success = true, data = configuration });
             }
             catch (InvalidOperationException ex)
@@ -332,12 +332,14 @@ namespace Backend.Controllers
                 }
 
                 var success = await _networkService.TestConnectivityAsync(request.IpAddress);
-                return Ok(new { 
-                    success = true, 
-                    data = new { 
-                        ipAddress = request.IpAddress, 
-                        isReachable = success 
-                    } 
+                return Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        ipAddress = request.IpAddress,
+                        isReachable = success
+                    }
                 });
             }
             catch (Exception ex)
@@ -376,7 +378,7 @@ namespace Backend.Controllers
             {
                 var userId = GetCurrentUserId();
                 var success = await _networkService.RevertInterfaceToDhcpAsync(interfaceType, userId);
-                
+
                 if (success)
                 {
                     return Ok(new { success = true, message = $"{interfaceType} reverted to DHCP successfully" });
@@ -420,7 +422,7 @@ namespace Backend.Controllers
             {
                 var userId = GetCurrentUserId();
                 var success = await _networkService.ClearAllStaticConfigurationsAsync(userId);
-                
+
                 if (success)
                 {
                     return Ok(new { success = true, message = "All interfaces reverted to DHCP successfully" });

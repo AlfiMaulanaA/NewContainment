@@ -1,8 +1,8 @@
-# ZKTeco Device Management System - API Documentation v1.0
+# ZKTeco Device Management System - API Documentation v3.0
 
 ## Overview
 
-Simplified MQTT-based API for ZKTeco device CRUD management with **minimized payloads** and standardized topics, using PYZK Library https://github.com/fananimi/pyzk.git.
+Complete MQTT-based API for ZKTeco device management with advanced features including device CRUD, user management, fingerprint enrollment, card synchronization, live attendance monitoring, and comprehensive device configuration using PYZK Library https://github.com/fananimi/pyzk.git.
 
 ## MQTT Topic Structure
 
@@ -12,34 +12,67 @@ All MQTT topics follow the standardized pattern:
 accessControl/{category}/{type}
 ```
 
-### JSON File Configuration
+### Configuration Files
 
-- Read/Write Device configuration at `/JSON/access_control_config.json` for device management
-- Read MQTT Configuration at `/JSON/mqtt_config.json` for MQTT Config data
+- **Device Config**: `/JSON/access_control_config.json` - Device management and settings
+- **MQTT Config**: `/JSON/mqtt_config.json` - MQTT broker configuration
 
 ### Topic Categories
 
-- **device**: Device CRUD operations and connection testing
-- **user**: User CRUD operations and synchronization across devices (Response: `accessControl/user/response`)
-- **attendance**: Live attendance monitoring and history (Response: `accessControl/attendance/response`, Live: `accessControl/attendance/live`)
-- **system**: System status and monitoring
+| Category | Command Topic | Response Topic | Live Topic |
+|----------|---------------|----------------|------------|
+| **device** | `accessControl/device/command` | `accessControl/device/response` | - |
+| **user** | `accessControl/user/command` | `accessControl/user/response` | - |
+| **attendance** | `accessControl/attendance/command` | `accessControl/attendance/response` | `accessControl/attendance/live` |
+| **system** | `accessControl/system/command` | `accessControl/system/response` | `accessControl/system/status` |
 
-## ⚡ Optimized Minimal Payloads
+## ⚡ API Design Principles
 
-All payloads have been optimized for minimal data usage while maintaining full functionality:
+- **Minimal Required Fields**: Only essential fields are mandatory
+- **Auto-generated Values**: System assigns defaults for optional parameters  
+- **Smart Validation**: Comprehensive input validation with helpful error messages
+- **Batch Operations**: Single commands can operate on all devices
+- **Real-time Feedback**: Multi-stage responses for long-running operations
+- **Safety First**: Destructive operations require explicit confirmation
+- **Consistent Structure**: All commands follow the same request/response pattern
 
-- **Auto-generated defaults** - system assigns default values for optional fields
-- **Smart validation** - minimal required fields only
-- **Batch operations** - test all devices with single command
+## 📋 Table of Contents
 
-## Device Management
+1. [Device Management](#1-device-management)
+   - Basic Operations (Test, Add, Update, Delete, List)
+   - Configuration Management (Time, Language, Network)
+   - Advanced Operations (Restart, Reset, Info)
 
-### 1. Test Device Connection (Single Device)
+2. [User Management](#2-user-management)
+   - CRUD Operations (Create, Read, Update, Delete)
+   - Advanced Features (Fingerprint, Cards, Roles)
 
-**Request Topic**: `accessControl/device/command`
+3. [Attendance Management](#3-attendance-management)
+   - Live Monitoring (Start, Stop, Status)
+   - Data Retrieval (History, Reports)
 
-**Minimal Request Payload**:
+4. [System Management](#4-system-management)
+   - Configuration Management
+   - System Status and Control
 
+---
+
+# 1. Device Management
+
+This section covers all device-related operations including basic CRUD operations, configuration management, and advanced device control features.
+
+**Command Topic**: `accessControl/device/command`  
+**Response Topic**: `accessControl/device/response`
+
+## 1.1 Basic Device Operations
+
+### 1.1.1 Test Device Connection
+
+Test connectivity to one or all devices.
+
+**Command**: `testConnection`
+
+**Single Device Request**:
 ```json
 {
   "command": "testConnection",
@@ -49,23 +82,7 @@ All payloads have been optimized for minimal data usage while maintaining full f
 }
 ```
 
-**Optional Parameters**:
-
-```json
-{
-  "command": "testConnection",
-  "data": {
-    "device_id": "device_1"
-  }
-}
-```
-
-### 1b. Test All Devices Connection
-
-**Request Topic**: `accessControl/device/command`
-
-**Test All Devices**:
-
+**All Devices Request**:
 ```json
 {
   "command": "testConnection",
@@ -75,14 +92,18 @@ All payloads have been optimized for minimal data usage while maintaining full f
 }
 ```
 
-**Response Topic**: `accessControl/device/response`
+**Parameters**:
+- **`device_id`**: String, Required - Device ID or "all" for all devices
 
-**Single Device Success Response**:
+**Response Examples**:
+
+<details>
+<summary>Single Device Response</summary>
 
 ```json
 {
-  "command": "testConnection",
   "status": "success",
+  "message": "Device Main Entrance online",
   "data": {
     "test_type": "single_device",
     "device_id": "device_1",
@@ -99,13 +120,15 @@ All payloads have been optimized for minimal data usage while maintaining full f
   }
 }
 ```
+</details>
 
-**All Devices Success Response**:
+<details>
+<summary>All Devices Response</summary>
 
 ```json
 {
-  "command": "testConnection",
   "status": "success",
+  "message": "Connection test completed",
   "data": {
     "test_type": "all_devices",
     "summary": {
@@ -123,7 +146,7 @@ All payloads have been optimized for minimal data usage while maintaining full f
       },
       {
         "device_id": "device_2",
-        "device_name": "Back Door",
+        "device_name": "Back Door", 
         "status": "online",
         "response_time_ms": 52.1
       },
@@ -137,8 +160,11 @@ All payloads have been optimized for minimal data usage while maintaining full f
   }
 }
 ```
+</details>
 
-### 2. Add New Device
+---
+
+### 1.1.2 Add New Device
 
 **Request Topic**: `accessControl/device/command`
 
@@ -184,7 +210,7 @@ All payloads have been optimized for minimal data usage while maintaining full f
 - **`force_udp`**: Boolean, Optional (default: false) - Force UDP connection
 - **`enabled`**: Boolean, Optional (default: true) - Enable/disable device
 
-**Response Topic**: `accessControl/user/response`
+**Response Topic**: `accessControl/device/response`
 
 **Success Response**:
 
@@ -278,7 +304,7 @@ All payloads have been optimized for minimal data usage while maintaining full f
 }
 ```
 
-**Response Topic**: `accessControl/user/response`
+**Response Topic**: `accessControl/device/response`
 
 **Success Response**:
 
@@ -345,11 +371,284 @@ All payloads have been optimized for minimal data usage while maintaining full f
 }
 ```
 
-## User Management
+---
 
-### 1. Create User (Auto-Sync to All Devices)
+## 1.2 Device Configuration Management
 
-**Request Topic**: `accessControl/user/command`
+### 1.2.1 Set Device Time
+
+Set device date and time to synchronize with system time.
+
+**Command**: `setDeviceTime`
+
+**Request**:
+```json
+{
+  "command": "setDeviceTime",
+  "data": {
+    "device_id": "device_1",
+    "timestamp": "2024-01-15T10:30:00"
+  }
+}
+```
+
+**Parameters**:
+- **`device_id`**: String, Required - Device ID or "all" for all devices
+- **`timestamp`**: String/Number, Required - ISO datetime string or Unix timestamp
+
+**Alternative with Unix timestamp**:
+```json
+{
+  "command": "setDeviceTime",
+  "data": {
+    "device_id": "all",
+    "timestamp": 1705312200
+  }
+}
+```
+
+---
+
+### 1.2.2 Get Device Time
+
+Retrieve current device time.
+
+**Command**: `getDeviceTime`
+
+**Request**:
+```json
+{
+  "command": "getDeviceTime",
+  "data": {
+    "device_id": "device_1"
+  }
+}
+```
+
+---
+
+### 1.2.3 Set Device Language
+
+Configure device display language.
+
+**Command**: `setDeviceLanguage`
+
+**Request**:
+```json
+{
+  "command": "setDeviceLanguage",
+  "data": {
+    "device_id": "device_1",
+    "language": "id"
+  }
+}
+```
+
+**Parameters**:
+- **`device_id`**: String, Required - Device ID or "all" for all devices
+- **`language`**: String, Required - Language code
+
+**Supported Languages**:
+| Code | Language | Code | Language |
+|------|----------|------|----------|
+| `en` | English | `es` | Spanish |
+| `id` | Indonesian | `pt` | Portuguese |
+| `zh` | Chinese | `fr` | French |
+| `ko` | Korean | `de` | German |
+| `jp` | Japanese | `it` | Italian |
+| `th` | Thai | `ru` | Russian |
+| `vi` | Vietnamese | | |
+
+---
+
+## 1.3 Advanced Device Operations
+
+### 1.3.1 Get Device Information
+
+Retrieve comprehensive device information including firmware, capacity, and status.
+
+**Command**: `getDeviceInfo`
+
+**Request**:
+```json
+{
+  "command": "getDeviceInfo",
+  "data": {
+    "device_id": "device_1"
+  }
+}
+```
+
+**Response includes**:
+- Firmware version and platform info
+- Device name and serial number
+- Current time and capacity
+- User/attendance/fingerprint counts
+
+---
+
+### 1.3.2 Restart Device
+
+Restart/reboot device remotely.
+
+**Command**: `restartDevice`
+
+**Single Device Request**:
+```json
+{
+  "command": "restartDevice",
+  "data": {
+    "device_id": "device_1"
+  }
+}
+```
+
+**Restart All Devices (Safety Required)**:
+```json
+{
+  "command": "restartDevice",
+  "data": {
+    "device_id": "all",
+    "force": true
+  }
+}
+```
+
+**Parameters**:
+- **`device_id`**: String, Required - Device ID or "all" for all devices
+- **`force`**: Boolean, Required for "all" - Safety confirmation for mass restart
+
+**⚠️ Safety Notes**:
+- Requires `force: true` for restarting all devices
+- Devices will be offline for 30-60 seconds
+- Only restart all devices during maintenance windows
+
+---
+
+### 1.3.3 Set Device Network Configuration
+
+Configure device network settings including IP address.
+
+**Command**: `setDeviceNetwork`
+
+**Request**:
+```json
+{
+  "command": "setDeviceNetwork",
+  "data": {
+    "device_id": "device_1",
+    "ip": "192.168.1.100",
+    "netmask": "255.255.255.0",
+    "gateway": "192.168.1.1"
+  }
+}
+```
+
+**Parameters**:
+- **`device_id`**: String, Required - Device ID (single device only)
+- **`ip`**: String, Required - New IP address
+- **`netmask`**: String, Optional (default: "255.255.255.0") - Subnet mask
+- **`gateway`**: String, Optional - Gateway IP address
+
+**⚠️ Warning**: This command changes the device IP address. Local configuration will be automatically updated.
+
+---
+
+### 1.3.4 Reset Device Data
+
+Clear device data with selective reset options.
+
+**Command**: `resetDevice`
+
+**Request**:
+```json
+{
+  "command": "resetDevice",
+  "data": {
+    "device_id": "device_1",
+    "reset_type": "users",
+    "confirm": true
+  }
+}
+```
+
+**Parameters**:
+- **`device_id`**: String, Required - Device ID or "all" for all devices
+- **`reset_type`**: String, Required - Type of data to reset
+- **`confirm`**: Boolean, Required - Safety confirmation
+- **`confirm_all`**: Boolean, Required for "all" devices - Additional safety for mass reset
+
+**Reset Types**:
+- `users` - Clear all users
+- `attendance` - Clear attendance records  
+- `templates` - Clear fingerprint templates
+- `all` - Clear everything
+
+**Reset All Devices Example**:
+```json
+{
+  "command": "resetDevice",
+  "data": {
+    "device_id": "all",
+    "reset_type": "attendance",
+    "confirm": true,
+    "confirm_all": true
+  }
+}
+```
+
+**⚠️ Safety Notes**:
+- Requires `confirm: true` for all reset operations
+- Requires `confirm_all: true` for resetting all devices
+- Data cannot be recovered after reset
+- Always backup data before reset operations
+
+---
+
+### 1.3.5 Device Configuration Management
+
+Get and set device configuration settings.
+
+**Get Configuration** - `getDeviceConfig`:
+```json
+{
+  "command": "getDeviceConfig",
+  "data": {
+    "device_id": "device_1"
+  }
+}
+```
+
+**Set Configuration** - `setDeviceConfig`:
+```json
+{
+  "command": "setDeviceConfig",
+  "data": {
+    "device_id": "device_1",
+    "config": {
+      "device_name": "Main Gate Scanner",
+      "time": "2024-01-15T10:30:00"
+    }
+  }
+}
+```
+
+---
+
+# 2. User Management
+
+This section covers all user-related operations including CRUD operations, fingerprint management, and card synchronization.
+
+**Command Topic**: `accessControl/user/command`  
+**Response Topic**: `accessControl/user/response`
+
+## 2.1 Basic User Operations
+
+### 2.1.1 Create User
+
+Create user and automatically sync to all configured devices.
+
+**Command**: `createData` or `createUser`
 
 **Minimal Request Payload** (only name required):
 
@@ -710,11 +1009,14 @@ All payloads have been optimized for minimal data usage while maintaining full f
 }
 ```
 
+# Advanced User Operations
+
 ### 6. Play Sound on Devices
 
-**Request Topic**: `accessControl/user/command`
+**Command**: `playSound`  
+**Topic**: `accessControl/user/command`
 
-**Play on All Devices**:
+#### 6.1 Play on All Devices
 
 ```json
 {
@@ -725,7 +1027,7 @@ All payloads have been optimized for minimal data usage while maintaining full f
 }
 ```
 
-**Play on Specific Device**:
+#### 6.2 Play on Specific Device
 
 ```json
 {
@@ -2047,13 +2349,14 @@ This command returns **3 sequential responses** showing role update progress:
 - **Super Admin (3)**: IT staff with full device configuration access
 - **Super User (14)**: Special administrative role for system management
 
-## Live Attendance Management
+# Attendance Management
 
-### 1. Start Live Attendance Monitoring
+### 1. Live Attendance Monitoring
 
-**Request Topic**: `accessControl/attendance/command`
+**Command**: `startLiveMonitoring`  
+**Topic**: `accessControl/attendance/command`
 
-**Monitor All Devices**:
+#### 1.1 Monitor All Devices
 
 ```json
 {
@@ -2064,7 +2367,7 @@ This command returns **3 sequential responses** showing role update progress:
 }
 ```
 
-**Monitor Specific Devices**:
+#### 1.2 Monitor Specific Devices
 
 ```json
 {

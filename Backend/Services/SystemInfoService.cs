@@ -65,10 +65,10 @@ namespace Backend.Services
 
             // Cache the result
             _cache.Set(CACHE_KEY, systemInfo, CACHE_DURATION);
-            
+
             return systemInfo;
         }
-        
+
         private async Task GetLinuxInfo(SystemInfo info)
         {
             try
@@ -173,7 +173,7 @@ namespace Backend.Services
                 {
                     _logger.LogWarning(ex, "Could not get uptime on Linux");
                 }
-                
+
                 // IP Addresses
                 info.Eth0IpAddress = await GetIpAddress("eth0");
                 info.Wlan0IpAddress = await GetIpAddress("wlan0");
@@ -217,7 +217,7 @@ namespace Backend.Services
                     var gcInfo = GC.GetGCMemoryInfo();
                     var totalMemory = gcInfo.TotalAvailableMemoryBytes / (1024 * 1024); // Convert to MB
                     var usedMemory = GC.GetTotalMemory(false) / (1024 * 1024); // Convert to MB
-                    
+
                     info.TotalMemory = totalMemory;
                     info.UsedMemory = usedMemory;
                     info.MemoryUsage = totalMemory > 0 ? Math.Round((double)usedMemory / totalMemory * 100, 2) : 0;
@@ -233,13 +233,13 @@ namespace Backend.Services
                     var driveInfo = DriveInfo.GetDrives()
                         .Where(d => d.DriveType == DriveType.Fixed && d.IsReady)
                         .FirstOrDefault();
-                    
+
                     if (driveInfo != null)
                     {
                         var totalDisk = driveInfo.TotalSize / (1024 * 1024); // Convert to MB
                         var availableDisk = driveInfo.AvailableFreeSpace / (1024 * 1024); // Convert to MB
                         var usedDisk = totalDisk - availableDisk;
-                        
+
                         info.TotalDisk = totalDisk;
                         info.UsedDisk = usedDisk;
                         info.DiskUsage = totalDisk > 0 ? Math.Round((double)usedDisk / totalDisk * 100, 2) : 0;
@@ -270,7 +270,7 @@ namespace Backend.Services
 
                     var ethernetInterface = networkInterfaces
                         .FirstOrDefault(ni => ni.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Ethernet);
-                    
+
                     var wifiInterface = networkInterfaces
                         .FirstOrDefault(ni => ni.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211);
 
@@ -304,7 +304,7 @@ namespace Backend.Services
                 throw;
             }
         }
-        
+
         private async Task<string> GetIpAddress(string interfaceName)
         {
             try
@@ -334,26 +334,26 @@ namespace Backend.Services
                     CreateNoWindow = true,
                 }
             };
-            
+
             process.Start();
-            
+
             using var cts = new CancellationTokenSource(timeoutMs);
             try
             {
                 var outputTask = process.StandardOutput.ReadToEndAsync();
                 var errorTask = process.StandardError.ReadToEndAsync();
-                
+
                 await process.WaitForExitAsync(cts.Token);
-                
+
                 var output = await outputTask;
                 var error = await errorTask;
-                
+
                 if (process.ExitCode != 0 && !string.IsNullOrEmpty(error))
                 {
-                    _logger.LogWarning("Command '{Command}' failed with exit code {ExitCode}: {Error}", 
+                    _logger.LogWarning("Command '{Command}' failed with exit code {ExitCode}: {Error}",
                         command, process.ExitCode, error);
                 }
-                
+
                 return output.Trim();
             }
             catch (OperationCanceledException)

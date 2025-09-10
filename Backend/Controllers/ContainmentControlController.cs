@@ -39,7 +39,7 @@ namespace Backend.Controllers
                 }
 
                 var result = await _containmentControlService.SendToggleCommandAsync(request, userId);
-                
+
                 if (result.Success)
                 {
                     return Ok(result);
@@ -132,7 +132,7 @@ namespace Backend.Controllers
                     Categories = new[]
                     {
                         "Door Control",
-                        "Door Mode", 
+                        "Door Mode",
                         "Ceiling Control"
                     }
                 });
@@ -166,7 +166,7 @@ namespace Backend.Controllers
                 };
 
                 var result = await _containmentControlService.SendToggleCommandAsync(testRequest, userId);
-                
+
                 return Ok(new
                 {
                     TestResult = result.Success ? "Success" : "Failed",

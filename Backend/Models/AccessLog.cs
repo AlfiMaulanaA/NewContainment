@@ -29,7 +29,5 @@ namespace Backend.Models
         public string? Description { get; set; }
 
         public bool IsSuccess { get; set; } = true;
-
-        public string? IpAddress { get; set; }
     }
 }

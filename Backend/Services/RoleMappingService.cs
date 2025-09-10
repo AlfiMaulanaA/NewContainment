@@ -88,7 +88,7 @@ namespace Backend.Services
             {
                 // Ensure database schema exists before checking roles
                 await _context.Database.EnsureCreatedAsync();
-                
+
                 // Check if roles already exist
                 if (await _context.Roles.AnyAsync()) return;
 
@@ -109,7 +109,7 @@ namespace Backend.Services
                     new Role
                     {
                         Name = "Admin",
-                        DisplayName = "Administrator", 
+                        DisplayName = "Administrator",
                         Description = "Administrator with elevated permissions",
                         Level = 2, // Maps to UserRole.Admin
                         Color = "text-blue-600 bg-blue-100",
@@ -185,14 +185,14 @@ namespace Backend.Services
             var allPermissions = await _context.Permissions.ToListAsync();
 
             // User permissions - basic access
-            var userPermissions = allPermissions.Where(p => 
+            var userPermissions = allPermissions.Where(p =>
                 p.Name.StartsWith("menu.dashboard") ||
                 p.Name.StartsWith("menu.management") ||
                 p.Name == "data.view"
             ).ToList();
 
             // Admin permissions - all except developer tools
-            var adminPermissions = allPermissions.Where(p => 
+            var adminPermissions = allPermissions.Where(p =>
                 !p.Name.StartsWith("menu.developer")
             ).ToList();
 

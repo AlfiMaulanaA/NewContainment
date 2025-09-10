@@ -37,7 +37,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<Rack>> GetRack(int id)
         {
             var rack = await _rackService.GetRackByIdAsync(id);
-            
+
             if (rack == null)
             {
                 return NotFound();
@@ -95,7 +95,7 @@ namespace Backend.Controllers
             };
 
             var updatedRack = await _rackService.UpdateRackAsync(id, rack, userId);
-            
+
             if (updatedRack == null)
             {
                 return NotFound();
@@ -108,7 +108,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteRack(int id)
         {
             var result = await _rackService.DeleteRackAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -140,13 +140,13 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         public int ContainmentId { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         public int CapacityU { get; set; } = 42;
     }
 
@@ -155,13 +155,13 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         public int ContainmentId { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         public int CapacityU { get; set; } = 42;
     }
 }

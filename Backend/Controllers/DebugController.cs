@@ -4,7 +4,7 @@ using Backend.Data;
 
 namespace Backend.Controllers
 {
-    [ApiController] 
+    [ApiController]
     [Route("api/[controller]")]
     public class DebugController : ControllerBase
     {

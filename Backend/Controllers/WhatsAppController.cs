@@ -39,8 +39,8 @@ namespace Backend.Controllers
                 }
 
                 var success = await _whatsAppService.SendMessageAsync(
-                    request.PhoneNumber, 
-                    request.RecipientName ?? "User", 
+                    request.PhoneNumber,
+                    request.RecipientName ?? "User",
                     request.Message);
 
                 if (success)
@@ -49,11 +49,12 @@ namespace Backend.Controllers
                     {
                         Success = true,
                         Message = "Message sent successfully",
-                        Data = new { 
-                            PhoneNumber = request.PhoneNumber, 
+                        Data = new
+                        {
+                            PhoneNumber = request.PhoneNumber,
                             RecipientName = request.RecipientName,
                             Message = request.Message,
-                            SentAt = DateTime.UtcNow 
+                            SentAt = DateTime.UtcNow
                         }
                     });
                 }

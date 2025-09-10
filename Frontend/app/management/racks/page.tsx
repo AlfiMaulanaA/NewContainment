@@ -465,7 +465,6 @@ export default function RackManagementPage({
                 className="mr-2"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to Containments
               </Button>
               <Separator orientation="vertical" className="mr-2 h-4" />
             </>
@@ -490,92 +489,96 @@ export default function RackManagementPage({
                   Add Rack
                 </Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Rack</DialogTitle>
-                <DialogDescription>
-                  Create a new rack in the selected containment. Fill in the required information below.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label htmlFor="name">Rack Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="Enter rack name"
-                  />
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Rack</DialogTitle>
+                  <DialogDescription>
+                    Create a new rack in the selected containment. Fill in the
+                    required information below.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div>
+                    <Label htmlFor="name">Rack Name</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="Enter rack name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="containmentId">Containment</Label>
+                    <Select
+                      value={
+                        formData.containmentId && formData.containmentId > 0
+                          ? formData.containmentId.toString()
+                          : ""
+                      }
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          containmentId: parseInt(value) || 0,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select containment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {containments.map((containment) => (
+                          <SelectItem
+                            key={containment.id}
+                            value={containment.id.toString()}
+                          >
+                            {containment.name} -{" "}
+                            {getContainmentTypeString(containment.type)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Enter description"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, isActive: checked })
+                      }
+                    />
+                    <Label htmlFor="isActive">Active Status</Label>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="containmentId">Containment</Label>
-                  <Select
-                    value={
-                      formData.containmentId && formData.containmentId > 0
-                        ? formData.containmentId.toString()
-                        : ""
-                    }
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        containmentId: parseInt(value) || 0,
-                      })
-                    }
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCreateDialog(false)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select containment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {containments.map((containment) => (
-                        <SelectItem
-                          key={containment.id}
-                          value={containment.id.toString()}
-                        >
-                          {containment.name} -{" "}
-                          {getContainmentTypeString(containment.type)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Enter description"
-                    rows={3}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, isActive: checked })
-                    }
-                  />
-                  <Label htmlFor="isActive">Active Status</Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateRack} disabled={actionLoading}>
-                  {actionLoading ? "Creating..." : "Create Rack"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateRack} disabled={actionLoading}>
+                    {actionLoading ? "Creating..." : "Create Rack"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CrudPermission>
         </div>
       </header>
@@ -716,7 +719,11 @@ export default function RackManagementPage({
                     <TableHead>Devices</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <PermissionWrapper condition={permissions.rack.canUpdate || permissions.rack.canDelete}>
+                    <PermissionWrapper
+                      condition={
+                        permissions.rack.canUpdate || permissions.rack.canDelete
+                      }
+                    >
                       <TableHead className="text-right">Actions</TableHead>
                     </PermissionWrapper>
                   </TableRow>
@@ -814,7 +821,12 @@ export default function RackManagementPage({
                               ? new Date(rack.createdAt).toLocaleDateString()
                               : "-"}
                           </TableCell>
-                          <PermissionWrapper condition={permissions.rack.canUpdate || permissions.rack.canDelete}>
+                          <PermissionWrapper
+                            condition={
+                              permissions.rack.canUpdate ||
+                              permissions.rack.canDelete
+                            }
+                          >
                             <TableCell className="text-right space-x-2">
                               <Button
                                 size="sm"
@@ -849,7 +861,11 @@ export default function RackManagementPage({
                               >
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive" className="text-red-600 bg-red-100 hover:bg-red-200">
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      className="text-red-600 bg-red-100 hover:bg-red-200"
+                                    >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </AlertDialogTrigger>
@@ -859,14 +875,19 @@ export default function RackManagementPage({
                                         Delete Rack
                                       </AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to delete "{rack.name}
+                                        Are you sure you want to delete "
+                                        {rack.name}
                                         "? This action cannot be undone.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
                                       <AlertDialogAction
-                                        onClick={() => handleDeleteRack(rack.id)}
+                                        onClick={() =>
+                                          handleDeleteRack(rack.id)
+                                        }
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
                                         Delete
@@ -884,8 +905,11 @@ export default function RackManagementPage({
                     <TableRow>
                       <TableCell
                         colSpan={
-                          (containmentId ? 7 : 9) + 
-                          (permissions.rack.canUpdate || permissions.rack.canDelete ? 0 : -1)
+                          (containmentId ? 7 : 9) +
+                          (permissions.rack.canUpdate ||
+                          permissions.rack.canDelete
+                            ? 0
+                            : -1)
                         }
                         className="text-center py-8 text-muted-foreground"
                       >
@@ -953,7 +977,8 @@ export default function RackManagementPage({
           <DialogHeader>
             <DialogTitle>Edit Rack: {editingRack?.name}</DialogTitle>
             <DialogDescription>
-              Update the rack information. Modify the fields below and click Update to save changes.
+              Update the rack information. Modify the fields below and click
+              Update to save changes.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1045,7 +1070,8 @@ export default function RackManagementPage({
               </Badge>
             </DialogTitle>
             <DialogDescription>
-              View all devices installed in this rack. You can manage devices by clicking the Manage Devices button.
+              View all devices installed in this rack. You can manage devices by
+              clicking the Manage Devices button.
             </DialogDescription>
           </DialogHeader>
 

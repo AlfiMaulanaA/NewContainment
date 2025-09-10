@@ -604,7 +604,11 @@ export default function UserManagementPage() {
                     </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <PermissionWrapper condition={permissions.user.canUpdate || permissions.user.canDelete}>
+                    <PermissionWrapper
+                      condition={
+                        permissions.user.canUpdate || permissions.user.canDelete
+                      }
+                    >
                       <TableHead className="text-right">Actions</TableHead>
                     </PermissionWrapper>
                   </TableRow>
@@ -648,7 +652,12 @@ export default function UserManagementPage() {
                             ? new Date(user.createdAt).toLocaleDateString()
                             : "-"}
                         </TableCell>
-                        <PermissionWrapper condition={permissions.user.canUpdate || permissions.user.canDelete}>
+                        <PermissionWrapper
+                          condition={
+                            permissions.user.canUpdate ||
+                            permissions.user.canDelete
+                          }
+                        >
                           <TableCell className="text-right space-x-2">
                             <CrudPermission
                               module="userManagement"
@@ -683,12 +692,15 @@ export default function UserManagementPage() {
                                       Delete User
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete "{user.name}
+                                      Are you sure you want to delete "
+                                      {user.name}
                                       "? This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => handleDeleteUser(user.id)}
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -706,7 +718,12 @@ export default function UserManagementPage() {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={permissions.user.canUpdate || permissions.user.canDelete ? 8 : 7}
+                        colSpan={
+                          permissions.user.canUpdate ||
+                          permissions.user.canDelete
+                            ? 8
+                            : 7
+                        }
                         className="text-center py-8 text-muted-foreground"
                       >
                         {searchQuery

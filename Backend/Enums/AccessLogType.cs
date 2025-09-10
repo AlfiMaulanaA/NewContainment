@@ -2,11 +2,11 @@ namespace Backend.Enums
 {
     public enum AccessMethod
     {
-        Password = 1,
-        Card = 2,
-        Fingerprint = 3,
-        Software = 4,
-        Face = 5,
-        BMS = 6
+        Fingerprint = 1,
+        Face = 2,
+        Password = 3,
+        Card = 4,
+        BMS = 5,
+        Software = 6,
     }
 }

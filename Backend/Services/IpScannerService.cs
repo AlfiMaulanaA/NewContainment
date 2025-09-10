@@ -58,7 +58,7 @@ namespace Backend.Services
                 return false;
             }
         }
-        
+
         // Fungsi untuk mendapatkan MAC Address dari IP menggunakan perintah 'arp'
         private string GetMacAddress(string ipAddress)
         {
@@ -129,13 +129,13 @@ namespace Backend.Services
 
             return "Unknown";
         }
-        
+
         // Fungsi asinkron untuk memindai port yang terbuka.
         private async Task<List<int>> ScanOpenPortsAsync(string ipAddress)
         {
             var openPorts = new List<int>();
             var tasks = new List<Task>();
-            
+
             foreach (var port in commonPorts)
             {
                 tasks.Add(Task.Run(async () =>
@@ -149,7 +149,7 @@ namespace Backend.Services
                         {
                             if (client.Connected)
                             {
-                                lock(openPorts)
+                                lock (openPorts)
                                 {
                                     openPorts.Add(port);
                                 }
@@ -158,7 +158,7 @@ namespace Backend.Services
                     }
                 }));
             }
-            
+
             await Task.WhenAll(tasks);
             return openPorts.OrderBy(p => p).ToList();
         }
@@ -177,10 +177,10 @@ namespace Backend.Services
             }
 
             var devices = await Task.WhenAll(deviceTasks);
-            
+
             return devices.Where(d => d != null).ToList()!;
         }
-        
+
         // Memproses satu perangkat secara lengkap (ping, mac, port scan)
         private async Task<ScannedDevice?> ProcessDeviceAsync(string ipAddress)
         {
@@ -188,7 +188,7 @@ namespace Backend.Services
             {
                 return null;
             }
-            
+
             // Perangkat aktif, kumpulkan informasi tambahan
             string macAddress = GetMacAddress(ipAddress);
             string manufacturer = GetManufacturer(macAddress);

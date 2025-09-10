@@ -9,11 +9,11 @@ namespace Backend.Services
         private readonly AppDbContext _context;
         private readonly ILogger<DeviceStatusMonitoringService> _logger;
         private readonly IConfiguration _configuration;
-        
+
         // Configurable timeouts (in minutes)
         private readonly int _onlineTimeoutMinutes;
         private readonly int _offlineTimeoutMinutes;
-        
+
         public DeviceStatusMonitoringService(
             AppDbContext context,
             ILogger<DeviceStatusMonitoringService> logger,
@@ -22,7 +22,7 @@ namespace Backend.Services
             _context = context;
             _logger = logger;
             _configuration = configuration;
-            
+
             // Load timeout configurations
             _onlineTimeoutMinutes = _configuration.GetValue<int>("DeviceMonitoring:OnlineTimeoutMinutes", 5);
             _offlineTimeoutMinutes = _configuration.GetValue<int>("DeviceMonitoring:OfflineTimeoutMinutes", 10);
@@ -66,29 +66,29 @@ namespace Backend.Services
                         CreatedAt = now,
                         UpdatedAt = now
                     };
-                    
+
                     _context.DeviceActivityStatuses.Add(activityStatus);
                 }
                 else
                 {
                     // Update existing record
                     var previousStatus = activityStatus.Status;
-                    
+
                     activityStatus.LastSeen = now;
                     activityStatus.UpdatedAt = now;
                     activityStatus.Topic = topic ?? activityStatus.Topic;
                     activityStatus.LastMessage = message;
                     activityStatus.ConsecutiveFailures = 0;
-                    
+
                     // Update status to Online if it was Offline
                     if (activityStatus.Status != "Online")
                     {
                         activityStatus.Status = "Online";
                         activityStatus.LastStatusChange = now;
-                        
+
                         // Update device status as well
                         await UpdateDeviceStatusInDatabaseAsync(deviceId, "Active");
-                        
+
                         _logger.LogInformation($"Device {deviceId} status changed from {previousStatus} to Online");
                     }
                 }
@@ -134,7 +134,7 @@ namespace Backend.Services
                             CreatedAt = now,
                             UpdatedAt = now
                         };
-                        
+
                         _context.DeviceActivityStatuses.Add(activityStatus);
                         continue;
                     }
@@ -149,10 +149,10 @@ namespace Backend.Services
                         activityStatus.LastStatusChange = now;
                         activityStatus.UpdatedAt = now;
                         activityStatus.ConsecutiveFailures++;
-                        
+
                         // Update device status as well
                         await UpdateDeviceStatusInDatabaseAsync(device.Id, "Inactive");
-                        
+
                         _logger.LogWarning($"Device {device.Id} marked as Offline after {timeSinceLastSeen.TotalMinutes:F1} minutes of inactivity");
                     }
                     else if (timeSinceLastSeen <= onlineTimeout && activityStatus.Status == "Offline")
@@ -162,10 +162,10 @@ namespace Backend.Services
                         activityStatus.LastStatusChange = now;
                         activityStatus.UpdatedAt = now;
                         activityStatus.ConsecutiveFailures = 0;
-                        
+
                         // Update device status as well
                         await UpdateDeviceStatusInDatabaseAsync(device.Id, "Active");
-                        
+
                         _logger.LogInformation($"Device {device.Id} came back Online");
                     }
                 }
@@ -183,10 +183,10 @@ namespace Backend.Services
         {
             var activityStatus = await _context.DeviceActivityStatuses
                 .FirstOrDefaultAsync(das => das.DeviceId == deviceId);
-                
+
             if (activityStatus == null)
                 return false;
-                
+
             return activityStatus.Status == "Online";
         }
 
@@ -213,7 +213,7 @@ namespace Backend.Services
             try
             {
                 var now = DateTime.UtcNow;
-                
+
                 // Get all active devices with topics that don't have activity status
                 var devicesWithoutStatus = await _context.Devices
                     .Where(d => d.IsActive && !string.IsNullOrEmpty(d.Topic))
@@ -233,7 +233,7 @@ namespace Backend.Services
                         CreatedAt = now,
                         UpdatedAt = now
                     };
-                    
+
                     _context.DeviceActivityStatuses.Add(activityStatus);
                 }
 

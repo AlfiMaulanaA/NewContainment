@@ -55,9 +55,10 @@ namespace Backend.Controllers
         [HttpGet("ping")]
         public ActionResult<object> Ping()
         {
-            return Ok(new { 
-                status = "pong", 
-                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") 
+            return Ok(new
+            {
+                status = "pong",
+                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             });
         }
     }

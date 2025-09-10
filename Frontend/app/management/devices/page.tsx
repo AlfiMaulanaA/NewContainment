@@ -129,12 +129,12 @@ export default function DeviceManagementPage({
   const [activityLoading, setActivityLoading] = useState(false);
 
   // Device status hook for real-time status monitoring
-  const { 
-    deviceStatuses, 
-    loading: statusLoading, 
+  const {
+    deviceStatuses,
+    loading: statusLoading,
     getDeviceStatusFromCache,
     forceStatusCheck,
-    initializeMonitoring 
+    initializeMonitoring,
   } = useDeviceStatus(30000); // Refresh every 30 seconds
 
   // Form state
@@ -557,7 +557,6 @@ export default function DeviceManagementPage({
                 className="mr-2"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to Racks
               </Button>
               <Separator orientation="vertical" className="mr-2 h-4" />
             </>
@@ -582,70 +581,46 @@ export default function DeviceManagementPage({
                   Add Device
                 </Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Device</DialogTitle>
-                <DialogDescription>
-                  Create a new device in the selected rack. Choose the device type and fill in the required information.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                {/* Row 1: Device Name and Type */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Device Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="Enter device name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="type">Device Type *</Label>
-                    <Select
-                      value={formData.type}
-                      onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          type: value,
-                          sensorType: "",
-                          uCapacity: undefined,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select device type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DEVICE_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Row 2: Conditional Fields - Sensor Type or U Capacity */}
-                <div className="grid grid-cols-2 gap-4">
-                  {formData.type === DeviceType.Sensor && (
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Device</DialogTitle>
+                  <DialogDescription>
+                    Create a new device in the selected rack. Choose the device
+                    type and fill in the required information.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  {/* Row 1: Device Name and Type */}
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="sensorType">Sensor Type *</Label>
+                      <Label htmlFor="name">Device Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        placeholder="Enter device name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="type">Device Type *</Label>
                       <Select
-                        value={formData.sensorType || ""}
+                        value={formData.type}
                         onValueChange={(value) =>
-                          setFormData({ ...formData, sensorType: value })
+                          setFormData({
+                            ...formData,
+                            type: value,
+                            sensorType: "",
+                            uCapacity: undefined,
+                          })
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select sensor type" />
+                          <SelectValue placeholder="Select device type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {SENSOR_TYPES.map((type) => (
+                          {DEVICE_TYPES.map((type) => (
                             <SelectItem key={type} value={type}>
                               {type}
                             </SelectItem>
@@ -653,130 +628,161 @@ export default function DeviceManagementPage({
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
+                  </div>
 
-                  {formData.type && formData.type !== DeviceType.Sensor && (
+                  {/* Row 2: Conditional Fields - Sensor Type or U Capacity */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {formData.type === DeviceType.Sensor && (
+                      <div>
+                        <Label htmlFor="sensorType">Sensor Type *</Label>
+                        <Select
+                          value={formData.sensorType || ""}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, sensorType: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sensor type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SENSOR_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {formData.type && formData.type !== DeviceType.Sensor && (
+                      <div>
+                        <Label htmlFor="uCapacity">U Capacity *</Label>
+                        <Select
+                          value={
+                            formData.uCapacity
+                              ? formData.uCapacity.toString()
+                              : ""
+                          }
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              uCapacity: parseInt(value) || undefined,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select U capacity" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1U</SelectItem>
+                            <SelectItem value="2">2U</SelectItem>
+                            <SelectItem value="3">3U</SelectItem>
+                            <SelectItem value="4">4U</SelectItem>
+                            <SelectItem value="5">5U</SelectItem>
+                            <SelectItem value="6">6U</SelectItem>
+                            <SelectItem value="8">8U</SelectItem>
+                            <SelectItem value="10">10U</SelectItem>
+                            <SelectItem value="12">12U</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
                     <div>
-                      <Label htmlFor="uCapacity">U Capacity *</Label>
+                      <Label htmlFor="rackId">Rack *</Label>
                       <Select
                         value={
-                          formData.uCapacity
-                            ? formData.uCapacity.toString()
+                          formData.rackId && formData.rackId > 0
+                            ? formData.rackId.toString()
                             : ""
                         }
                         onValueChange={(value) =>
                           setFormData({
                             ...formData,
-                            uCapacity: parseInt(value) || undefined,
+                            rackId: parseInt(value) || 0,
                           })
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select U capacity" />
+                          <SelectValue placeholder="Select rack" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">1U</SelectItem>
-                          <SelectItem value="2">2U</SelectItem>
-                          <SelectItem value="3">3U</SelectItem>
-                          <SelectItem value="4">4U</SelectItem>
-                          <SelectItem value="5">5U</SelectItem>
-                          <SelectItem value="6">6U</SelectItem>
-                          <SelectItem value="8">8U</SelectItem>
-                          <SelectItem value="10">10U</SelectItem>
-                          <SelectItem value="12">12U</SelectItem>
+                          {racks.map((rack) => (
+                            <SelectItem
+                              key={rack.id}
+                              value={rack.id.toString()}
+                            >
+                              {rack.name} -{" "}
+                              {rack.containment?.name || "Unknown Containment"}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
+                  </div>
 
+                  {/* Row 3: Serial Number and Status */}
                   <div>
-                    <Label htmlFor="rackId">Rack *</Label>
-                    <Select
-                      value={
-                        formData.rackId && formData.rackId > 0
-                          ? formData.rackId.toString()
-                          : ""
-                      }
-                      onValueChange={(value) =>
+                    <Label htmlFor="serialNumber">Serial Number</Label>
+                    <Input
+                      id="serialNumber"
+                      value={formData.serialNumber}
+                      onChange={(e) =>
                         setFormData({
                           ...formData,
-                          rackId: parseInt(value) || 0,
+                          serialNumber: e.target.value,
                         })
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select rack" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {racks.map((rack) => (
-                          <SelectItem key={rack.id} value={rack.id.toString()}>
-                            {rack.name} -{" "}
-                            {rack.containment?.name || "Unknown Containment"}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Row 3: Serial Number and Status */}
-                <div>
-                  <Label htmlFor="serialNumber">Serial Number</Label>
-                  <Input
-                    id="serialNumber"
-                    value={formData.serialNumber}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        serialNumber: e.target.value,
-                      })
-                    }
-                    placeholder="Enter serial number"
-                  />
-                </div>
-
-                {/* Row 4: MQTT Topic (only for sensors) */}
-                {formData.type === DeviceType.Sensor && (
-                  <div>
-                    <Label htmlFor="topic">MQTT Topic</Label>
-                    <Input
-                      id="topic"
-                      value={formData.topic}
-                      onChange={(e) =>
-                        setFormData({ ...formData, topic: e.target.value })
-                      }
-                      placeholder="Enter MQTT topic"
+                      placeholder="Enter serial number"
                     />
                   </div>
-                )}
 
-                {/* Row 5: Description */}
-                <div>
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Enter description"
-                    rows={3}
-                  />
+                  {/* Row 4: MQTT Topic (only for sensors) */}
+                  {formData.type === DeviceType.Sensor && (
+                    <div>
+                      <Label htmlFor="topic">MQTT Topic</Label>
+                      <Input
+                        id="topic"
+                        value={formData.topic}
+                        onChange={(e) =>
+                          setFormData({ ...formData, topic: e.target.value })
+                        }
+                        placeholder="Enter MQTT topic"
+                      />
+                    </div>
+                  )}
+
+                  {/* Row 5: Description */}
+                  <div>
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Enter description"
+                      rows={3}
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateDevice} disabled={actionLoading}>
-                  {actionLoading ? "Creating..." : "Create Device"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCreateDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateDevice} disabled={actionLoading}>
+                    {actionLoading ? "Creating..." : "Create Device"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CrudPermission>
         </div>
       </header>
@@ -920,7 +926,12 @@ export default function DeviceManagementPage({
                     <TableHead>MQTT Topic</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Created</TableHead>
-                    <PermissionWrapper condition={permissions.device.canUpdate || permissions.device.canDelete}>
+                    <PermissionWrapper
+                      condition={
+                        permissions.device.canUpdate ||
+                        permissions.device.canDelete
+                      }
+                    >
                       <TableHead className="text-right">Actions</TableHead>
                     </PermissionWrapper>
                   </TableRow>
@@ -947,11 +958,12 @@ export default function DeviceManagementPage({
                                 <Badge variant="secondary" className="text-xs">
                                   {device.sensorType || "No Type"}
                                 </Badge>
-                                {activityInfo && activityInfo.lastDataReceived && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {activityInfo.minutesSinceLastData}m ago
-                                  </span>
-                                )}
+                                {activityInfo &&
+                                  activityInfo.lastDataReceived && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {activityInfo.minutesSinceLastData}m ago
+                                    </span>
+                                  )}
                               </div>
                             ) : (
                               <div className="flex items-center gap-2">
@@ -1010,7 +1022,12 @@ export default function DeviceManagementPage({
                               ? new Date(device.createdAt).toLocaleDateString()
                               : "-"}
                           </TableCell>
-                          <PermissionWrapper condition={permissions.device.canUpdate || permissions.device.canDelete}>
+                          <PermissionWrapper
+                            condition={
+                              permissions.device.canUpdate ||
+                              permissions.device.canDelete
+                            }
+                          >
                             <TableCell className="text-right space-x-1">
                               <Button
                                 size="sm"
@@ -1040,7 +1057,11 @@ export default function DeviceManagementPage({
                               >
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive" className="text-red-600 bg-red-100 hover:bg-red-200">
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      className="text-red-600 bg-red-100 hover:bg-red-200"
+                                    >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </AlertDialogTrigger>
@@ -1056,7 +1077,9 @@ export default function DeviceManagementPage({
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() =>
                                           handleDeleteDevice(device.id)
@@ -1078,8 +1101,11 @@ export default function DeviceManagementPage({
                     <TableRow>
                       <TableCell
                         colSpan={
-                          (rackId ? 10 : 11) + 
-                          (permissions.device.canUpdate || permissions.device.canDelete ? 1 : 0)
+                          (rackId ? 10 : 11) +
+                          (permissions.device.canUpdate ||
+                          permissions.device.canDelete
+                            ? 1
+                            : 0)
                         }
                         className="text-center py-8 text-muted-foreground"
                       >
@@ -1147,7 +1173,8 @@ export default function DeviceManagementPage({
           <DialogHeader>
             <DialogTitle>Edit Device: {editingDevice?.name}</DialogTitle>
             <DialogDescription>
-              Update the device information. Modify the fields below and click Update to save changes.
+              Update the device information. Modify the fields below and click
+              Update to save changes.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1340,103 +1367,157 @@ export default function DeviceManagementPage({
               Complete information about this device
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDevice && (
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Device Name</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Device Name
+                    </Label>
                     <p className="text-sm font-medium">{selectedDevice.name}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Device Type</Label>
-                    <Badge variant="outline" className="mt-1">{selectedDevice.type}</Badge>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Device Type
+                    </Label>
+                    <Badge variant="outline" className="mt-1">
+                      {selectedDevice.type}
+                    </Badge>
                   </div>
                   {selectedDevice.type === DeviceType.Sensor && (
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Sensor Type</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Sensor Type
+                      </Label>
                       <Badge variant="secondary" className="mt-1">
                         {selectedDevice.sensorType || "Not specified"}
                       </Badge>
                     </div>
                   )}
-                  {selectedDevice.type !== DeviceType.Sensor && selectedDevice.uCapacity && (
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">U Capacity</Label>
-                      <Badge variant="outline" className="mt-1">
-                        {selectedDevice.uCapacity}U
-                      </Badge>
-                    </div>
-                  )}
+                  {selectedDevice.type !== DeviceType.Sensor &&
+                    selectedDevice.uCapacity && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          U Capacity
+                        </Label>
+                        <Badge variant="outline" className="mt-1">
+                          {selectedDevice.uCapacity}U
+                        </Badge>
+                      </div>
+                    )}
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Status
+                    </Label>
                     <div className="mt-1">
-                      <Badge className={getStatusBadgeColor(selectedDevice, getDeviceActivityInfo(selectedDevice.id))}>
-                        {getDisplayStatus(selectedDevice, getDeviceActivityInfo(selectedDevice.id))}
+                      <Badge
+                        className={getStatusBadgeColor(
+                          selectedDevice,
+                          getDeviceActivityInfo(selectedDevice.id)
+                        )}
+                      >
+                        {getDisplayStatus(
+                          selectedDevice,
+                          getDeviceActivityInfo(selectedDevice.id)
+                        )}
                       </Badge>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Rack</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Rack
+                    </Label>
                     <div className="mt-1">
-                      <p className="text-sm font-medium">{getRackName(selectedDevice.rackId)}</p>
+                      <p className="text-sm font-medium">
+                        {getRackName(selectedDevice.rackId)}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {getRack(selectedDevice.rackId)?.containment?.name || "Unknown Containment"}
+                        {getRack(selectedDevice.rackId)?.containment?.name ||
+                          "Unknown Containment"}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Serial Number</Label>
-                    <p className="text-sm font-mono">{selectedDevice.serialNumber || "Not specified"}</p>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Serial Number
+                    </Label>
+                    <p className="text-sm font-mono">
+                      {selectedDevice.serialNumber || "Not specified"}
+                    </p>
                   </div>
                   {selectedDevice.topic && (
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">MQTT Topic</Label>
-                      <p className="text-sm font-mono break-all">{selectedDevice.topic}</p>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        MQTT Topic
+                      </Label>
+                      <p className="text-sm font-mono break-all">
+                        {selectedDevice.topic}
+                      </p>
                     </div>
                   )}
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Created</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Created
+                    </Label>
                     <p className="text-sm">
                       {selectedDevice.createdAt
-                        ? new Date(selectedDevice.createdAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                        ? new Date(selectedDevice.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )
                         : "Unknown"}
                     </p>
                   </div>
                 </div>
               </div>
-              
+
               {selectedDevice.description && (
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                  <p className="text-sm mt-1 p-3 bg-muted/30 rounded-md">{selectedDevice.description}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Description
+                  </Label>
+                  <p className="text-sm mt-1 p-3 bg-muted/30 rounded-md">
+                    {selectedDevice.description}
+                  </p>
                 </div>
               )}
 
               {selectedDevice.type === DeviceType.Sensor && (
                 <div className="border-t pt-4">
-                  <Label className="text-sm font-medium text-muted-foreground">Activity Information</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Activity Information
+                  </Label>
                   {(() => {
-                    const activityInfo = getDeviceActivityInfo(selectedDevice.id);
+                    const activityInfo = getDeviceActivityInfo(
+                      selectedDevice.id
+                    );
                     return activityInfo ? (
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center gap-2">
-                          <Badge variant={activityInfo.hasRecentData ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              activityInfo.hasRecentData
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
                             {activityInfo.hasRecentData ? "Active" : "Inactive"}
                           </Badge>
                           {activityInfo.lastDataReceived && (
                             <span className="text-xs text-muted-foreground">
-                              Last seen: {activityInfo.minutesSinceLastData} minutes ago
+                              Last seen: {activityInfo.minutesSinceLastData}{" "}
+                              minutes ago
                             </span>
                           )}
                         </div>
@@ -1445,22 +1526,29 @@ export default function DeviceManagementPage({
                         </p>
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground mt-2">No activity data available</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        No activity data available
+                      </p>
                     );
                   })()}
                 </div>
               )}
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDetailDialog(false)}
+            >
               Close
             </Button>
-            <Button onClick={() => {
-              setShowDetailDialog(false);
-              if (selectedDevice) handleEditDevice(selectedDevice);
-            }}>
+            <Button
+              onClick={() => {
+                setShowDetailDialog(false);
+                if (selectedDevice) handleEditDevice(selectedDevice);
+              }}
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Device
             </Button>

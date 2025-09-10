@@ -65,7 +65,7 @@ namespace Backend.Services
             existingDevice.UCapacity = device.UCapacity;
             existingDevice.UpdatedBy = userId;
             existingDevice.UpdatedAt = DateTime.UtcNow;
-            
+
             // For sensor devices, status is managed by DeviceActivityService based on MQTT data
             // For non-sensor devices, set default status if not provided
             if (device.Type.ToLower() != "sensor")
@@ -93,7 +93,7 @@ namespace Backend.Services
                 var existingSensorData = await _context.DeviceSensorData.CountAsync(d => d.DeviceId == id);
                 var existingMaintenance = await _context.Maintenances
                     .CountAsync(m => m.TargetType == Backend.Enums.MaintenanceTarget.Device && m.TargetId == id);
-                
+
                 Console.WriteLine($"Device {id} references: SensorData={existingSensorData}, Maintenance={existingMaintenance}");
 
                 // Delete all sensor data related to this device first
@@ -103,13 +103,13 @@ namespace Backend.Services
 
                 // Delete all maintenance tasks that target this device
                 var maintenanceCount = await _context.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM Maintenances WHERE TargetType = {0} AND TargetId = {1}", 
+                    "DELETE FROM Maintenances WHERE TargetType = {0} AND TargetId = {1}",
                     (int)Backend.Enums.MaintenanceTarget.Device, id);
                 Console.WriteLine($"Deleted {maintenanceCount} maintenance records for device {id}");
 
                 // Try to delete the device - if this fails, we'll know the exact issue
                 Console.WriteLine($"Attempting to delete device {id}");
-                try 
+                try
                 {
                     _context.Devices.Remove(device);
                     await _context.SaveChangesAsync();
@@ -120,7 +120,7 @@ namespace Backend.Services
                     Console.WriteLine($"Failed to delete device {id}: {ex.Message}");
                     throw;
                 }
-                
+
                 await transaction.CommitAsync();
                 return true;
             }

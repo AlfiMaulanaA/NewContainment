@@ -77,7 +77,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<Maintenance>> GetMaintenance(int id)
         {
             var maintenance = await _maintenanceService.GetMaintenanceByIdAsync(id);
-            
+
             if (maintenance == null)
             {
                 return NotFound();
@@ -152,7 +152,7 @@ namespace Backend.Controllers
             };
 
             var updatedMaintenance = await _maintenanceService.UpdateMaintenanceAsync(id, maintenance, userId);
-            
+
             if (updatedMaintenance == null)
             {
                 return NotFound();
@@ -176,7 +176,7 @@ namespace Backend.Controllers
             }
 
             var result = await _maintenanceService.UpdateMaintenanceStatusAsync(id, request.Status, userId);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -189,7 +189,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteMaintenance(int id)
         {
             var result = await _maintenanceService.DeleteMaintenanceAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -230,22 +230,22 @@ namespace Backend.Controllers
         [Required]
         [StringLength(200)]
         public string Name { get; set; } = string.Empty;
-        
+
         [StringLength(1000)]
         public string? Description { get; set; }
-        
+
         [Required]
         public DateTime StartTask { get; set; }
-        
+
         [Required]
         public DateTime EndTask { get; set; }
-        
+
         [Required]
         public int AssignTo { get; set; }
-        
+
         [Required]
         public MaintenanceTarget TargetType { get; set; }
-        
+
         [Required]
         public int TargetId { get; set; }
     }
@@ -255,25 +255,25 @@ namespace Backend.Controllers
         [Required]
         [StringLength(200)]
         public string Name { get; set; } = string.Empty;
-        
+
         [StringLength(1000)]
         public string? Description { get; set; }
-        
+
         [Required]
         public DateTime StartTask { get; set; }
-        
+
         [Required]
         public DateTime EndTask { get; set; }
-        
+
         [Required]
         public int AssignTo { get; set; }
-        
+
         [Required]
         public MaintenanceTarget TargetType { get; set; }
-        
+
         [Required]
         public int TargetId { get; set; }
-        
+
         [StringLength(50)]
         public string? Status { get; set; } = "Scheduled";
     }

@@ -141,10 +141,10 @@ namespace Backend.Controllers
                     .Reference(s => s.CreatedByUser)
                     .LoadAsync();
 
-                _logger.LogInformation("Created sensor configuration {Id} for sensor number {SensorNumber}", 
+                _logger.LogInformation("Created sensor configuration {Id} for sensor number {SensorNumber}",
                     configuration.Id, configuration.SensorNumber);
 
-                return CreatedAtAction(nameof(GetSensorConfiguration), 
+                return CreatedAtAction(nameof(GetSensorConfiguration),
                     new { id = configuration.Id }, configuration);
             }
             catch (Exception ex)
@@ -226,7 +226,7 @@ namespace Backend.Controllers
                 _context.SensorConfigurations.Remove(configuration);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Deleted sensor configuration {Id} for sensor number {SensorNumber}", 
+                _logger.LogInformation("Deleted sensor configuration {Id} for sensor number {SensorNumber}",
                     id, configuration.SensorNumber);
 
                 return NoContent();

@@ -69,6 +69,9 @@ builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.Mq
 builder.Services.AddScoped<Backend.Services.ISystemInfoService, Backend.Services.SystemInfoService>();
 builder.Services.AddScoped<Backend.Services.ICameraConfigsService, Backend.Services.CameraConfigService>();
 builder.Services.AddScoped<Backend.Services.IDeviceSensorDataService, Backend.Services.DeviceSensorDataService>();
+builder.Services.AddScoped<Backend.Services.ISensorDataConfigurationService, Backend.Services.SensorDataConfigurationService>();
+builder.Services.AddScoped<Backend.Services.IEnhancedDeviceSensorDataService, Backend.Services.EnhancedDeviceSensorDataService>();
+builder.Services.AddScoped<Backend.Services.ISensorDataIntervalService, Backend.Services.SensorDataIntervalService>();
 builder.Services.AddScoped<Backend.Services.IDeviceActivityService, Backend.Services.DeviceActivityService>();
 builder.Services.AddSingleton<Backend.Services.IpScannerService>();
 builder.Services.AddScoped<Backend.Services.IAccessLogService, Backend.Services.AccessLogService>();
@@ -197,42 +200,104 @@ using (var scope = app.Services.CreateScope())
     var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     logger.LogInformation("Migrating database...");
-    await context.Database.MigrateAsync(); // Selalu migrasi
-    
-    // Ensure all pending changes are applied
-    await context.SaveChangesAsync();
+    try
+    {
+        await context.Database.MigrateAsync(); // Selalu migrasi
+        logger.LogInformation("Database migration completed successfully");
+        
+        // Ensure all pending changes are applied
+        await context.SaveChangesAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Database migration failed");
+        throw;
+    }
 
     // Initialize default roles after migration is complete
     logger.LogInformation("Initializing role mapping system...");
-    await roleMappingService.InitializeDefaultRolesAsync();
-    
+    try
+    {
+        await roleMappingService.InitializeDefaultRolesAsync();
+        logger.LogInformation("Role mapping system initialized successfully");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to initialize role mapping system");
+        // Continue execution - roles can be manually created later
+    }
+
+    // Clean up any duplicate roles before migration
+    logger.LogInformation("Cleaning up duplicate roles...");
+    try
+    {
+        await roleMigrationService.CleanupDuplicateRolesAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Failed to cleanup duplicate roles. Migration may fail if duplicates exist.");
+    }
+
     // Migrate existing users to new role system
     logger.LogInformation("Checking and migrating existing users to new role system...");
-    var unmigratedCount = await roleMigrationService.GetUnmigratedUsersCountAsync();
-    if (unmigratedCount > 0)
+    try
     {
-        logger.LogInformation("Found {Count} users that need migration to new role system", unmigratedCount);
-        await roleMigrationService.MigrateExistingUsersToNewRoleSystemAsync();
+        var unmigratedCount = await roleMigrationService.GetUnmigratedUsersCountAsync();
+        if (unmigratedCount > 0)
+        {
+            logger.LogInformation("Found {Count} users that need migration to new role system", unmigratedCount);
+            await roleMigrationService.MigrateExistingUsersToNewRoleSystemAsync();
+        }
+        else
+        {
+            logger.LogInformation("All users are already using the new role system");
+        }
     }
-    else
+    catch (Exception ex)
     {
-        logger.LogInformation("All users are already using the new role system");
+        logger.LogError(ex, "Failed to migrate users to new role system. Application will continue, but role functionality may be limited.");
+        // Don't throw - let the application start even if migration fails
+        // Users can be manually migrated later or roles can be fixed in the database
     }
 
     // Enable/disable seed data dengan env variable
     var enableSeed = Environment.GetEnvironmentVariable("ENABLE_SEED_DATA") ?? "true";
     if (enableSeed.ToLower() == "true")
     {
-        logger.LogInformation("Seeding initial data...");
-        await Backend.Data.SeedData.InitializeAsync(context, authService, scopedLogger);
-        
-        logger.LogInformation("Seeding menu management data...");
-        await Backend.Data.MenuSeedData.SeedMenuDataAsync(context);
-        await Backend.Data.MenuSeedData.AssignUserRolesAsync(context);
-        
-        logger.LogInformation("Seeding dynamic menu data...");
-        await Backend.Data.DynamicMenuSeedData.SeedDynamicMenuAsync(context);
-        
+        // Optional: Clean up duplicate data from legacy seed files
+        var enableCleanup = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_SEED_CLEANUP") ?? "false");
+        if (enableCleanup)
+        {
+            logger.LogInformation("Cleaning up legacy seed data...");
+            await Backend.Data.SeedMigrationHelper.CleanupDuplicateDataAsync(context, scopedLogger);
+        }
+
+        // Use optimized seed data that consolidates all seeding operations
+        var seedConfig = new Dictionary<string, bool>
+        {
+            {"AccessLog", bool.Parse(Environment.GetEnvironmentVariable("SEED_ACCESS_LOG") ?? "false")},
+            {"DeviceSensorData", bool.Parse(Environment.GetEnvironmentVariable("SEED_SENSOR_DATA") ?? "false")}
+        };
+
+        logger.LogInformation("Starting optimized database seeding...");
+        await Backend.Data.OptimizedSeedData.InitializeAsync(context, authService, scopedLogger, seedConfig);
+
+        // Optional: Validate seed data integrity
+        var enableValidation = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_SEED_VALIDATION") ?? "false");
+        if (enableValidation)
+        {
+            logger.LogInformation("Validating seed data integrity...");
+            var issues = await Backend.Data.SeedMigrationHelper.ValidateSeedDataAsync(context, scopedLogger);
+            if (issues.Any())
+            {
+                logger.LogWarning($"Found {issues.Count} data integrity issues: {string.Join("; ", issues)}");
+            }
+            else
+            {
+                logger.LogInformation("Seed data integrity validation passed");
+            }
+        }
+
         logger.LogInformation("Database seeding completed");
     }
     else

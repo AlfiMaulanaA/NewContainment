@@ -12,13 +12,13 @@ namespace Backend.Services
         private readonly int _offlineThresholdMinutes;
 
         public DeviceActivityService(
-            AppDbContext context, 
+            AppDbContext context,
             ILogger<DeviceActivityService> logger,
             IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
-            
+
             // Default thresholds - device considered active if data within last 5 minutes
             // Device considered offline if no data for 10 minutes
             _activeThresholdMinutes = configuration.GetValue("DeviceActivity:ActiveThresholdMinutes", 5);
@@ -30,7 +30,7 @@ namespace Backend.Services
             try
             {
                 _logger.LogInformation("Starting device activity status update...");
-                
+
                 // Get all sensor devices (only sensor devices send MQTT data)
                 var sensorDevices = await _context.Devices
                     .Where(d => d.Type.ToLower() == "sensor")
@@ -46,7 +46,7 @@ namespace Backend.Services
                 }
 
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation($"Device activity status update completed. Updated {updatedCount} devices.");
             }
             catch (Exception ex)
@@ -115,7 +115,7 @@ namespace Backend.Services
                         activityInfo.LastSeenAt = latestData.ReceivedAt;
                         activityInfo.TimeSinceLastSeen = DateTime.UtcNow - latestData.ReceivedAt;
                         activityInfo.MinutesSinceLastData = (int)activityInfo.TimeSinceLastSeen.Value.TotalMinutes;
-                        
+
                         if (activityInfo.MinutesSinceLastData <= _activeThresholdMinutes)
                         {
                             activityInfo.ActivityStatus = "Online";
@@ -167,7 +167,7 @@ namespace Backend.Services
 
                 var now = DateTime.UtcNow;
                 var wasUpdated = await UpdateSingleDeviceActivityInternalAsync(device, now);
-                
+
                 if (wasUpdated)
                 {
                     await _context.SaveChangesAsync();
@@ -212,27 +212,27 @@ namespace Backend.Services
             }
 
             var thresholdTime = now.AddMinutes(-_offlineThresholdMinutes);
-            
+
             var hasRecentData = await _context.DeviceSensorData
                 .Where(d => d.DeviceId == device.Id && d.ReceivedAt >= thresholdTime)
                 .AnyAsync();
 
             // Update device status based on MQTT data activity
             var shouldBeActive = hasRecentData;
-            
+
             if (device.IsActive != shouldBeActive)
             {
                 var previousStatus = device.IsActive ? "Active" : "Inactive";
                 var newStatus = shouldBeActive ? "Active" : "Inactive";
-                
+
                 device.IsActive = shouldBeActive;
                 device.Status = shouldBeActive ? "Active" : "Offline";
                 device.UpdatedAt = now;
-                
+
                 _logger.LogInformation(
                     $"Device {device.Name} (ID: {device.Id}) status changed from {previousStatus} to {newStatus} based on MQTT data activity"
                 );
-                
+
                 return true;
             }
 

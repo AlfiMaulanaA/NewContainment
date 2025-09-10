@@ -35,8 +35,9 @@ export class ApiClient {
     // Handle authentication errors
     if (response.status === 401 || response.status === 403) {
       // Only clear token and redirect for critical auth endpoints
-      // Allow some endpoints to fail gracefully (like menu-management)
-      const isNonCriticalEndpoint = endpoint.includes('menu-management');
+      // Allow some endpoints to fail gracefully (like menu-management, sensor-intervals when loading)
+      const isNonCriticalEndpoint = endpoint.includes('menu-management') || 
+        (endpoint.includes('SensorDataInterval') && options.method === 'GET');
       
       if (!isNonCriticalEndpoint) {
         this.clearAuthToken();

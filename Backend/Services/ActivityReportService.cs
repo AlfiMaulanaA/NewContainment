@@ -58,7 +58,7 @@ namespace Backend.Services
         public async Task<ActivityReport> CreateActivityReportAsync(ActivityReport activityReport)
         {
             activityReport.Timestamp = DateTime.UtcNow;
-            
+
             _context.ActivityReports.Add(activityReport);
             await _context.SaveChangesAsync();
 

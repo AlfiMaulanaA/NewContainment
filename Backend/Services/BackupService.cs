@@ -17,7 +17,7 @@ namespace Backend.Services
             _logger = logger;
             _backupDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Backups");
             _dbPath = GetDatabasePath(configuration);
-            
+
             // Create backup directory if it doesn't exist
             Directory.CreateDirectory(_backupDirectory);
         }
@@ -27,7 +27,7 @@ namespace Backend.Services
             var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
             var backupFileName = $"backup_{timestamp}.db";
             var backupPath = Path.Combine(_backupDirectory, backupFileName);
-            
+
             return await CreateBackupAsync(backupPath);
         }
 
@@ -44,19 +44,19 @@ namespace Backend.Services
                 if (File.Exists(_dbPath))
                 {
                     File.Copy(_dbPath, backupPath, true);
-                    
+
                     // Compress the backup
                     var compressedPath = backupPath + ".gz";
                     await CompressFileAsync(backupPath, compressedPath);
-                    
+
                     // Delete uncompressed file
                     File.Delete(backupPath);
-                    
+
                     _logger.LogInformation("Database backup completed successfully: {BackupPath}", compressedPath);
-                    
+
                     // Log backup activity
                     await LogBackupActivity("Success", $"Backup created: {Path.GetFileName(compressedPath)}");
-                    
+
                     return true;
                 }
                 else
@@ -154,7 +154,7 @@ namespace Backend.Services
         public async Task<bool> IsBackupDueAsync()
         {
             var lastBackupDate = await GetLastBackupDateAsync();
-            
+
             if (lastBackupDate == null)
             {
                 return true; // No backup exists, so it's due
@@ -169,7 +169,7 @@ namespace Backend.Services
         {
             // Get database path from connection string
             var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=app.db";
-            
+
             // Extract the database file path from SQLite connection string
             var dataSourceIndex = connectionString.IndexOf("Data Source=", StringComparison.OrdinalIgnoreCase);
             if (dataSourceIndex >= 0)
@@ -177,16 +177,16 @@ namespace Backend.Services
                 var pathStart = dataSourceIndex + "Data Source=".Length;
                 var pathEnd = connectionString.IndexOf(';', pathStart);
                 var dbPath = pathEnd > 0 ? connectionString.Substring(pathStart, pathEnd - pathStart) : connectionString.Substring(pathStart);
-                
+
                 // Make path absolute if it's relative
                 if (!Path.IsPathRooted(dbPath))
                 {
                     dbPath = Path.Combine(Directory.GetCurrentDirectory(), dbPath);
                 }
-                
+
                 return dbPath.Trim();
             }
-            
+
             // Default fallback
             return Path.Combine(Directory.GetCurrentDirectory(), "app.db");
         }
@@ -196,7 +196,7 @@ namespace Backend.Services
             using var originalFileStream = File.OpenRead(sourceFile);
             using var compressedFileStream = File.Create(compressedFile);
             using var compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress);
-            
+
             await originalFileStream.CopyToAsync(compressionStream);
         }
 

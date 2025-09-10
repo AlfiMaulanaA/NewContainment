@@ -113,7 +113,7 @@ namespace Backend.Controllers
             try
             {
                 var activeEmergency = await _emergencyReportService.GetActiveEmergencyAsync(emergencyType);
-                
+
                 if (activeEmergency == null)
                 {
                     return NotFound($"No active emergency found for type: {emergencyType}");
@@ -137,10 +137,11 @@ namespace Backend.Controllers
             try
             {
                 await _emergencyReportService.CloseActiveEmergencyAsync(emergencyType);
-                
+
                 _logger.LogWarning("Emergency {EmergencyType} manually closed via API", emergencyType);
-                
-                return Ok(new { 
+
+                return Ok(new
+                {
                     message = $"Emergency {emergencyType} has been manually closed",
                     timestamp = DateTime.UtcNow
                 });

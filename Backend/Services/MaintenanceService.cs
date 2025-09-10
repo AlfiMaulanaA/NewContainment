@@ -12,7 +12,7 @@ namespace Backend.Services
         private readonly ILogger<MaintenanceService> _logger;
 
         public MaintenanceService(
-            AppDbContext context, 
+            AppDbContext context,
             IMaintenanceNotificationService notificationService,
             ILogger<MaintenanceService> logger)
         {
@@ -179,7 +179,7 @@ namespace Backend.Services
 
             maintenance.IsActive = false;
             maintenance.UpdatedAt = DateTime.UtcNow;
-            
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -198,7 +198,7 @@ namespace Backend.Services
                         var devices = await _context.Devices
                             .Where(d => targetIds.Contains(d.Id))
                             .ToDictionaryAsync(d => d.Id, d => d);
-                        
+
                         foreach (var maintenance in group)
                         {
                             if (devices.TryGetValue(maintenance.TargetId, out var device))
@@ -213,7 +213,7 @@ namespace Backend.Services
                             .Include(r => r.Containment)
                             .Where(r => targetIds.Contains(r.Id))
                             .ToDictionaryAsync(r => r.Id, r => r);
-                        
+
                         foreach (var maintenance in group)
                         {
                             if (racks.TryGetValue(maintenance.TargetId, out var rack))
@@ -227,7 +227,7 @@ namespace Backend.Services
                         var containments = await _context.Containments
                             .Where(c => targetIds.Contains(c.Id))
                             .ToDictionaryAsync(c => c.Id, c => c);
-                        
+
                         foreach (var maintenance in group)
                         {
                             if (containments.TryGetValue(maintenance.TargetId, out var containment))

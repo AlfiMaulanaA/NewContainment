@@ -31,7 +31,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<Containment>> GetContainment(int id)
         {
             var containment = await _containmentService.GetContainmentByIdAsync(id);
-            
+
             if (containment == null)
             {
                 return NotFound();
@@ -89,7 +89,7 @@ namespace Backend.Controllers
             };
 
             var updatedContainment = await _containmentService.UpdateContainmentAsync(id, containment, userId);
-            
+
             if (updatedContainment == null)
             {
                 return NotFound();
@@ -102,7 +102,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteContainment(int id)
         {
             var result = await _containmentService.DeleteContainmentAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -127,13 +127,13 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         public ContainmentType Type { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         [Required]
         [StringLength(255)]
         public string Location { get; set; } = string.Empty;
@@ -144,13 +144,13 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         public ContainmentType Type { get; set; }
-        
+
         [StringLength(500)]
         public string? Description { get; set; }
-        
+
         [Required]
         [StringLength(255)]
         public string Location { get; set; } = string.Empty;

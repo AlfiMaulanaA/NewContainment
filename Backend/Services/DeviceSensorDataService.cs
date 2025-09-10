@@ -7,8 +7,8 @@ namespace Backend.Services
 {
     public class DeviceSensorDataService : IDeviceSensorDataService
     {
-        private readonly AppDbContext _context;
-        private readonly ILogger<DeviceSensorDataService> _logger;
+        protected readonly AppDbContext _context;
+        protected readonly ILogger<DeviceSensorDataService> _logger;
 
         public DeviceSensorDataService(AppDbContext context, ILogger<DeviceSensorDataService> logger)
         {
@@ -17,13 +17,13 @@ namespace Backend.Services
         }
 
         public async Task<(IEnumerable<DeviceSensorData> Data, int Total)> GetSensorDataAsync(
-            int page = 1, 
-            int pageSize = 50, 
-            int? deviceId = null, 
-            int? rackId = null, 
+            int page = 1,
+            int pageSize = 50,
+            int? deviceId = null,
+            int? rackId = null,
             int? containmentId = null,
             string? sensorType = null,
-            DateTime? startDate = null, 
+            DateTime? startDate = null,
             DateTime? endDate = null)
         {
             var query = _context.DeviceSensorData
@@ -35,19 +35,19 @@ namespace Backend.Services
             // Apply filters
             if (deviceId.HasValue)
                 query = query.Where(d => d.DeviceId == deviceId.Value);
-            
+
             if (rackId.HasValue)
                 query = query.Where(d => d.RackId == rackId.Value);
-            
+
             if (containmentId.HasValue)
                 query = query.Where(d => d.ContainmentId == containmentId.Value);
-            
+
             if (!string.IsNullOrEmpty(sensorType))
                 query = query.Where(d => d.SensorType == sensorType);
-            
+
             if (startDate.HasValue)
                 query = query.Where(d => d.Timestamp >= startDate.Value);
-            
+
             if (endDate.HasValue)
                 query = query.Where(d => d.Timestamp <= endDate.Value);
 
@@ -233,11 +233,11 @@ namespace Backend.Services
                 {
                     using var doc = JsonDocument.Parse(item.RawPayload);
                     var parsedData = new Dictionary<string, object>();
-                    
+
                     foreach (var property in doc.RootElement.EnumerateObject())
                     {
                         allKeys.Add(property.Name);
-                        
+
                         // Store the value based on its type
                         switch (property.Value.ValueKind)
                         {
@@ -256,7 +256,7 @@ namespace Backend.Services
                                 break;
                         }
                     }
-                    
+
                     parsedDataList.Add(parsedData);
                 }
                 catch (JsonException)
@@ -267,7 +267,7 @@ namespace Backend.Services
 
             // Calculate statistics for numeric values
             var statistics = new Dictionary<string, object>();
-            
+
             foreach (var key in allKeys)
             {
                 var numericValues = parsedDataList
@@ -319,7 +319,7 @@ namespace Backend.Services
         public async Task<IEnumerable<object>> GetDataHistoryAsync(int deviceId, string dataKey, TimeSpan timeRange)
         {
             var startDate = DateTime.UtcNow - timeRange;
-            
+
             var data = await _context.DeviceSensorData
                 .Where(d => d.DeviceId == deviceId && d.Timestamp >= startDate)
                 .OrderBy(d => d.Timestamp)
@@ -340,7 +340,7 @@ namespace Backend.Services
                     if (doc.RootElement.TryGetProperty(dataKey, out var property))
                     {
                         object? value = null;
-                        
+
                         switch (property.ValueKind)
                         {
                             case JsonValueKind.Number:
@@ -396,7 +396,7 @@ namespace Backend.Services
                     if (doc.RootElement.TryGetProperty(dataKey, out var property))
                     {
                         object? value = null;
-                        
+
                         switch (property.ValueKind)
                         {
                             case JsonValueKind.Number:
@@ -472,10 +472,10 @@ namespace Backend.Services
         public async Task<object> GetSensorDataSummaryAsync(DateTime? startDate = null, DateTime? endDate = null)
         {
             var query = _context.DeviceSensorData.AsQueryable();
-            
+
             if (startDate.HasValue)
                 query = query.Where(d => d.Timestamp >= startDate.Value);
-            
+
             if (endDate.HasValue)
                 query = query.Where(d => d.Timestamp <= endDate.Value);
 
@@ -486,7 +486,7 @@ namespace Backend.Services
                 .GroupBy(d => d.SensorType)
                 .Select(g => new { SensorType = g.Key, Count = g.Count() })
                 .ToListAsync();
-            
+
             var latestDataByDevice = await query
                 .GroupBy(d => d.DeviceId)
                 .Select(g => new

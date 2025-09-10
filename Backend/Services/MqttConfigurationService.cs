@@ -154,7 +154,7 @@ namespace Backend.Services
         {
             var effectiveConfig = new Dictionary<string, object>();
             var activeConfig = await GetActiveConfigurationAsync();
-            
+
             // Configuration Priority:
             // 1. Database configuration (if exists and not set to use environment)
             // 2. Environment variables
@@ -289,7 +289,7 @@ namespace Backend.Services
                 var options = optionsBuilder.Build();
 
                 var connectResult = await client.ConnectAsync(options, CancellationToken.None);
-                
+
                 if (connectResult.ResultCode == MqttClientConnectResultCode.Success)
                 {
                     await client.DisconnectAsync();

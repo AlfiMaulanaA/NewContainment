@@ -32,22 +32,22 @@ namespace Backend.Services
             _logger = logger;
 
             // Load configuration from appsettings.json or environment variables
-            _bearerToken = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_BEARER_TOKEN") ?? 
-                          _configuration["WhatsApp:Qontak:BearerToken"] ?? 
+            _bearerToken = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_BEARER_TOKEN") ??
+                          _configuration["WhatsApp:Qontak:BearerToken"] ??
                           "1Bs4cNxWFLUWUEd-3WSUKJOOmfeis8z4VrHU73v6_1Q";
-            
-            _defaultTemplateId = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_DEFAULT_TEMPLATE_ID") ?? 
-                                _configuration["WhatsApp:Qontak:DefaultTemplateId"] ?? 
+
+            _defaultTemplateId = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_DEFAULT_TEMPLATE_ID") ??
+                                _configuration["WhatsApp:Qontak:DefaultTemplateId"] ??
                                 "300d84f2-d962-4451-bc27-870fb99d18e7";
-            
-            _channelIntegrationId = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_CHANNEL_INTEGRATION_ID") ?? 
-                                   _configuration["WhatsApp:Qontak:ChannelIntegrationId"] ?? 
+
+            _channelIntegrationId = Environment.GetEnvironmentVariable("WHATSAPP_QONTAK_CHANNEL_INTEGRATION_ID") ??
+                                   _configuration["WhatsApp:Qontak:ChannelIntegrationId"] ??
                                    "662f9fcb-7e2b-4c1a-8eda-9aeb4a388004";
 
             // Log configuration for debugging
-            _logger.LogInformation("WhatsApp Configuration - Bearer Token: {Token}, Template ID: {TemplateId}, Channel ID: {ChannelId}", 
-                _bearerToken?.Substring(0, Math.Min(_bearerToken.Length, 10)) + "...", 
-                _defaultTemplateId, 
+            _logger.LogInformation("WhatsApp Configuration - Bearer Token: {Token}, Template ID: {TemplateId}, Channel ID: {ChannelId}",
+                _bearerToken?.Substring(0, Math.Min(_bearerToken.Length, 10)) + "...",
+                _defaultTemplateId,
                 _channelIntegrationId);
 
             // Setup HttpClient headers
@@ -69,7 +69,7 @@ namespace Backend.Services
                 // Validate configuration
                 if (string.IsNullOrEmpty(_defaultTemplateId) || string.IsNullOrEmpty(_channelIntegrationId))
                 {
-                    _logger.LogError("WhatsApp configuration is invalid. Template ID: {TemplateId}, Channel ID: {ChannelId}", 
+                    _logger.LogError("WhatsApp configuration is invalid. Template ID: {TemplateId}, Channel ID: {ChannelId}",
                         _defaultTemplateId, _channelIntegrationId);
                     return false;
                 }
@@ -100,7 +100,7 @@ namespace Backend.Services
                             },
                             new
                             {
-                                key = "2", 
+                                key = "2",
                                 value = "messagetext",
                                 value_text = messageText
                             }
@@ -122,14 +122,14 @@ namespace Backend.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogInformation("✅ WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}", 
+                    _logger.LogInformation("✅ WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}",
                         formattedPhoneNumber, responseContent);
                     return true;
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("❌ Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}", 
+                    _logger.LogError("❌ Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}",
                         formattedPhoneNumber, response.StatusCode, errorContent);
                     return false;
                 }
@@ -194,14 +194,14 @@ namespace Backend.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogInformation("✅ WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}", 
+                    _logger.LogInformation("✅ WhatsApp message sent successfully to {PhoneNumber}. Response: {Response}",
                         formattedPhoneNumber, responseContent);
                     return true;
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("❌ Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}", 
+                    _logger.LogError("❌ Failed to send WhatsApp message to {PhoneNumber}. Status: {StatusCode}, Error: {Error}",
                         formattedPhoneNumber, response.StatusCode, errorContent);
                     return false;
                 }
@@ -221,7 +221,7 @@ namespace Backend.Services
             string phoneNumber = "083116297507";
             string recipientName = "User"; // You can customize this name
             string messageText = "Hello, World! This is a test message from your backend application startup.";
-            
+
             _logger.LogInformation("Attempting to send startup message to {PhoneNumber}...", phoneNumber);
             bool success = await SendMessageAsync(phoneNumber, recipientName, messageText);
 

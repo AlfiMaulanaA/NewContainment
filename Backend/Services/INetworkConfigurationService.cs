@@ -11,7 +11,7 @@ namespace Backend.Services
         Task<NetworkConfiguration> CreateConfigurationAsync(NetworkConfigurationRequest request, int userId);
         Task<NetworkConfiguration?> UpdateConfigurationAsync(int id, NetworkConfigurationRequest request, int userId);
         Task<bool> DeleteConfigurationAsync(int id);
-        
+
         // Network interface file operations
         Task<string> ReadNetworkInterfacesFileAsync();
         Task<bool> WriteNetworkInterfacesFileAsync(List<NetworkConfiguration> configurations);
@@ -19,12 +19,12 @@ namespace Backend.Services
         Task<bool> RestartNetworkingServiceAsync();
         Task<bool> BackupNetworkConfigAsync();
         Task<bool> RestoreNetworkConfigAsync();
-        
+
         // Status and validation
         Task<List<NetworkInterfaceStatus>> GetNetworkInterfaceStatusAsync();
         Task<bool> ValidateNetworkConfigurationAsync(NetworkConfigurationRequest request);
         Task<bool> TestConnectivityAsync(string ipAddress);
-        
+
         // Advanced operations
         Task<bool> RevertInterfaceToDhcpAsync(Backend.Enums.NetworkInterfaceType interfaceType, int userId);
         Task<bool> ClearAllStaticConfigurationsAsync(int userId);

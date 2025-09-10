@@ -30,7 +30,7 @@ namespace Backend.Controllers
         public async Task<ActionResult<User>> GetUser(int id)
         {
             var user = await _userService.GetUserByIdAsync(id);
-            
+
             if (user == null)
             {
                 return NotFound();
@@ -76,7 +76,7 @@ namespace Backend.Controllers
             };
 
             var updatedUser = await _userService.UpdateUserAsync(id, user);
-            
+
             if (updatedUser == null)
             {
                 return NotFound();
@@ -89,7 +89,7 @@ namespace Backend.Controllers
         public async Task<IActionResult> DeleteUser(int id)
         {
             var result = await _userService.DeleteUserAsync(id);
-            
+
             if (!result)
             {
                 return NotFound();
@@ -104,15 +104,15 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         [EmailAddress]
         [StringLength(255)]
         public string Email { get; set; } = string.Empty;
-        
+
         [StringLength(20)]
         public string? PhoneNumber { get; set; }
-        
+
         [Required]
         public UserRole Role { get; set; } = UserRole.User;
     }
@@ -122,15 +122,15 @@ namespace Backend.Controllers
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         [EmailAddress]
         [StringLength(255)]
         public string Email { get; set; } = string.Empty;
-        
+
         [StringLength(20)]
         public string? PhoneNumber { get; set; }
-        
+
         [Required]
         public UserRole Role { get; set; } = UserRole.User;
     }

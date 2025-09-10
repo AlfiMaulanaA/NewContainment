@@ -94,7 +94,11 @@ export function useMenuManagement() {
       setError(null);
       const response = await menuApi.getRoles();
       if (response.success && response.data) {
-        setRoles(response.data);
+        // Remove duplicates by ID to prevent duplicate roles in UI
+        const uniqueRoles = response.data.filter((role, index, self) => 
+          index === self.findIndex(r => r.id === role.id)
+        );
+        setRoles(uniqueRoles);
       } else {
         setError(response.message || "Failed to fetch roles");
         setRoles([]); // Ensure roles is always an array
@@ -113,7 +117,17 @@ export function useMenuManagement() {
       setError(null);
       const response = await menuApi.getMenuGroups();
       if (response.success && response.data) {
-        setMenuGroups(response.data);
+        // Remove duplicates by ID to prevent duplicate groups in UI
+        const uniqueGroups = response.data.filter((group, index, self) => 
+          index === self.findIndex(g => g.id === group.id)
+        ).map(group => ({
+          ...group,
+          // Also ensure items are unique if they exist
+          items: group.items ? group.items.filter((item, index, self) => 
+            index === self.findIndex(i => i.id === item.id)
+          ) : []
+        }));
+        setMenuGroups(uniqueGroups);
       } else {
         setError(response.message || "Failed to fetch menu groups");
         setMenuGroups([]); // Ensure menuGroups is always an array

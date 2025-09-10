@@ -24,7 +24,7 @@ namespace Backend.Services
             _serviceScopeFactory = serviceScopeFactory;
             _messageHandlers = new Dictionary<string, Func<string, string, Task>>();
             _mqttEnabled = true; // Will be checked dynamically from database
-            
+
             _logger.LogInformation("MQTT service initialized with dynamic configuration via scope factory");
         }
 
@@ -39,9 +39,9 @@ namespace Backend.Services
                     var mqttConfigService = scope.ServiceProvider.GetRequiredService<IMqttConfigurationService>();
                     effectiveConfig = await mqttConfigService.GetEffectiveConfigurationAsync();
                 }
-                
+
                 _mqttEnabled = (bool)effectiveConfig["IsEnabled"];
-                
+
                 if (!_mqttEnabled)
                 {
                     _logger.LogInformation("MQTT is disabled in configuration, skipping connection");
@@ -66,7 +66,7 @@ namespace Backend.Services
                 var useTls = (bool)effectiveConfig["UseSsl"];
                 var useWebSocket = (bool)effectiveConfig["UseWebSocket"];
                 var webSocketUri = (string)effectiveConfig["WebSocketUri"];
-                
+
                 // WebSocket path for backward compatibility
                 var webSocketPath = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_PATH") ?? _configuration["Mqtt:WebSocketPath"] ?? "/mqtt";
 
@@ -81,16 +81,16 @@ namespace Backend.Services
                     {
                         var wsPort = uri.Port == -1 ? (uri.Scheme == "wss" ? 443 : 80) : uri.Port;
                         var useTlsForWs = uri.Scheme == "wss";
-                        
+
                         clientOptionsBuilder.WithWebSocketServer(options =>
                         {
                             options.WithUri($"{uri.Scheme}://{uri.Host}:{wsPort}{webSocketPath}");
                         });
-                        
+
                         // Configure TLS at the client level for WebSocket Secure (WSS)
                         if (useTlsForWs)
                         {
-                            clientOptionsBuilder.WithTlsOptions(o => 
+                            clientOptionsBuilder.WithTlsOptions(o =>
                             {
                                 o.UseTls();
                                 o.WithAllowUntrustedCertificates(false);
@@ -111,12 +111,12 @@ namespace Backend.Services
                 {
                     // Traditional TCP connection
                     clientOptionsBuilder.WithTcpServer(host, port);
-                    
+
                     if (useTls)
                     {
                         clientOptionsBuilder.WithTlsOptions(o => o.UseTls());
                     }
-                    
+
                     _logger.LogInformation("Configuring MQTT over TCP: {Host}:{Port} (TLS: {UseTls})", host, port, useTls);
                 }
 
@@ -133,7 +133,7 @@ namespace Backend.Services
                 _mqttClient.DisconnectedAsync += OnDisconnected;
 
                 await _mqttClient.ConnectAsync(clientOptions);
-                
+
                 if (useWebSocket && !string.IsNullOrEmpty(webSocketUri))
                 {
                     _logger.LogInformation("Successfully connected to MQTT broker via WebSocket: {Uri}", webSocketUri);
@@ -170,19 +170,19 @@ namespace Backend.Services
         public async Task ReconnectWithNewConfigAsync()
         {
             _logger.LogInformation("Reconnecting MQTT with new configuration");
-            
+
             try
             {
                 // Disconnect current client
                 await DisconnectAsync();
-                
+
                 // Dispose current client
                 _mqttClient?.Dispose();
                 _mqttClient = null;
-                
+
                 // Connect with new configuration
                 await ConnectAsync();
-                
+
                 _logger.LogInformation("Successfully reconnected with new MQTT configuration");
             }
             catch (Exception ex)
@@ -303,7 +303,7 @@ namespace Backend.Services
                 {
                     var pattern = kvp.Key;
                     var patternHandler = kvp.Value;
-                    
+
                     if (pattern.Contains("+") || pattern.Contains("#"))
                     {
                         if (IsTopicMatch(topic, pattern))
@@ -326,7 +326,7 @@ namespace Backend.Services
                 using var scope = _serviceScopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
                 var deviceStatusService = scope.ServiceProvider.GetService<IDeviceStatusMonitoringService>();
-                
+
                 if (deviceStatusService == null)
                     return;
 

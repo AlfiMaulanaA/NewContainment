@@ -16,7 +16,7 @@ namespace Backend.Services
             _environment = environment;
             _logger = logger;
             _uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", "users");
-            
+
             // Ensure uploads directory exists
             if (!Directory.Exists(_uploadsPath))
             {
@@ -110,7 +110,7 @@ namespace Backend.Services
 
                 var bytes = await File.ReadAllBytesAsync(fullPath);
                 var contentType = GetContentType(photoPath);
-                
+
                 return new FileContentResult(bytes, contentType)
                 {
                     FileDownloadName = Path.GetFileName(photoPath)
@@ -171,7 +171,7 @@ namespace Backend.Services
                 var bytes = await File.ReadAllBytesAsync(fullPath);
                 var fileName = Path.GetFileName(photoPath);
                 var contentType = GetContentType(photoPath);
-                
+
                 return new FileStreamFormFile(new MemoryStream(bytes), fileName, contentType);
             }
             catch (Exception ex)
@@ -203,7 +203,7 @@ namespace Backend.Services
     public class FileStreamFormFile : IFormFile
     {
         private readonly Stream _stream;
-        
+
         public FileStreamFormFile(Stream stream, string fileName, string contentType)
         {
             _stream = stream;

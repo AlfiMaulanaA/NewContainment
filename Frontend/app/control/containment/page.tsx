@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +33,15 @@ import { useMQTTConnection } from "@/hooks/useMQTTConnection";
 import { MQTTTroubleshootingGuide } from "@/components/mqtt/mqtt-troubleshooting-guide";
 import MQTTConnectionBadge from "@/components/mqtt-status";
 import { toast } from "sonner";
-import { accessLogService, AccessLog, AccessMethod } from "@/lib/api-service";
+import {
+  accessLogService,
+  AccessLog,
+  AccessMethod,
+  containmentStatusApi,
+  containmentsApi,
+  ContainmentStatus,
+  Containment,
+} from "@/lib/api-service";
 
 interface ControlState {
   frontDoorAlwaysOpen: boolean;
@@ -41,12 +49,11 @@ interface ControlState {
   ceilingState: boolean; // true = open (down), false = closed (up)
 }
 
-interface ContainmentStatus {
-  frontDoorLimitSwitch: boolean;
-  backDoorLimitSwitch: boolean;
-  lighting: boolean;
-  emergency: boolean;
-  isOnline: boolean;
+interface ContainmentData {
+  id: number;
+  name: string;
+  type: number;
+  location?: string;
 }
 
 interface PublishHistory {
@@ -59,6 +66,8 @@ interface PublishHistory {
 
 export default function ContainmentControlPage() {
   const [containmentId, setContainmentId] = useState<number | null>(null);
+  const [containmentData, setContainmentData] =
+    useState<ContainmentData | null>(null);
   const [controlState, setControlState] = useState<ControlState>({
     frontDoorAlwaysOpen: false,
     backDoorAlwaysOpen: false,
@@ -70,15 +79,9 @@ export default function ContainmentControlPage() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-  const [containmentStatus, setContainmentStatus] = useState<ContainmentStatus>(
-    {
-      frontDoorLimitSwitch: false,
-      backDoorLimitSwitch: false,
-      lighting: false,
-      emergency: false,
-      isOnline: false,
-    }
-  );
+  const [containmentStatus, setContainmentStatus] =
+    useState<ContainmentStatus | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const { publishControlCommand } = useMQTTPublish();
   const mqttStatus = useMQTTStatus();
@@ -108,25 +111,54 @@ export default function ContainmentControlPage() {
     }
   };
 
+  // Load containment data
+  const loadContainmentData = async (id: number) => {
+    try {
+      setLoading(true);
+      const result = await containmentsApi.getContainments();
+      if (result.success && result.data) {
+        const containment = result.data.find((c) => c.id === id);
+        if (containment) {
+          setContainmentData({
+            id: containment.id,
+            name: containment.name,
+            type: containment.type,
+            location: containment.location,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load containment data:", error);
+      toast.error("Failed to load containment data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load containment data and access logs on component mount
   useEffect(() => {
     // Load containment ID from URL params, localStorage, or API
     const urlParams = new URLSearchParams(window.location.search);
-    const containmentIdFromUrl = urlParams.get('containmentId');
-    
+    const containmentIdFromUrl = urlParams.get("containmentId");
+
     if (containmentIdFromUrl) {
-      setContainmentId(parseInt(containmentIdFromUrl));
+      const id = parseInt(containmentIdFromUrl);
+      setContainmentId(id);
+      loadContainmentData(id);
     } else {
       // Try to get from localStorage or API
-      const storedContainmentId = localStorage.getItem('selectedContainmentId');
+      const storedContainmentId = localStorage.getItem("selectedContainmentId");
       if (storedContainmentId) {
-        setContainmentId(parseInt(storedContainmentId));
+        const id = parseInt(storedContainmentId);
+        setContainmentId(id);
+        loadContainmentData(id);
       } else {
         // Default to 1 if not found
         setContainmentId(1);
+        loadContainmentData(1);
       }
     }
-    
+
     loadAccessLogs();
 
     // Refresh logs every 30 seconds
@@ -134,14 +166,30 @@ export default function ContainmentControlPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load containment status from backend API
+  const loadContainmentStatus = useCallback(async () => {
+    if (!containmentId) return;
+
+    try {
+      const result = await containmentStatusApi.getLatestStatus(containmentId);
+      if (result.success && result.data) {
+        setContainmentStatus(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to load containment status:", error);
+    }
+  }, [containmentId]);
+
   // Load containment status on component mount and periodically
   useEffect(() => {
-    loadContainmentStatus();
+    if (containmentId) {
+      loadContainmentStatus();
 
-    // Refresh status every 10 seconds
-    const interval = setInterval(loadContainmentStatus, 10000);
-    return () => clearInterval(interval);
-  }, [mqttStatus]); // Re-run when MQTT status changes
+      // Refresh status every 10 seconds
+      const interval = setInterval(loadContainmentStatus, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [containmentId, mqttStatus, loadContainmentStatus]); // Re-run when containment ID, MQTT status, or load function changes
 
   const addToHistory = (command: string, success: boolean) => {
     const historyItem: PublishHistory = {
@@ -273,27 +321,33 @@ export default function ContainmentControlPage() {
     setIsPublishing(false);
   };
 
-  // Load containment status (mock function - replace with actual API call)
-  const loadContainmentStatus = async () => {
-    try {
-      // TODO: Replace with actual API call to get containment status
-      // const response = await containmentApi.getStatus();
-      // setContainmentStatus(response.data);
-
-      // Mock data for now
-      setContainmentStatus({
-        frontDoorLimitSwitch: Math.random() > 0.5,
-        backDoorLimitSwitch: Math.random() > 0.5,
-        lighting: Math.random() > 0.5,
-        emergency: Math.random() > 0.8, // Less likely to be in emergency
-        isOnline: mqttStatus === "connected",
-      });
-    } catch (error) {
-      console.error("Failed to load containment status:", error);
-    }
+  // Check if advanced controls should be shown
+  const shouldShowAdvancedControls = () => {
+    return containmentId === 1 && containmentData?.type === 1;
   };
 
   const isConnected = mqttStatus === "connected";
+
+  if (loading) {
+    return (
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <div className="flex items-center gap-2">
+            <Gamepad2 className="h-5 w-5" />
+            <h1 className="text-lg font-semibold">Containment Control</h1>
+          </div>
+        </header>
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+            <span>Loading containment data...</span>
+          </div>
+        </div>
+      </SidebarInset>
+    );
+  }
 
   return (
     <SidebarInset>
@@ -302,14 +356,7 @@ export default function ContainmentControlPage() {
         <Separator orientation="vertical" className="mr-2 h-4" />
         <div className="flex items-center gap-2">
           <Gamepad2 className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">
-            Containment Control
-            {containmentId && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                - ID: {containmentId}
-              </span>
-            )}
-          </h1>
+          <h1 className="text-lg font-semibold">Containment Control</h1>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <MQTTConnectionBadge />
@@ -470,12 +517,19 @@ export default function ContainmentControlPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                {containmentId === 1 ? 'System Controls' : 'Ceiling & System Controls'}
+                {shouldShowAdvancedControls()
+                  ? "Advanced System Controls"
+                  : "System Controls"}
+                {containmentData && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    - {containmentData.name}
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Ceiling Control - Hide for containment ID 1 */}
-              {containmentId !== 1 && (
+              {/* Ceiling Control - Show only for containmentId === 1 AND type === 1 */}
+              {shouldShowAdvancedControls() && (
                 <>
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-muted-foreground">
@@ -490,7 +544,9 @@ export default function ContainmentControlPage() {
                           <ArrowUp className="h-4 w-4 text-gray-500" />
                         )}
                         <div>
-                          <Label className="font-medium">Ceiling Position</Label>
+                          <Label className="font-medium">
+                            Ceiling Position
+                          </Label>
                           <div className="text-xs text-muted-foreground">
                             Current:{" "}
                             {controlState.ceilingState
@@ -535,104 +591,134 @@ export default function ContainmentControlPage() {
                 <h3 className="text-sm font-medium text-muted-foreground">
                   Containment Status
                 </h3>
-                {/* System Online Status */}
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {containmentStatus.isOnline ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    )}
-                    <div>
-                      <Label className="font-medium">System Status</Label>
-                      <div className="text-xs text-muted-foreground">
-                        Containment system is{" "}
-                        {containmentStatus.isOnline ? "online" : "offline"}
+                {containmentStatus && (
+                  <>
+                    {/* Emergency Status - Most Important */}
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {containmentStatus.emergencyStatus ? (
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        )}
+                        <div>
+                          <Label className="font-medium">
+                            Emergency Status
+                          </Label>
+                          <div className="text-xs text-muted-foreground">
+                            System{" "}
+                            {containmentStatus.emergencyStatus
+                              ? "in emergency"
+                              : "operating normally"}
+                          </div>
+                        </div>
                       </div>
+                      <Badge
+                        variant={
+                          containmentStatus.emergencyStatus
+                            ? "destructive"
+                            : "default"
+                        }
+                        className={
+                          containmentStatus.emergencyStatus
+                            ? "animate-pulse"
+                            : ""
+                        }
+                      >
+                        {containmentStatus.emergencyStatus
+                          ? "EMERGENCY"
+                          : "Normal"}
+                      </Badge>
                     </div>
-                  </div>
-                  <Badge
-                    variant={
-                      containmentStatus.isOnline ? "default" : "destructive"
-                    }
-                  >
-                    {containmentStatus.isOnline ? "Online" : "Offline"}
-                  </Badge>
-                </div>
+                  </>
+                )}
                 {/* Status Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Front Door Limit Switch */}
-                  <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-2">
-                      <DoorOpen className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs font-medium">Front Door</span>
+                {containmentStatus ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Front Door Limit Switch */}
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <DoorOpen className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-medium">Front Door</span>
+                      </div>
+                      <Badge
+                        variant={
+                          containmentStatus.limitSwitchFrontDoorStatus
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {containmentStatus.limitSwitchFrontDoorStatus
+                          ? "Active"
+                          : "Inactive"}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={
-                        containmentStatus.frontDoorLimitSwitch
-                          ? "default"
-                          : "secondary"
-                      }
-                      className="text-xs"
-                    >
-                      {containmentStatus.frontDoorLimitSwitch
-                        ? "Open"
-                        : "Closed"}
-                    </Badge>
-                  </div>
 
-                  {/* Back Door Limit Switch */}
-                  <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-2">
-                      <DoorOpen className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs font-medium">Back Door</span>
+                    {/* Back Door Limit Switch */}
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <DoorOpen className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-medium">Back Door</span>
+                      </div>
+                      <Badge
+                        variant={
+                          containmentStatus.limitSwitchBackDoorStatus
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {containmentStatus.limitSwitchBackDoorStatus
+                          ? "Active"
+                          : "Inactive"}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={
-                        containmentStatus.backDoorLimitSwitch
-                          ? "default"
-                          : "secondary"
-                      }
-                      className="text-xs"
-                    >
-                      {containmentStatus.backDoorLimitSwitch
-                        ? "Open"
-                        : "Closed"}
-                    </Badge>
-                  </div>
 
-                  {/* Lighting Status */}
-                  <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-2">
-                      <Monitor className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs font-medium">Lighting</span>
+                    {/* Lighting Status */}
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-medium">Lighting</span>
+                      </div>
+                      <Badge
+                        variant={
+                          containmentStatus.lightingStatus
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {containmentStatus.lightingStatus
+                          ? "Active"
+                          : "Inactive"}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={
-                        containmentStatus.lighting ? "default" : "secondary"
-                      }
-                      className="text-xs"
-                    >
-                      {containmentStatus.lighting ? "On" : "Off"}
-                    </Badge>
-                  </div>
 
-                  {/* Emergency Status */}
-                  <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs font-medium">Emergency</span>
+                    {/* Fire Suppression System */}
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-medium">
+                          Fire Suppression
+                        </span>
+                      </div>
+                      <Badge
+                        variant={
+                          containmentStatus.fssStatus ? "default" : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {containmentStatus.fssStatus ? "Active" : "Inactive"}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={
-                        containmentStatus.emergency ? "destructive" : "default"
-                      }
-                      className="text-xs"
-                    >
-                      {containmentStatus.emergency ? "Alert" : "Normal"}
-                    </Badge>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <Monitor className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Loading status data...</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

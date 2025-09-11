@@ -99,6 +99,13 @@ export function middleware(request: NextRequest) {
 
   // console.log(`[Middleware] Token found: ${!!token}, Public route: ${isPublicRoute}`);
 
+  // Special handling for root path without token - redirect to login
+  if (!token && pathname === "/") {
+    // console.log(`[Middleware] No token on root path, redirecting to login`);
+    const loginUrl = new URL("/auth/login", request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
   // If no token and trying to access protected route
   if (!token && !isPublicRoute) {
     // console.log(`[Middleware] No token for protected route, redirecting to login`);
@@ -122,10 +129,16 @@ export function middleware(request: NextRequest) {
     }
 
     // If token is valid and trying to access auth pages, redirect to dashboard
-    // Add additional check to prevent redirect loops
-    // TEMPORARILY DISABLED TO TEST REDIRECT LOOPS
-    if (isValid && isPublicRoute && pathname !== "/dashboard-overview") {
+    // Prevent redirect loops by checking exact paths
+    if (isValid && isPublicRoute && pathname !== "/dashboard-overview" && pathname !== "/") {
       // console.log(`[Middleware] Valid token on public route, redirecting to dashboard`);
+      const dashboardUrl = new URL("/dashboard-overview", request.url);
+      return NextResponse.redirect(dashboardUrl);
+    }
+
+    // Special handling for root path with valid token
+    if (isValid && pathname === "/" && request.nextUrl.search === "") {
+      // console.log(`[Middleware] Valid token on root path, redirecting to dashboard`);
       const dashboardUrl = new URL("/dashboard-overview", request.url);
       return NextResponse.redirect(dashboardUrl);
     }
@@ -146,8 +159,7 @@ export function middleware(request: NextRequest) {
         pathname.startsWith(route)
       );
       if (isAdminRoute && userRole.level < 3) {
-        // Admin level = 3
-        // TEMPORARILY DISABLED TO TEST REDIRECT LOOPS
+        // Admin level = 3, redirect unauthorized users
         const dashboardUrl = new URL("/dashboard-overview", request.url);
         return NextResponse.redirect(dashboardUrl);
       }

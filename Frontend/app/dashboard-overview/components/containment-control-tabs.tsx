@@ -322,7 +322,7 @@ export default function ContainmentControlPage() {
 
   // Check if advanced controls should be shown
   const shouldShowAdvancedControls = () => {
-    return containmentId === 1 && containmentData?.type === 1;
+    return containmentId === 1 && containmentData?.type === 2;
   };
 
   const isConnected = mqttStatus === "connected";

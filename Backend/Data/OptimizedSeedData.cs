@@ -431,7 +431,6 @@ new MenuItem {
                      // Configuration items
                     new MenuItem { Title = "Network Settings", Url = "/network", Icon = "Wifi", SortOrder = 1, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[4].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "MQTT Config", Url = "/mqtt", Icon = "Radio", SortOrder = 2, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[4].Id, CreatedAt = DateTime.UtcNow },
-                    new MenuItem { Title = "Sensor Intervals", Url = "/configuration/sensor-intervals", Icon = "Clock", SortOrder = 3, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[4].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "Controller Config", Url = "/configuration/controller", Icon = "Cpu", SortOrder = 4, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[4].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "System Settings", Url = "/settings/setting", Icon = "Settings", SortOrder = 5, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[4].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "System Info", Url = "/info", Icon = "Info", SortOrder = 6, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[4].Id, CreatedAt = DateTime.UtcNow },

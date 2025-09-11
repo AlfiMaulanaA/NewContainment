@@ -237,6 +237,26 @@ deploy_frontend() {
     log_success "Frontend deployed successfully"
 }
 
+# Function to detect system architecture
+detect_architecture() {
+    local arch=$(uname -m)
+    case $arch in
+        x86_64)
+            echo "linux-x64"
+            ;;
+        aarch64|arm64)
+            echo "linux-arm64"
+            ;;
+        armv7l)
+            echo "linux-arm"
+            ;;
+        *)
+            log_error "Unsupported architecture: $arch"
+            exit 1
+            ;;
+    esac
+}
+
 # Function to build and deploy backend
 deploy_backend() {
     log "=== Deploying Backend ==="
@@ -248,13 +268,73 @@ deploy_backend() {
     
     cd "$BACKEND_DIR"
     
-    log "Building backend for Linux..."
-    dotnet publish -c Release -r linux-x64 --self-contained true -o publish
+    # Detect target architecture
+    local target_arch=$(detect_architecture)
+    log "Detected target architecture: $target_arch"
+    
+    # Stop existing service first
+    sudo systemctl stop NewContainmentWeb.service 2>/dev/null || true
+    
+    # Clean previous build
+    if [ -d "publish" ]; then
+        sudo rm -rf publish
+        log "Cleaned previous build"
+    fi
+    
+    # Build with framework-dependent deployment (more reliable)
+    log "Building backend for $target_arch (framework-dependent)..."
+    dotnet clean -c Release
+    dotnet publish -c Release -r $target_arch --no-self-contained -o publish
+    
+    # Verify build
+    if [ ! -f "publish/Backend.dll" ]; then
+        log_error "Backend build failed - Backend.dll not found"
+        exit 1
+    fi
     
     log "Setting executable permissions..."
-    chmod +x publish/Backend
+    chmod +x publish/Backend 2>/dev/null || true
     
     log_success "Backend built successfully"
+}
+
+# Function to setup database
+setup_database() {
+    log "=== Setting Up Database ==="
+    cd "$BACKEND_DIR"
+    
+    # Check if database exists and backup
+    if [ -f "app.db" ]; then
+        log "Backing up existing database..."
+        cp app.db "app.db.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    # Install EF tools if not available
+    if ! dotnet tool list -g | grep -q "dotnet-ef"; then
+        log "Installing Entity Framework tools..."
+        dotnet tool install --global dotnet-ef
+    fi
+    
+    # Run migrations
+    log "Running database migrations..."
+    if dotnet ef database update --no-build; then
+        log_success "Database migrations completed"
+    else
+        log_error "Database migrations failed"
+        # Don't exit, continue with deployment
+    fi
+    
+    # Force seed data if database is new or empty
+    if [ -f "app.db" ]; then
+        local table_count=$(sqlite3 app.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "0")
+        log "Database tables count: $table_count"
+        
+        if [ "$table_count" -lt "5" ]; then
+            log_warning "Database has few tables, seeding will be handled by application startup"
+        fi
+    fi
+    
+    log_success "Database setup completed"
 }
 
 # Function to install systemd service
@@ -300,10 +380,85 @@ start_services() {
     log "Starting NewContainmentWeb backend service..."
     sudo systemctl start NewContainmentWeb.service
     
+    # Wait for service to start
+    sleep 5
+    
     log "Checking service status..."
-    sudo systemctl status NewContainmentWeb.service --no-pager
+    if sudo systemctl is-active --quiet NewContainmentWeb.service; then
+        log_success "Backend service is active"
+    else
+        log_error "Backend service failed to start"
+        sudo journalctl -u NewContainmentWeb.service --no-pager -n 20
+        exit 1
+    fi
     
     log_success "Services started successfully"
+}
+
+# Function to verify deployment
+verify_deployment() {
+    log "=== Verifying Deployment ==="
+    
+    # Check if sqlite3 is available for database verification
+    if ! command_exists sqlite3; then
+        log "Installing sqlite3 for database verification..."
+        sudo apt-get update && sudo apt-get install -y sqlite3
+    fi
+    
+    # Check backend health
+    log "Checking backend health..."
+    local backend_ready=false
+    for i in {1..30}; do
+        if curl -s http://localhost:5000/api/health > /dev/null 2>&1; then
+            backend_ready=true
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            log_warning "Backend health check endpoint not responding after 30 attempts"
+            # Don't exit, just warn
+        fi
+        sleep 2
+    done
+    
+    if [ "$backend_ready" = true ]; then
+        log_success "Backend health check passed"
+    else
+        log_warning "Backend health check failed, but service is running"
+    fi
+    
+    # Check frontend
+    log "Checking frontend health..."
+    local frontend_ready=false
+    for i in {1..15}; do
+        if curl -s http://localhost:3000 > /dev/null 2>&1; then
+            frontend_ready=true
+            break
+        fi
+        if [ $i -eq 15 ]; then
+            log_warning "Frontend health check failed after 15 attempts"
+        fi
+        sleep 2
+    done
+    
+    if [ "$frontend_ready" = true ]; then
+        log_success "Frontend health check passed"
+    else
+        log_warning "Frontend health check failed"
+    fi
+    
+    # Database verification
+    if [ -f "$BACKEND_DIR/app.db" ]; then
+        local user_count=$(sqlite3 "$BACKEND_DIR/app.db" "SELECT COUNT(*) FROM Users;" 2>/dev/null || echo "0")
+        if [ "$user_count" -gt "0" ]; then
+            log_success "Database contains $user_count users (seeded)"
+        else
+            log_warning "Database exists but no users found (seeding may be needed)"
+        fi
+    else
+        log_warning "Database file not found"
+    fi
+    
+    log_success "Deployment verification completed"
 }
 
 # Function to show deployment status
@@ -316,16 +471,44 @@ show_status() {
     
     echo ""
     log "Backend Status (Systemd):"
-    sudo systemctl status NewContainmentWeb.service --no-pager
+    sudo systemctl status NewContainmentWeb.service --no-pager -l
     
     echo ""
     log "Service URLs:"
     echo "  Frontend: http://localhost:3000"
     echo "  Backend API: http://localhost:5000"
     echo "  Backend Swagger: http://localhost:5000/swagger"
+    echo "  Backend Health: http://localhost:5000/api/health"
     
     echo ""
-    log_success "Deployment completed successfully!"
+    log "Database Status:"
+    if [ -f "$BACKEND_DIR/app.db" ]; then
+        local db_size=$(du -h "$BACKEND_DIR/app.db" | cut -f1)
+        echo "  Database file: $BACKEND_DIR/app.db ($db_size)"
+        local table_count=$(sqlite3 "$BACKEND_DIR/app.db" "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "0")
+        echo "  Tables count: $table_count"
+        local user_count=$(sqlite3 "$BACKEND_DIR/app.db" "SELECT COUNT(*) FROM Users;" 2>/dev/null || echo "0")
+        echo "  Users count: $user_count"
+    else
+        echo "  Database file: Not found"
+    fi
+    
+    echo ""
+    log "System Information:"
+    echo "  Architecture: $(detect_architecture)"
+    echo "  .NET Version: $(dotnet --version)"
+    echo "  Node Version: $(node --version)"
+    echo "  Deployment Time: $(date)"
+    
+    echo ""
+    log "Useful Commands:"
+    echo "  Backend logs: sudo journalctl -u NewContainmentWeb.service -f"
+    echo "  Frontend logs: pm2 logs newcontainment-frontend"
+    echo "  Restart backend: sudo systemctl restart NewContainmentWeb.service"
+    echo "  Restart frontend: pm2 restart newcontainment-frontend"
+    
+    echo ""
+    log_success "Enhanced deployment completed successfully!"
 }
 
 # Main deployment function
@@ -351,13 +534,19 @@ main() {
     # Step 3: Deploy backend  
     deploy_backend
     
-    # Step 4: Install systemd service
+    # Step 4: Setup database
+    setup_database
+    
+    # Step 5: Install systemd service
     install_systemd_service
     
-    # Step 5: Start services
+    # Step 6: Start services
     start_services
     
-    # Step 6: Show status
+    # Step 7: Verify deployment
+    verify_deployment
+    
+    # Step 8: Show status
     show_status
 }
 

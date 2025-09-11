@@ -346,7 +346,8 @@ namespace Backend.Data
                     new MenuItem { Title = "Containments", Url = "/management/containments", Icon = "Server", SortOrder = 2, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "Racks", Url = "/management/racks", Icon = "Computer", SortOrder = 3, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "Devices", Url = "/management/devices", Icon = "HardDrive", SortOrder = 4, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
-                    new MenuItem { Title = "Maintenance", Url = "/management/maintenance", Icon = "Wrench", SortOrder = 5, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
+                    // new MenuItem { Title = "Capacity", Url = "/management/capacity", Icon = "BarChart3", SortOrder = 5, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
+                    new MenuItem { Title = "Maintenance", Url = "/management/maintenance", Icon = "Wrench", SortOrder = 6, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
 
                     // Security items
 // Assuming menuGroups[3] is for "Access Control"

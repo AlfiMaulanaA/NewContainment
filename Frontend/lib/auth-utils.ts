@@ -37,58 +37,66 @@ export interface CurrentUser {
 export function decodeJWT(token: string): DecodedToken | null {
   try {
     // Split the token into parts
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) {
       return null;
     }
 
     // Decode the payload (middle part)
     const payload = parts[1];
-    
+
     // Add padding if needed for base64 decoding
-    const paddedPayload = payload + '==='.slice((payload.length + 3) % 4);
-    
+    const paddedPayload = payload + "===".slice((payload.length + 3) % 4);
+
     // Decode base64
-    const decodedPayload = atob(paddedPayload.replace(/-/g, '+').replace(/_/g, '/'));
-    
+    const decodedPayload = atob(
+      paddedPayload.replace(/-/g, "+").replace(/_/g, "/")
+    );
+
     // Parse JSON
     return JSON.parse(decodedPayload) as DecodedToken;
   } catch (error) {
-    console.error('Error decoding JWT:', error);
+    console.error("Error decoding JWT:", error);
     return null;
   }
 }
 
 // Check if token is expired (with 5 minute buffer for safety)
-export function isTokenExpired(token: string, bufferMinutes: number = 5): boolean {
+export function isTokenExpired(
+  token: string,
+  bufferMinutes: number = 5
+): boolean {
   const decodedToken = decodeJWT(token);
   if (!decodedToken) return true;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   const bufferTime = bufferMinutes * 60; // Convert minutes to seconds
-  
-  return decodedToken.exp < (currentTime + bufferTime);
+
+  return decodedToken.exp < currentTime + bufferTime;
 }
 
 // Check if token will expire soon (within specified minutes)
-export function isTokenExpiringSoon(token: string, withinMinutes: number = 10): boolean {
+export function isTokenExpiringSoon(
+  token: string,
+  withinMinutes: number = 10
+): boolean {
   const decodedToken = decodeJWT(token);
   if (!decodedToken) return true;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   const withinTime = withinMinutes * 60; // Convert minutes to seconds
-  
-  return decodedToken.exp < (currentTime + withinTime);
+
+  return decodedToken.exp < currentTime + withinTime;
 }
 
 // Get token time remaining in minutes
 export function getTokenTimeRemaining(token: string): number {
   const decodedToken = decodeJWT(token);
   if (!decodedToken) return 0;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   const remainingSeconds = decodedToken.exp - currentTime;
-  
+
   return Math.max(0, Math.floor(remainingSeconds / 60));
 }
 
@@ -96,10 +104,10 @@ export function getTokenTimeRemaining(token: string): number {
 export function getTokenTimeRemainingInSeconds(token: string): number {
   const decodedToken = decodeJWT(token);
   if (!decodedToken) return 0;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   const remainingSeconds = decodedToken.exp - currentTime;
-  
+
   return Math.max(0, remainingSeconds);
 }
 
@@ -107,7 +115,7 @@ export function getTokenTimeRemainingInSeconds(token: string): number {
 export function getTokenExpiryDate(token: string): Date | null {
   const decodedToken = decodeJWT(token);
   if (!decodedToken) return null;
-  
+
   return new Date(decodedToken.exp * 1000);
 }
 
@@ -115,7 +123,7 @@ export function getTokenExpiryDate(token: string): Date | null {
 export function getTokenIssuedDate(token: string): Date | null {
   const decodedToken = decodeJWT(token);
   if (!decodedToken) return null;
-  
+
   return new Date(decodedToken.iat * 1000);
 }
 
@@ -132,8 +140,9 @@ export interface TokenInfo {
 }
 
 export function getTokenInfo(withinMinutes: number = 10): TokenInfo {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+
   if (!token) {
     return {
       isValid: false,
@@ -186,28 +195,30 @@ export function getCurrentUserFromToken(): CurrentUser | null {
   try {
     // Check localStorage first, then cookies
     let token = null;
-    if (typeof window !== 'undefined') {
-      token = localStorage.getItem('authToken');
-      
+    if (typeof window !== "undefined") {
+      token = localStorage.getItem("authToken");
+      // console.log('🔍 getCurrentUserFromToken: Token from localStorage:', token ? 'EXISTS' : 'NULL');
+
       // Fallback to cookies if localStorage is empty
       if (!token) {
-        const cookies = document.cookie.split(';');
-        const authCookie = cookies.find(cookie => cookie.trim().startsWith('authToken='));
+        const cookies = document.cookie.split(";");
+        const authCookie = cookies.find((cookie) =>
+          cookie.trim().startsWith("authToken=")
+        );
         if (authCookie) {
-          token = authCookie.split('=')[1];
+          token = authCookie.split("=")[1];
         }
       }
     }
 
-    if (!token) return null;
+    if (!token) {
+      return null;
+    }
 
     // Check if token is expired (without buffer for initial check)
     if (isTokenExpired(token, 0)) {
-      console.log('Token is expired, removing from storage');
-      // Clean up expired token
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("authToken");
       }
       return null;
     }
@@ -220,23 +231,27 @@ export function getCurrentUserFromToken(): CurrentUser | null {
       name: decodedToken.unique_name,
       email: decodedToken.email,
       role: decodedToken.role,
-      roleLevel: decodedToken.RoleLevel ? parseInt(decodedToken.RoleLevel) : getRoleLevelFromName(decodedToken.role),
+      roleLevel: decodedToken.RoleLevel
+        ? parseInt(decodedToken.RoleLevel)
+        : getRoleLevelFromName(decodedToken.role),
       isAuthenticated: true,
     };
-    
+
     // Add database role information if available
     if (decodedToken.DatabaseRoleId && decodedToken.DatabaseRoleName) {
       user.databaseRole = {
         id: parseInt(decodedToken.DatabaseRoleId),
         name: decodedToken.DatabaseRoleName,
-        displayName: decodedToken.DatabaseRoleDisplayName || decodedToken.DatabaseRoleName,
-        color: decodedToken.RoleColor || getRoleColor(decodedToken.DatabaseRoleName)
+        displayName:
+          decodedToken.DatabaseRoleDisplayName || decodedToken.DatabaseRoleName,
+        color:
+          decodedToken.RoleColor || getRoleColor(decodedToken.DatabaseRoleName),
       };
     }
-    
+
     return user;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error("Error getting current user:", error);
     return null;
   }
 }
@@ -244,13 +259,13 @@ export function getCurrentUserFromToken(): CurrentUser | null {
 // Get role level from role name (for backward compatibility)
 export function getRoleLevelFromName(roleName?: string | null): number {
   if (!roleName) return 1;
-  
+
   switch (roleName.toLowerCase()) {
-    case 'user':
+    case "user":
       return 1;
-    case 'admin':
+    case "admin":
       return 2;
-    case 'developer':
+    case "developer":
       return 3;
     default:
       return 1;
@@ -259,39 +274,42 @@ export function getRoleLevelFromName(roleName?: string | null): number {
 
 // Get role display name
 export function getRoleDisplayName(role?: string | null): string {
-  if (!role) return 'User';
-  
+  if (!role) return "User";
+
   switch (role.toLowerCase()) {
-    case 'admin':
-      return 'Administrator';
-    case 'developer':
-      return 'Developer';
-    case 'user':
-      return 'User';
+    case "admin":
+      return "Administrator";
+    case "developer":
+      return "Developer";
+    case "user":
+      return "User";
     default:
       return role;
   }
 }
 
 // Get role color (with database role support)
-export function getRoleColor(role?: string | null, user?: CurrentUser | null): string {
+export function getRoleColor(
+  role?: string | null,
+  user?: CurrentUser | null
+): string {
   // Use database role color if available
   if (user?.databaseRole?.color) {
     return user.databaseRole.color;
   }
-  
+
   // Fallback to enum-based colors
-  if (!role) return 'text-green-600 bg-green-100';
-  
+  if (!role) return "text-green-600 bg-green-100";
+
   switch (role.toLowerCase()) {
-    case 'admin':
-      return 'text-red-600 bg-red-100';
-    case 'developer':
-      return 'text-blue-600 bg-blue-100';
-    case 'user':
-      return 'text-green-600 bg-green-100';
+    case "admin":
+      return "text-red-600 bg-red-100";
+    case "developer":
+      return "text-blue-600 bg-blue-100";
+    case "user":
+      return "text-green-600 bg-green-100";
     default:
-      return 'text-gray-600 bg-gray-100';
+      return "text-gray-600 bg-gray-100";
   }
 }
 

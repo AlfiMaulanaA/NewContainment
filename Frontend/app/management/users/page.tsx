@@ -15,6 +15,11 @@ import {
   Upload,
   Camera,
   X,
+  Eye,
+  EyeOff,
+  Check,
+  X as XIcon,
+  Lock,
 } from "lucide-react";
 import { User as UserIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -106,8 +111,20 @@ export default function UserManagementPage() {
   >({
     name: "",
     email: "",
+    password: "",
     phoneNumber: "",
     role: UserRole.User,
+  });
+
+  // Password validation state
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    hasSpecialChar: false,
+    passwordsMatch: false,
   });
 
   // Hooks for sorting and filtering
@@ -160,13 +177,37 @@ export default function UserManagementPage() {
     loadUsers();
   }, []);
 
+  // Password validation function
+  const validatePassword = (password: string, confirmPassword: string) => {
+    const validation = {
+      minLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+      passwordsMatch: password === confirmPassword && password.length > 0,
+    };
+    setPasswordValidation(validation);
+    return Object.values(validation).every(Boolean);
+  };
+
   // Reset form
   const resetForm = () => {
     setFormData({
       name: "",
       email: "",
+      password: "",
       phoneNumber: "",
       role: UserRole.User,
+    });
+    setPasswordConfirm("");
+    setPasswordValidation({
+      minLength: false,
+      hasUpperCase: false,
+      hasLowerCase: false,
+      hasNumber: false,
+      hasSpecialChar: false,
+      passwordsMatch: false,
     });
     setEditingUser(null);
     setSelectedFile(null);
@@ -175,6 +216,27 @@ export default function UserManagementPage() {
 
   // Handle create user
   const handleCreateUser = async () => {
+    // Validate form fields
+    if (!formData.name.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    if (!formData.password.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+
+    // Validate password strength and confirmation
+    const isPasswordValid = validatePassword(formData.password, passwordConfirm);
+    if (!isPasswordValid) {
+      toast.error("Please ensure password meets all requirements and passwords match");
+      return;
+    }
+
     setActionLoading(true);
     try {
       const result = await usersApi.createUser(formData as CreateUserRequest);
@@ -438,6 +500,103 @@ export default function UserManagementPage() {
                       }
                       placeholder="Enter phone number"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => {
+                          setFormData({ ...formData, password: e.target.value });
+                          validatePassword(e.target.value, passwordConfirm);
+                        }}
+                        placeholder="Enter password"
+                      />
+                      <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="passwordConfirm">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="passwordConfirm"
+                        type="password"
+                        value={passwordConfirm}
+                        onChange={(e) => {
+                          setPasswordConfirm(e.target.value);
+                          validatePassword(formData.password, e.target.value);
+                        }}
+                        placeholder="Confirm password"
+                      />
+                      <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Password Requirements</Label>
+                    <div className="space-y-1 mt-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        {passwordValidation.minLength ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={passwordValidation.minLength ? "text-green-600" : "text-red-600"}>
+                          At least 8 characters
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {passwordValidation.hasUpperCase ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={passwordValidation.hasUpperCase ? "text-green-600" : "text-red-600"}>
+                          One uppercase letter
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {passwordValidation.hasLowerCase ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={passwordValidation.hasLowerCase ? "text-green-600" : "text-red-600"}>
+                          One lowercase letter
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {passwordValidation.hasNumber ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={passwordValidation.hasNumber ? "text-green-600" : "text-red-600"}>
+                          One number
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {passwordValidation.hasSpecialChar ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={passwordValidation.hasSpecialChar ? "text-green-600" : "text-red-600"}>
+                          One special character
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {passwordValidation.passwordsMatch ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={passwordValidation.passwordsMatch ? "text-green-600" : "text-red-600"}>
+                          Passwords match
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="role">Role</Label>

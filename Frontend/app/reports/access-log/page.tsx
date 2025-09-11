@@ -27,6 +27,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import {
   Download,
@@ -332,431 +334,449 @@ export default function AccessLogPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Access Log Reports</h1>
-        <div className="flex gap-2">
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="h-6" />
+          <History className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+            Access Log Reports
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
           <Button
             onClick={applyFilters}
             variant="outline"
+            size="sm"
             disabled={loadingData}
           >
             <RefreshCw
-              className={`h-4 w-4 mr-2 ${loadingData ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${loadingData ? "animate-spin" : ""}`}
             />
-            Refresh
+            <span className="sr-only md:not-sr-only md:ml-2">Refresh</span>
           </Button>
           <Button
             onClick={exportToCSV}
             variant="outline"
+            size="sm"
             disabled={accessLogs.length === 0}
           >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            <Download className="h-4 w-4" />
+            <span className="sr-only md:not-sr-only md:ml-2">Export CSV</span>
           </Button>
         </div>
-      </div>
+      </header>
 
-      <Tabs defaultValue="logs" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="logs">Access Logs</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-        </TabsList>
+      <div className="flex-1 p-4 space-y-6">
+        <Tabs defaultValue="logs" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="logs">Access Logs</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="logs" className="space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filters
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="via">Access Method</Label>
-                  <Select
-                    value={filters.via}
-                    onValueChange={(value) => handleFilterChange("via", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All methods" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All methods</SelectItem>
-                      {ACCESS_METHODS.map((method) => (
-                        <SelectItem
-                          key={method.value}
-                          value={method.value.toString()}
-                        >
-                          <div className="flex items-center gap-2">
-                            <method.icon className="h-4 w-4" />
-                            {method.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="user">User</Label>
-                  <Input
-                    id="user"
-                    placeholder="Filter by user"
-                    value={filters.user}
-                    onChange={(e) => handleFilterChange("user", e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="datetime-local"
-                    value={filters.startDate}
-                    onChange={(e) =>
-                      handleFilterChange("startDate", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="datetime-local"
-                    value={filters.endDate}
-                    onChange={(e) =>
-                      handleFilterChange("endDate", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="col-span-full md:col-span-2">
-                  <Label htmlFor="searchTerm">Search</Label>
-                  <Input
-                    id="searchTerm"
-                    placeholder="Search in user, trigger, or method"
-                    value={filters.searchTerm}
-                    onChange={(e) =>
-                      handleFilterChange("searchTerm", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="pageSize">Records per page</Label>
-                  <Select
-                    value={filters.pageSize.toString()}
-                    onValueChange={(value) => {
-                      handleFilterChange("pageSize", value);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 per page</SelectItem>
-                      <SelectItem value="25">25 per page</SelectItem>
-                      <SelectItem value="50">50 per page</SelectItem>
-                      <SelectItem value="100">100 per page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-end gap-2 col-span-full md:col-span-1">
-                  <Button
-                    onClick={applyFilters}
-                    className="flex-1"
-                    disabled={loadingData}
-                  >
-                    {loadingData ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4 mr-2" />
-                    )}
-                    Apply Filters
-                  </Button>
-                  <Button
-                    onClick={clearFilters}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={loadingData}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Access Logs ({updatedPagination.totalRecords} records)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("timestamp")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Timestamp
-                          {renderSortIcon("timestamp")}
-                        </div>
-                      </TableHead>
-
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("isSuccess")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Status
-                          {renderSortIcon("isSuccess")}
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("user")}
-                      >
-                        <div className="flex items-center gap-2">
-                          User
-                          {renderSortIcon("user")}
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("via")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Method
-                          {renderSortIcon("via")}
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none hover:bg-muted/50"
-                        onClick={() => handleSort("trigger")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Trigger
-                          {renderSortIcon("trigger")}
-                        </div>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedLogs.length > 0 ? (
-                      paginatedLogs.map((log) => {
-                        const IconComponent = getAccessMethodIcon(log.via);
-                        return (
-                          <TableRow key={log.id}>
-                            <TableCell className="font-mono text-sm">
-                              {formatTimestamp(log.timestamp)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={log.isSuccess ? "success" : "danger"}
-                              >
-                                {log.isSuccess === true ? (
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                ) : (
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                )}
-                                {log.isSuccess ? "Success" : "Failed"}
-                              </Badge>
-                            </TableCell>
-
-                            <TableCell>
-                              <div className="font-medium">{log.user}</div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <IconComponent className="h-4 w-4" />
-                                {getAccessMethodLabel(log.via)}
-                              </div>
-                            </TableCell>
-                            <TableCell>{log.description}</TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          {loadingData ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                              Loading access logs...
-                            </div>
-                          ) : (
-                            "No access logs found"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              {updatedPagination.totalPages > 1 && (
-                <div className="mt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startIndex + 1} to{" "}
-                      {Math.min(endIndex, updatedPagination.totalRecords)} of{" "}
-                      {updatedPagination.totalRecords} entries
-                    </div>
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() =>
-                              handlePageChange(
-                                updatedPagination.currentPage - 1
-                              )
-                            }
-                            className={
-                              !updatedPagination.hasPreviousPage
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-                        <PaginationItem>
-                          <PaginationLink
-                            isActive={true}
-                            className="cursor-pointer"
-                          >
-                            {updatedPagination.currentPage}
-                          </PaginationLink>
-                        </PaginationItem>
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() =>
-                              handlePageChange(
-                                updatedPagination.currentPage + 1
-                              )
-                            }
-                            className={
-                              !updatedPagination.hasNextPage
-                                ? "pointer-events-none opacity-50"
-                                : "cursor-pointer"
-                            }
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="summary" className="space-y-6">
-          {summary && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold">
-                      {summary?.totalLogs?.toLocaleString() ?? "0"}
-                    </div>
-                    <p className="text-muted-foreground">Total Logs</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold text-green-600">
-                      {summary?.successfulLogs?.toLocaleString() ?? "0"}
-                    </div>
-                    <p className="text-muted-foreground">Successful</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold text-red-600">
-                      {summary?.failedLogs?.toLocaleString() ?? "0"}
-                    </div>
-                    <p className="text-muted-foreground">Failed</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-2xl font-bold">
-                      {summary?.logsByVia
-                        ?.find((l) => l.via === AccessMethod.Software)
-                        ?.count?.toLocaleString() ?? "0"}
-                    </div>
-                    <p className="text-muted-foreground">Software Access</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Access Methods</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {(summary?.logsByVia ?? []).map((item) => {
-                        const IconComponent = getAccessMethodIcon(item.via);
-                        return (
-                          <div
-                            key={item.via}
-                            className="flex items-center justify-between"
+          <TabsContent value="logs" className="space-y-6">
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="via">Access Method</Label>
+                    <Select
+                      value={filters.via}
+                      onValueChange={(value) =>
+                        handleFilterChange("via", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All methods" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All methods</SelectItem>
+                        {ACCESS_METHODS.map((method) => (
+                          <SelectItem
+                            key={method.value}
+                            value={method.value.toString()}
                           >
                             <div className="flex items-center gap-2">
-                              <IconComponent className="h-4 w-4" />
-                              <Badge variant="outline">
-                                {getAccessMethodLabel(item.via)}
-                              </Badge>
+                              <method.icon className="h-4 w-4" />
+                              {method.label}
                             </div>
-                            <span className="font-medium">
-                              {item?.count?.toLocaleString() ?? "0"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Top Users</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-64 overflow-auto">
-                      {(summary?.topUsers ?? []).map((user) => (
-                        <div
-                          key={user.user}
-                          className="flex items-center justify-between p-2 border rounded"
+                  <div>
+                    <Label htmlFor="user">User</Label>
+                    <Input
+                      id="user"
+                      placeholder="Filter by user"
+                      value={filters.user}
+                      onChange={(e) =>
+                        handleFilterChange("user", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input
+                      id="startDate"
+                      type="datetime-local"
+                      value={filters.startDate}
+                      onChange={(e) =>
+                        handleFilterChange("startDate", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="datetime-local"
+                      value={filters.endDate}
+                      onChange={(e) =>
+                        handleFilterChange("endDate", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="col-span-full md:col-span-2">
+                    <Label htmlFor="searchTerm">Search</Label>
+                    <Input
+                      id="searchTerm"
+                      placeholder="Search in user, trigger, or method"
+                      value={filters.searchTerm}
+                      onChange={(e) =>
+                        handleFilterChange("searchTerm", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pageSize">Records per page</Label>
+                    <Select
+                      value={filters.pageSize.toString()}
+                      onValueChange={(value) => {
+                        handleFilterChange("pageSize", value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 per page</SelectItem>
+                        <SelectItem value="25">25 per page</SelectItem>
+                        <SelectItem value="50">50 per page</SelectItem>
+                        <SelectItem value="100">100 per page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-end gap-2 col-span-full md:col-span-1">
+                    <Button
+                      onClick={applyFilters}
+                      className="flex-1"
+                      disabled={loadingData}
+                    >
+                      {loadingData ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4 mr-2" />
+                      )}
+                      Apply Filters
+                    </Button>
+                    <Button
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="flex-1"
+                      disabled={loadingData}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Access Logs ({updatedPagination.totalRecords} records)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead
+                          className="cursor-pointer select-none hover:bg-muted/50"
+                          onClick={() => handleSort("timestamp")}
                         >
-                          <div className="font-medium">{user.user}</div>
-                          <Badge>{user?.count?.toLocaleString() ?? "0"}</Badge>
-                        </div>
-                      ))}
+                          <div className="flex items-center gap-2">
+                            Timestamp
+                            {renderSortIcon("timestamp")}
+                          </div>
+                        </TableHead>
+
+                        <TableHead
+                          className="cursor-pointer select-none hover:bg-muted/50"
+                          onClick={() => handleSort("isSuccess")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Status
+                            {renderSortIcon("isSuccess")}
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer select-none hover:bg-muted/50"
+                          onClick={() => handleSort("user")}
+                        >
+                          <div className="flex items-center gap-2">
+                            User
+                            {renderSortIcon("user")}
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer select-none hover:bg-muted/50"
+                          onClick={() => handleSort("via")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Method
+                            {renderSortIcon("via")}
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer select-none hover:bg-muted/50"
+                          onClick={() => handleSort("trigger")}
+                        >
+                          <div className="flex items-center gap-2">
+                            Trigger
+                            {renderSortIcon("trigger")}
+                          </div>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedLogs.length > 0 ? (
+                        paginatedLogs.map((log) => {
+                          const IconComponent = getAccessMethodIcon(log.via);
+                          return (
+                            <TableRow key={log.id}>
+                              <TableCell className="font-mono text-sm">
+                                {formatTimestamp(log.timestamp)}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={log.isSuccess ? "success" : "danger"}
+                                >
+                                  {log.isSuccess === true ? (
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                  ) : (
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                  )}
+                                  {log.isSuccess ? "Success" : "Failed"}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell>
+                                <div className="font-medium">{log.user}</div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <IconComponent className="h-4 w-4" />
+                                  {getAccessMethodLabel(log.via)}
+                                </div>
+                              </TableCell>
+                              <TableCell>{log.description}</TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            {loadingData ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                Loading access logs...
+                              </div>
+                            ) : (
+                              "No access logs found"
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Pagination */}
+                {updatedPagination.totalPages > 1 && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {startIndex + 1} to{" "}
+                        {Math.min(endIndex, updatedPagination.totalRecords)} of{" "}
+                        {updatedPagination.totalRecords} entries
+                      </div>
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              onClick={() =>
+                                handlePageChange(
+                                  updatedPagination.currentPage - 1
+                                )
+                              }
+                              className={
+                                !updatedPagination.hasPreviousPage
+                                  ? "pointer-events-none opacity-50"
+                                  : "cursor-pointer"
+                              }
+                            />
+                          </PaginationItem>
+                          <PaginationItem>
+                            <PaginationLink
+                              isActive={true}
+                              className="cursor-pointer"
+                            >
+                              {updatedPagination.currentPage}
+                            </PaginationLink>
+                          </PaginationItem>
+                          <PaginationItem>
+                            <PaginationNext
+                              onClick={() =>
+                                handlePageChange(
+                                  updatedPagination.currentPage + 1
+                                )
+                              }
+                              className={
+                                !updatedPagination.hasNextPage
+                                  ? "pointer-events-none opacity-50"
+                                  : "cursor-pointer"
+                              }
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="summary" className="space-y-6">
+            {summary && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold">
+                        {summary?.totalLogs?.toLocaleString() ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Total Logs</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold text-green-600">
+                        {summary?.successfulLogs?.toLocaleString() ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Successful</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold text-red-600">
+                        {summary?.failedLogs?.toLocaleString() ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Failed</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-2xl font-bold">
+                        {summary?.logsByVia
+                          ?.find((l) => l.via === AccessMethod.Software)
+                          ?.count?.toLocaleString() ?? "0"}
+                      </div>
+                      <p className="text-muted-foreground">Software Access</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Access Methods</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {(summary?.logsByVia ?? []).map((item) => {
+                          const IconComponent = getAccessMethodIcon(item.via);
+                          return (
+                            <div
+                              key={item.via}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <IconComponent className="h-4 w-4" />
+                                <Badge variant="outline">
+                                  {getAccessMethodLabel(item.via)}
+                                </Badge>
+                              </div>
+                              <span className="font-medium">
+                                {item?.count?.toLocaleString() ?? "0"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top Users</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 max-h-64 overflow-auto">
+                        {(summary?.topUsers ?? []).map((user) => (
+                          <div
+                            key={user.user}
+                            className="flex items-center justify-between p-2 border rounded"
+                          >
+                            <div className="font-medium">{user.user}</div>
+                            <Badge>
+                              {user?.count?.toLocaleString() ?? "0"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </SidebarInset>
   );
 }

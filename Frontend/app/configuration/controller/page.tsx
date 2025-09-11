@@ -1,7 +1,7 @@
 // Modified UI template page
 "use client";
 
-import { Settings, Cpu, Cog } from "lucide-react";
+import { Settings, Cpu, Cog, Timer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
 import ConfigPin from "@/components/pin-config";
 import SystemConfig from "@/components/system-config";
+import SensorIntervalsConfig from "@/components/sensor-intervals-config";
 
 // Main function for the system configuration page
 export default function ConfigurationPage() {
@@ -27,7 +28,7 @@ export default function ConfigurationPage() {
 
       <div className="flex flex-1 flex-col gap-4 p-4">
         <Tabs defaultValue="pin-config" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pin-config" className="flex items-center gap-2">
               <Cpu className="h-4 w-4" />
               Pin Configuration
@@ -39,12 +40,22 @@ export default function ConfigurationPage() {
               <Cog className="h-4 w-4" />
               System Settings
             </TabsTrigger>
+            <TabsTrigger
+              value="sensor-intervals"
+              className="flex items-center gap-2"
+            >
+              <Timer className="h-4 w-4" />
+              Sensor Intervals
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="pin-config">
             <ConfigPin />
           </TabsContent>
           <TabsContent value="system-config">
             <SystemConfig />
+          </TabsContent>
+          <TabsContent value="sensor-intervals">
+            <SensorIntervalsConfig />
           </TabsContent>
         </Tabs>
       </div>

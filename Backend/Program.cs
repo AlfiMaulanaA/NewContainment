@@ -77,6 +77,7 @@ builder.Services.AddSingleton<Backend.Services.IpScannerService>();
 builder.Services.AddScoped<Backend.Services.IAccessLogService, Backend.Services.AccessLogService>();
 builder.Services.AddScoped<Backend.Services.IMaintenanceNotificationService, Backend.Services.MaintenanceNotificationService>();
 builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
+builder.Services.AddScoped<Backend.Services.ICapacityService, Backend.Services.CapacityService>();
 
 // Add Role Mapping and Migration Services
 builder.Services.AddScoped<Backend.Services.IRoleMappingService, Backend.Services.RoleMappingService>();

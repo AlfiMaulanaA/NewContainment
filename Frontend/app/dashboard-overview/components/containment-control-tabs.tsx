@@ -164,7 +164,7 @@ export default function ContainmentControlPage() {
       const interval = setInterval(loadContainmentStatus, 10000);
       return () => clearInterval(interval);
     }
-  }, [containmentId, mqttStatus, loadContainmentStatus]); // Re-run when containment ID, MQTT status, or load function changes
+  }, [containmentId, mqttStatus]); // Remove loadContainmentStatus to prevent infinite loop
 
   const addToHistory = (command: string, success: boolean) => {
     const historyItem: PublishHistory = {
@@ -337,38 +337,41 @@ export default function ContainmentControlPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Door Controls */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DoorOpen className="h-5 w-5 text-green-500" />
-            Door Controls
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-2">
+              <DoorOpen className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+              <span className="text-sm sm:text-base">Door Controls</span>
+            </div>
             {containmentData && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground">
                 - {containmentData.name}
               </span>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           {shouldShowAdvancedControls() && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Ceiling Control
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Button
                   onClick={() => handleCeilingControl(true)}
                   disabled={
                     !isConnected || isPublishing || controlState.ceilingState
                   }
                   variant={controlState.ceilingState ? "default" : "outline"}
-                  className="h-12 flex items-center justify-center gap-2"
+                  className="h-10 sm:h-12 flex items-center justify-center gap-2 text-xs sm:text-sm"
                 >
-                  <ArrowDown className="h-4 w-4" />
-                  Open Ceiling (Down)
+                  <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Open Ceiling (Down)</span>
+                  <span className="sm:hidden">Open (Down)</span>
                 </Button>
 
                 <Button
@@ -377,29 +380,30 @@ export default function ContainmentControlPage() {
                     !isConnected || isPublishing || !controlState.ceilingState
                   }
                   variant={!controlState.ceilingState ? "default" : "outline"}
-                  className="h-12 flex items-center justify-center gap-2"
+                  className="h-10 sm:h-12 flex items-center justify-center gap-2 text-xs sm:text-sm"
                 >
-                  <ArrowUp className="h-4 w-4" />
-                  Close Ceiling (Up)
+                  <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Close Ceiling (Up)</span>
+                  <span className="sm:hidden">Close (Up)</span>
                 </Button>
               </div>
 
               {/* Current ceiling status */}
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-2 sm:p-3 border border-border rounded-lg bg-card">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {controlState.ceilingState ? (
-                    <ArrowDown className="h-4 w-4 text-green-500" />
+                    <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                   ) : (
-                    <ArrowUp className="h-4 w-4 text-blue-500" />
+                    <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                   )}
                   <div>
-                    <div className="font-medium text-sm">
+                    <div className="font-medium text-xs sm:text-sm">
                       Ceiling Status:{" "}
                       {controlState.ceilingState
                         ? "Open (Down)"
                         : "Closed (Up)"}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground">
                       Current ceiling position
                     </div>
                   </div>
@@ -407,29 +411,32 @@ export default function ContainmentControlPage() {
               </div>
             </div>
           )}
+          
           {/* Manual Door Open Buttons */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
               Manual Door Control
             </h3>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Button
                 onClick={handleOpenFrontDoor}
                 disabled={!isConnected || isPublishing}
-                className="h-12 flex items-center justify-center gap-2"
+                className="h-10 sm:h-12 flex items-center justify-center gap-2 text-xs sm:text-sm"
               >
-                <DoorOpen className="h-4 w-4" />
-                Open Front Door
+                <DoorOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Open Front Door</span>
+                <span className="sm:hidden">Front Door</span>
               </Button>
 
               <Button
                 onClick={handleOpenBackDoor}
                 disabled={!isConnected || isPublishing}
-                className="h-12 flex items-center justify-center gap-2"
+                className="h-10 sm:h-12 flex items-center justify-center gap-2 text-xs sm:text-sm"
               >
-                <DoorOpen className="h-4 w-4" />
-                Open Back Door
+                <DoorOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Open Back Door</span>
+                <span className="sm:hidden">Back Door</span>
               </Button>
             </div>
           </div>
@@ -437,25 +444,27 @@ export default function ContainmentControlPage() {
           <Separator />
 
           {/* Always Open Toggles */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
               Always Open Mode
             </h3>
 
             {/* Front Door Always Open */}
-            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between p-2 sm:p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 {controlState.frontDoorAlwaysOpen ? (
-                  <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
+                  <DoorOpen className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                 ) : (
-                  <DoorClosed className="h-4 w-4 text-muted-foreground" />
+                  <DoorClosed className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                 )}
-                <div>
-                  <Label className="font-medium text-foreground">
-                    Front Door Always Open
+                <div className="min-w-0 flex-1">
+                  <Label className="font-medium text-xs sm:text-sm text-foreground cursor-pointer">
+                    <span className="hidden sm:inline">Front Door Always Open</span>
+                    <span className="sm:hidden">Front Always Open</span>
                   </Label>
-                  <div className="text-xs text-muted-foreground">
-                    Keep front door permanently open
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">
+                    <span className="hidden sm:inline">Keep front door permanently open</span>
+                    <span className="sm:hidden">Keep open</span>
                   </div>
                 </div>
               </div>
@@ -463,23 +472,26 @@ export default function ContainmentControlPage() {
                 checked={controlState.frontDoorAlwaysOpen}
                 onCheckedChange={handleFrontDoorAlwaysToggle}
                 disabled={!isConnected || isPublishing}
+                className="flex-shrink-0"
               />
             </div>
 
             {/* Back Door Always Open */}
-            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between p-2 sm:p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 {controlState.backDoorAlwaysOpen ? (
-                  <DoorOpen className="h-4 w-4 text-green-500 dark:text-green-400" />
+                  <DoorOpen className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                 ) : (
-                  <DoorClosed className="h-4 w-4 text-muted-foreground" />
+                  <DoorClosed className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                 )}
-                <div>
-                  <Label className="font-medium text-foreground">
-                    Back Door Always Open
+                <div className="min-w-0 flex-1">
+                  <Label className="font-medium text-xs sm:text-sm text-foreground cursor-pointer">
+                    <span className="hidden sm:inline">Back Door Always Open</span>
+                    <span className="sm:hidden">Back Always Open</span>
                   </Label>
-                  <div className="text-xs text-muted-foreground">
-                    Keep back door permanently open
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">
+                    <span className="hidden sm:inline">Keep back door permanently open</span>
+                    <span className="sm:hidden">Keep open</span>
                   </div>
                 </div>
               </div>
@@ -487,6 +499,7 @@ export default function ContainmentControlPage() {
                 checked={controlState.backDoorAlwaysOpen}
                 onCheckedChange={handleBackDoorAlwaysToggle}
                 disabled={!isConnected || isPublishing}
+                className="flex-shrink-0"
               />
             </div>
           </div>

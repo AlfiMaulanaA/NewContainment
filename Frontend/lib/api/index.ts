@@ -9,6 +9,7 @@ export { authApi } from './auth';
 export { usersApi } from './users';
 export { devicesApi, deviceSensorDataApi } from './devices';
 export { containmentsApi, racksApi } from './containments';
+export { capacityApi } from './capacity';
 export { mqttConfigurationApi } from './mqtt';
 export { maintenanceApi } from './maintenance';
 export { systemApi, accessLogApi, cameraConfigApi } from './system';
@@ -24,6 +25,7 @@ import { authApi } from './auth';
 import { usersApi } from './users';
 import { devicesApi, deviceSensorDataApi } from './devices';
 import { containmentsApi, racksApi } from './containments';
+import { capacityApi } from './capacity';
 import { mqttConfigurationApi } from './mqtt';
 import { maintenanceApi } from './maintenance';
 import { systemApi, accessLogApi, cameraConfigApi } from './system';
@@ -50,6 +52,7 @@ export const apiService = {
   deviceSensorData: deviceSensorDataApi,
   containments: containmentsApi,
   racks: racksApi,
+  capacity: capacityApi,
   mqtt: mqttConfigurationApi,
   maintenance: maintenanceApi,
   system: systemApi,

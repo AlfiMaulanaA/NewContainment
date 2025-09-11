@@ -79,9 +79,9 @@ export class ApiClient {
   }
 
   private redirectToLogin(): void {
-    if (typeof window !== "undefined") {
-      window.location.replace("/auth/login");
-    }
+    // COMPLETELY DISABLE REDIRECT to prevent loops
+    // Let middleware handle all authentication redirects
+    console.log('API Client: Authentication failed - redirect disabled to prevent loops');
   }
 
   async get<T = any>(endpoint: string, customHeaders?: Record<string, string>): Promise<T> {

@@ -257,3 +257,33 @@
   outline-offset: 2px;
   border-radius: 0.375rem;
 }
+
+/* Sidebar Active State - Solid Black with White Text (Dark Mode Compatible) */
+.sidebar-menu-active {
+  /* Light mode: solid black background with white text */
+  background-color: hsl(0 0% 9%) !important;
+  color: hsl(0 0% 98%) !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  transform: scale(1.02);
+  border-left: 4px solid hsl(217.2 91.2% 59.8%);
+}
+
+/* Dark mode: adjust for better contrast */
+.dark .sidebar-menu-active {
+  background-color: hsl(0 0% 98%) !important;
+  color: hsl(240 5.9% 10%) !important;
+  border-left: 4px solid hsl(217.2 91.2% 59.8%);
+}
+
+/* Icon styling for active state */
+.sidebar-menu-active .sidebar-icon {
+  color: inherit !important;
+  transform: scale(1.1);
+}
+
+/* Text styling for active state */
+.sidebar-menu-active .sidebar-text {
+  font-weight: 600 !important;
+  color: inherit !important;
+}

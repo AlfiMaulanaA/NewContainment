@@ -25,6 +25,8 @@ import {
   Shield,
   Cpu,
   CircleCheck,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -136,6 +138,20 @@ export default function RackManagementPage({
   } | null>(null);
   const [isDeviceDialogOpen, setIsDeviceDialogOpen] = useState(false);
   const [loadingDevices, setLoadingDevices] = useState(false);
+  const [expandedRacks, setExpandedRacks] = useState<Set<number>>(new Set());
+
+  // Function to toggle rack expansion
+  const toggleRackExpansion = (rackId: number) => {
+    setExpandedRacks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(rackId)) {
+        newSet.delete(rackId);
+      } else {
+        newSet.add(rackId);
+      }
+      return newSet;
+    });
+  };
 
   // State to store real-time sensor data (in object format)
   const [sensorData, setSensorData] = useState<Record<string, any>>({});
@@ -757,11 +773,13 @@ export default function RackManagementPage({
           ) : (
             <>
               {racks.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
                   {racks.map((rack) => (
                     <Card
                       key={rack.id}
-                      className="group flex flex-col shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground min-h-[400px] max-h-[600px]"
+                      className={`group flex flex-col shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground min-h-[350px] sm:min-h-[400px] ${
+                        expandedRacks.has(rack.id) ? 'max-h-none' : 'max-h-[500px] sm:max-h-[600px]'
+                      }`}
                     >
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center justify-between">
@@ -800,190 +818,355 @@ export default function RackManagementPage({
                           {rackDevices[rack.id] &&
                           rackDevices[rack.id].length > 0 ? (
                             <div className="flex flex-col gap-2">
-                              {/* Container dengan scroll untuk devices */}
-                              <div
-                                className={`flex flex-col gap-2 ${
-                                  rackDevices[rack.id].filter(
+                              {/* Container dengan dynamic height berdasarkan expansion state */}
+                              <div className={`flex flex-col gap-2 ${
+                                expandedRacks.has(rack.id) 
+                                  ? 'min-h-[200px] max-h-80 overflow-y-auto' 
+                                  : 'min-h-[200px]'
+                              }`}>
+                                {(() => {
+                                  const sensorDevices = rackDevices[
+                                    rack.id
+                                  ].filter(
                                     (device) => device.type === "Sensor"
-                                  ).length > 3
-                                    ? "max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500"
-                                    : ""
-                                }`}
-                              >
-                                {rackDevices[rack.id]
-                                  .filter((device) => device.type === "Sensor")
-                                  .map((device, deviceIndex) => {
-                                    const visual = device.sensorType
-                                      ? SENSOR_TYPE_VISUALS[
-                                          device.sensorType as keyof typeof SENSOR_TYPE_VISUALS
-                                        ]
-                                      : undefined;
-                                    const IconComponent = visual?.icon;
-                                    const formattedData = formatSensorData(
-                                      device,
-                                      sensorData[device.id]
-                                    );
+                                  );
+                                  const displayDevices = sensorDevices.slice(
+                                    0,
+                                    2
+                                  ); // Tampilkan maksimal 2 device
+                                  const hiddenDevicesCount =
+                                    sensorDevices.length - 2;
 
-                                    // Extract main value for color determination
-                                    const mainValue =
-                                      formattedData.values.length > 0
-                                        ? parseFloat(
-                                            formattedData.values[0].value.replace(
-                                              /[^0-9.-]/g,
-                                              ""
-                                            )
-                                          ) || 0
-                                        : 0;
+                                  return (
+                                    <>
+                                      {/* Tampilkan device yang visible */}
+                                      {displayDevices.map(
+                                        (device, deviceIndex) => {
+                                          const visual = device.sensorType
+                                            ? SENSOR_TYPE_VISUALS[
+                                                device.sensorType as keyof typeof SENSOR_TYPE_VISUALS
+                                              ]
+                                            : undefined;
+                                          const IconComponent = visual?.icon;
+                                          const formattedData =
+                                            formatSensorData(
+                                              device,
+                                              sensorData[device.id]
+                                            );
 
-                                    return (
-                                      <div
-                                        key={device.id}
-                                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 ${getValueBasedColor(
-                                          mainValue,
-                                          device.sensorType || "",
-                                          formattedData.status
-                                        )}`}
-                                      >
-                                        {/* Hapus gradien overlay */}
-                                        {formattedData.status ===
-                                          "critical" && (
-                                          <div className="absolute top-2 right-2">
-                                            <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
-                                          </div>
-                                        )}
-                                        <div className="relative p-3">
-                                          <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-2">
-                                              {IconComponent && (
-                                                <div
-                                                  className={`relative p-2 rounded-xl shadow-lg bg-primary/10 border border-primary/20`}
-                                                >
-                                                  <IconComponent
-                                                    className={`h-4 w-4 text-primary drop-shadow-sm`}
-                                                  />
+                                          // Extract main value for color determination
+                                          const mainValue =
+                                            formattedData.values.length > 0
+                                              ? parseFloat(
+                                                  formattedData.values[0].value.replace(
+                                                    /[^0-9.-]/g,
+                                                    ""
+                                                  )
+                                                ) || 0
+                                              : 0;
+
+                                          return (
+                                            <div
+                                              key={device.id}
+                                              className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 ${getValueBasedColor(
+                                                mainValue,
+                                                device.sensorType || "",
+                                                formattedData.status
+                                              )}`}
+                                            >
+                                              {/* Hapus gradien overlay */}
+                                              {formattedData.status ===
+                                                "critical" && (
+                                                <div className="absolute top-2 right-2">
+                                                  <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
                                                 </div>
                                               )}
-                                              <div className="flex flex-col">
-                                                <span className="font-bold text-xs tracking-wide uppercase">
-                                                  {visual?.shortName ||
-                                                    visual?.name ||
-                                                    device.name}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground font-medium">
-                                                  {device.name.length > 25
-                                                    ? device.name.substring(
-                                                        0,
-                                                        25
-                                                      ) + "..."
-                                                    : device.name}
-                                                </span>
-                                              </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              {formattedData.timestamp &&
-                                                formattedData.timestamp !==
-                                                  "N/A" && (
-                                                  <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground bg-secondary/20 rounded-full px-3 py-1 border border-secondary/20">
-                                                    <Clock className="h-2.5 w-2.5" />
-                                                    <span className="font-medium">
-                                                      {formattedData.timestamp}
-                                                    </span>
+                                              <div className="relative p-3">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <div className="flex items-center gap-2">
+                                                    {IconComponent && (
+                                                      <div
+                                                        className={`relative p-2 rounded-xl shadow-lg bg-primary/10 border border-primary/20`}
+                                                      >
+                                                        <IconComponent
+                                                          className={`h-4 w-4 text-primary drop-shadow-sm`}
+                                                        />
+                                                      </div>
+                                                    )}
+                                                    <div className="flex flex-col">
+                                                      <span className="font-bold text-xs tracking-wide uppercase">
+                                                        {visual?.shortName ||
+                                                          visual?.name ||
+                                                          device.name}
+                                                      </span>
+                                                      <span className="text-[10px] text-muted-foreground font-medium">
+                                                        {device.name.length > 25
+                                                          ? device.name.substring(
+                                                              0,
+                                                              25
+                                                            ) + "..."
+                                                          : device.name}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    {formattedData.timestamp &&
+                                                      formattedData.timestamp !==
+                                                        "N/A" && (
+                                                        <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground bg-secondary/20 rounded-full px-3 py-1 border border-secondary/20">
+                                                          <Clock className="h-2.5 w-2.5" />
+                                                          <span className="font-medium">
+                                                            {
+                                                              formattedData.timestamp
+                                                            }
+                                                          </span>
+                                                        </div>
+                                                      )}
+                                                    {getStatusIcon(
+                                                      formattedData.status,
+                                                      "md"
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                {formattedData.values.length >
+                                                  0 && (
+                                                  <div
+                                                    className={`grid gap-1.5 mb-1 ${
+                                                      formattedData.values
+                                                        .length === 1
+                                                        ? "grid-cols-1"
+                                                        : "grid-cols-2"
+                                                    }`}
+                                                  >
+                                                    {formattedData.values
+                                                      .slice(0, 4)
+                                                      .map((value, idx) => {
+                                                        // Extract numeric value for color determination
+                                                        const numericValue =
+                                                          parseFloat(
+                                                            value.value.replace(
+                                                              /[^0-9.-]/g,
+                                                              ""
+                                                            )
+                                                          ) || 0;
+                                                        const sensorType =
+                                                          device.sensorType ||
+                                                          "";
+
+                                                        return (
+                                                          <div
+                                                            key={idx}
+                                                            className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center border shadow-sm transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${getValueBasedColor(
+                                                              numericValue,
+                                                              sensorType,
+                                                              value.status
+                                                            )}`}
+                                                          >
+                                                            <div className="text-xs font-bold">
+                                                              {value.value}
+                                                            </div>
+                                                            <div className="text-[9px] font-medium uppercase tracking-wider opacity-90">
+                                                              {value.label}
+                                                            </div>
+                                                            {/* Status indicator dot */}
+                                                            {value.status ===
+                                                              "critical" && (
+                                                              <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
+                                                            )}
+                                                            {value.status ===
+                                                              "warning" && (
+                                                              <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-amber-500 rounded-full shadow-lg"></div>
+                                                            )}
+                                                          </div>
+                                                        );
+                                                      })}
                                                   </div>
                                                 )}
-                                              {getStatusIcon(
-                                                formattedData.status,
-                                                "md"
-                                              )}
+                                              </div>
                                             </div>
-                                          </div>
-                                          {formattedData.values.length > 0 && (
-                                            <div
-                                              className={`grid gap-1.5 mb-1 ${
-                                                formattedData.values.length ===
-                                                1
-                                                  ? "grid-cols-1"
-                                                  : "grid-cols-2"
-                                              }`}
-                                            >
-                                              {formattedData.values
-                                                .slice(0, 4)
-                                                .map((value, idx) => {
-                                                  // Extract numeric value for color determination
-                                                  const numericValue =
-                                                    parseFloat(
-                                                      value.value.replace(
-                                                        /[^0-9.-]/g,
-                                                        ""
-                                                      )
-                                                    ) || 0;
-                                                  const sensorType =
-                                                    device.sensorType || "";
+                                          );
+                                        }
+                                      )}
 
-                                                  return (
-                                                    <div
-                                                      key={idx}
-                                                      className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center border shadow-sm transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${getValueBasedColor(
-                                                        numericValue,
-                                                        sensorType,
-                                                        value.status
-                                                      )}`}
-                                                    >
-                                                      <div className="text-xs font-bold">
-                                                        {value.value}
+                                      {/* Tombol expand/collapse dan device yang tersembunyi */}
+                                      {hiddenDevicesCount > 0 && (
+                                        <>
+                                          {!expandedRacks.has(rack.id) ? (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => toggleRackExpansion(rack.id)}
+                                              className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground bg-secondary/10 hover:bg-secondary/20 rounded-lg py-3 border border-dashed border-border hover:border-solid hover:border-primary/30 transition-all duration-300"
+                                            >
+                                              <div className="relative">
+                                                <HardDrive className="h-4 w-4" />
+                                                <div className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full flex items-center justify-center">
+                                                  <span className="text-[8px] font-bold text-white">
+                                                    {hiddenDevicesCount}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              <span className="font-medium">
+                                                Show +{hiddenDevicesCount} more sensor
+                                                {hiddenDevicesCount > 1 ? "s" : ""}
+                                              </span>
+                                              <ChevronDown className="h-3 w-3" />
+                                            </Button>
+                                          ) : (
+                                            <>
+                                              {/* Tampilkan semua device yang tersisa ketika expanded */}
+                                              {sensorDevices.slice(2).map((device, deviceIndex) => {
+                                                const visual = device.sensorType
+                                                  ? SENSOR_TYPE_VISUALS[
+                                                      device.sensorType as keyof typeof SENSOR_TYPE_VISUALS
+                                                    ]
+                                                  : undefined;
+                                                const IconComponent = visual?.icon;
+                                                const formattedData = formatSensorData(
+                                                  device,
+                                                  sensorData[device.id]
+                                                );
+
+                                                // Extract main value for color determination
+                                                const mainValue =
+                                                  formattedData.values.length > 0
+                                                    ? parseFloat(
+                                                        formattedData.values[0].value.replace(
+                                                          /[^0-9.-]/g,
+                                                          ""
+                                                        )
+                                                      ) || 0
+                                                    : 0;
+
+                                                return (
+                                                  <div
+                                                    key={device.id}
+                                                    className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 ${getValueBasedColor(
+                                                      mainValue,
+                                                      device.sensorType || "",
+                                                      formattedData.status
+                                                    )}`}
+                                                  >
+                                                    {formattedData.status === "critical" && (
+                                                      <div className="absolute top-2 right-2">
+                                                        <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
                                                       </div>
-                                                      <div className="text-[9px] font-medium uppercase tracking-wider opacity-90">
-                                                        {value.label}
+                                                    )}
+                                                    <div className="relative p-3">
+                                                      <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                          {IconComponent && (
+                                                            <div
+                                                              className={`relative p-2 rounded-xl shadow-lg bg-primary/10 border border-primary/20`}
+                                                            >
+                                                              <IconComponent
+                                                                className={`h-4 w-4 text-primary drop-shadow-sm`}
+                                                              />
+                                                            </div>
+                                                          )}
+                                                          <div className="flex flex-col">
+                                                            <span className="font-bold text-xs tracking-wide uppercase">
+                                                              {visual?.shortName ||
+                                                                visual?.name ||
+                                                                device.name}
+                                                            </span>
+                                                            <span className="text-[10px] text-muted-foreground font-medium">
+                                                              {device.name.length > 25
+                                                                ? device.name.substring(0, 25) + "..."
+                                                                : device.name}
+                                                            </span>
+                                                          </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                          {formattedData.timestamp &&
+                                                            formattedData.timestamp !== "N/A" && (
+                                                              <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground bg-secondary/20 rounded-full px-3 py-1 border border-secondary/20">
+                                                                <Clock className="h-2.5 w-2.5" />
+                                                                <span className="font-medium">
+                                                                  {formattedData.timestamp}
+                                                                </span>
+                                                              </div>
+                                                            )}
+                                                          {getStatusIcon(formattedData.status, "md")}
+                                                        </div>
                                                       </div>
-                                                      {/* Status indicator dot */}
-                                                      {value.status ===
-                                                        "critical" && (
-                                                        <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
-                                                      )}
-                                                      {value.status ===
-                                                        "warning" && (
-                                                        <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-amber-500 rounded-full shadow-lg"></div>
+                                                      {formattedData.values.length > 0 && (
+                                                        <div
+                                                          className={`grid gap-1.5 mb-1 ${
+                                                            formattedData.values.length === 1
+                                                              ? "grid-cols-1"
+                                                              : "grid-cols-2"
+                                                          }`}
+                                                        >
+                                                          {formattedData.values.slice(0, 4).map((value, idx) => {
+                                                            // Extract numeric value for color determination
+                                                            const numericValue =
+                                                              parseFloat(
+                                                                value.value.replace(/[^0-9.-]/g, "")
+                                                              ) || 0;
+                                                            const sensorType = device.sensorType || "";
+
+                                                            return (
+                                                              <div
+                                                                key={idx}
+                                                                className={`relative overflow-hidden rounded-lg px-2 py-1.5 text-center border shadow-sm transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${getValueBasedColor(
+                                                                  numericValue,
+                                                                  sensorType,
+                                                                  value.status
+                                                                )}`}
+                                                              >
+                                                                <div className="text-xs font-bold">
+                                                                  {value.value}
+                                                                </div>
+                                                                <div className="text-[9px] font-medium uppercase tracking-wider opacity-90">
+                                                                  {value.label}
+                                                                </div>
+                                                                {/* Status indicator dot */}
+                                                                {value.status === "critical" && (
+                                                                  <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse shadow-lg"></div>
+                                                                )}
+                                                                {value.status === "warning" && (
+                                                                  <div className="absolute top-1 right-1 h-1.5 w-1.5 bg-amber-500 rounded-full shadow-lg"></div>
+                                                                )}
+                                                              </div>
+                                                            );
+                                                          })}
+                                                        </div>
                                                       )}
                                                     </div>
-                                                  );
-                                                })}
-                                            </div>
+                                                  </div>
+                                                );
+                                              })}
+                                              
+                                              {/* Tombol collapse */}
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => toggleRackExpansion(rack.id)}
+                                                className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground bg-secondary/10 hover:bg-secondary/20 rounded-lg py-2 border border-dashed border-border hover:border-solid hover:border-primary/30 transition-all duration-300"
+                                              >
+                                                <span className="font-medium">Show less</span>
+                                                <ChevronUp className="h-3 w-3" />
+                                              </Button>
+                                            </>
                                           )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                              </div>
+                                        </>
+                                      )}
 
-                              {/* Indikator scroll jika ada lebih dari 3 devices */}
-                              {rackDevices[rack.id].filter(
-                                (device) => device.type === "Sensor"
-                              ).length > 3 && (
-                                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-secondary/10 rounded-lg py-2 border border-dashed border-border">
-                                  <div className="animate-bounce">
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                                      />
-                                    </svg>
-                                  </div>
-                                  <span className="font-medium">
-                                    {
-                                      rackDevices[rack.id].filter(
-                                        (device) => device.type === "Sensor"
-                                      ).length
-                                    }{" "}
-                                    sensors • Scroll to see more
-                                  </span>
-                                </div>
-                              )}
+                                      {/* Placeholder untuk konsistensi tinggi card jika device sedikit */}
+                                      {sensorDevices.length === 1 && (
+                                        <div className="flex-1 min-h-[120px] rounded-2xl border-2 border-dashed border-border/50 bg-secondary/5 flex items-center justify-center">
+                                          <div className="text-center text-muted-foreground">
+                                            <div className="text-xs opacity-60">
+                                              Additional sensor space
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
 
                               {rackDevices[rack.id].filter(
                                 (device) => device.type === "Sensor"
@@ -1070,7 +1253,7 @@ export default function RackManagementPage({
       </Card>
 
       <Dialog open={isDeviceDialogOpen} onOpenChange={setIsDeviceDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-8xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <HardDrive className="h-5 w-5" />
@@ -1131,7 +1314,9 @@ export default function RackManagementPage({
                       <TableCell>
                         {device.topic ? (
                           <span className="font-mono text-xs">
-                            {device.topic.length > 25 ? `${device.topic.substring(0, 25)}...` : device.topic}
+                            {device.topic.length > 25
+                              ? `${device.topic.substring(0, 25)}...`
+                              : device.topic}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -1148,7 +1333,9 @@ export default function RackManagementPage({
                       </TableCell>
                       <TableCell>
                         {device.description || (
-                          <span className="text-muted-foreground">No description</span>
+                          <span className="text-muted-foreground">
+                            No description
+                          </span>
                         )}
                       </TableCell>
                     </TableRow>

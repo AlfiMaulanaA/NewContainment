@@ -434,6 +434,7 @@ export interface RegisterRequest {
 export interface CreateUserRequest {
   name: string;
   email: string;
+  password: string;
   phoneNumber?: string;
   role: UserRole;
 }
@@ -599,10 +600,9 @@ class ApiClient {
   }
 
   private redirectToLogin(): void {
-    if (typeof window !== "undefined") {
-      // Use replace to prevent back button issues
-      window.location.replace("/auth/login");
-    }
+    // COMPLETELY DISABLE REDIRECT to prevent loops
+    // Let middleware handle all authentication redirects
+    console.log('API Service: Authentication failed - redirect disabled to prevent loops');
   }
 
   async get<T = any>(endpoint: string): Promise<T> {
@@ -619,6 +619,13 @@ class ApiClient {
   async put<T = any>(endpoint: string, body?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: "PUT",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async patch<T = any>(endpoint: string, body?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "PATCH",
       body: body ? JSON.stringify(body) : undefined,
     });
   }
@@ -1589,7 +1596,7 @@ export const maintenanceApi = {
     request: UpdateMaintenanceStatusRequest
   ): Promise<ApiResponse> {
     try {
-      await client.put(`/maintenance/${id}/status`, request);
+      await client.patch(`/maintenance/${id}/status`, request);
 
       return {
         success: true,
@@ -4197,6 +4204,9 @@ export const enhancedMqttConfigApi = {
 // Export aliases for backward compatibility
 export const accessLogApi = accessLogService;
 export const cameraConfigApi = cameraConfig;
+
+// Export capacity API
+export { capacityApi } from './api/capacity';
 export const apiService = api;
 
 export default api;

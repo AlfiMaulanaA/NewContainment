@@ -541,6 +541,26 @@ export default function RackManagementPage({
                     </Select>
                   </div>
                   <div>
+                    <Label htmlFor="capacityU">Rack Capacity (U Units)</Label>
+                    <Input
+                      id="capacityU"
+                      type="number"
+                      min="1"
+                      max="84"
+                      value={formData.capacityU}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          capacityU: parseInt(e.target.value) || 42,
+                        })
+                      }
+                      placeholder="Enter rack capacity in U units (default: 42U)"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Standard rack capacities: 42U (full), 24U (half), 12U (quarter)
+                    </p>
+                  </div>
+                  <div>
                     <Label htmlFor="description">Description (Optional)</Label>
                     <Textarea
                       id="description"

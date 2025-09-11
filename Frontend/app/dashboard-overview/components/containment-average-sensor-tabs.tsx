@@ -554,42 +554,56 @@ export default function SensorAverageComponent() {
   return (
     <div className="w-full">
       <Card className="rounded-lg">
-        <CardHeader className="mb-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
-            <CardTitle className="flex items-center gap-1 md:gap-2 text-xl md:text-2xl font-bold text-foreground">
-              <Activity className="h-4 w-5 md:h-8 md:w-6 text-green-500 dark:text-green-400" />
-              Sensor Average Data
+        <CardHeader className="mb-1 sm:mb-2 pb-3 sm:pb-4">
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 sm:gap-4">
+            <CardTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-xl lg:text-2xl font-bold text-foreground">
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-500 dark:text-green-400 flex-shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">Sensor Average Data</span>
+                <span className="sm:hidden">Sensors</span>
+              </span>
             </CardTitle>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <Badge
                 variant={mqttConnected ? "default" : "destructive"}
-                className="text-xs"
+                className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1"
               >
                 {mqttConnected ? (
-                  <span className="flex items-center gap-1">
-                    <Wifi className="h-3 w-3" /> Live
+                  <span className="flex items-center gap-0.5 sm:gap-1">
+                    <Wifi className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                    <span className="hidden xs:inline">Live</span>
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1">
-                    <WifiOff className="h-3 w-3" /> Offline
+                  <span className="flex items-center gap-0.5 sm:gap-1">
+                    <WifiOff className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                    <span className="hidden xs:inline">Offline</span>
                   </span>
                 )}
               </Badge>
-              <div className="text-xs text-muted-foreground hidden sm:block">
-                Devices: {devices.length} | Active:{" "}
-                {
-                  Array.from(deviceDataMap.values()).filter(
-                    (d) => d.status !== "offline"
-                  ).length
-                }
+              <div className="text-[10px] sm:text-xs text-muted-foreground hidden md:block">
+                <span className="hidden lg:inline">
+                  Devices: {devices.length} | Active:{" "}
+                  {
+                    Array.from(deviceDataMap.values()).filter(
+                      (d) => d.status !== "offline"
+                    ).length
+                  }
+                </span>
+                <span className="lg:hidden">
+                  {devices.length}/{
+                    Array.from(deviceDataMap.values()).filter(
+                      (d) => d.status !== "offline"
+                    ).length
+                  }
+                </span>
               </div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {averageCards.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
               {averageCards.map((card, index) => {
                 const statusStyles = getStatusStyles(card.status);
 
@@ -598,10 +612,10 @@ export default function SensorAverageComponent() {
                     key={`${card.title}-${index}`}
                     className={`min-w-0 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border-2 ${statusStyles.border} hover:bg-accent/30 border-t-4 ${statusStyles.topBorder} ${statusStyles.bg}`}
                   >
-                    <CardContent className="flex items-center gap-3 p-3 sm:p-4 relative min-h-[120px] sm:min-h-[140px]">
-                      <div className="absolute top-2 right-2">
+                    <CardContent className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 lg:p-4 relative min-h-[100px] sm:min-h-[120px] lg:min-h-[140px]">
+                      <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2">
                         <div
-                          className={`w-2 h-2 rounded-full ${
+                          className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
                             card.status === "normal"
                               ? "bg-emerald-500"
                               : card.status === "warning"
@@ -614,24 +628,30 @@ export default function SensorAverageComponent() {
                       </div>
 
                       <div
-                        className={`p-2 sm:p-3 rounded-full ${card.color} flex-shrink-0`}
+                        className={`p-1.5 sm:p-2 lg:p-3 rounded-full ${card.color} flex-shrink-0`}
                       >
-                        {card.icon}
+                        <div className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8">
+                          {card.icon}
+                        </div>
                       </div>
                       <div className="flex flex-col flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="text-sm sm:text-base font-medium text-muted-foreground truncate">
+                        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
+                          <div className="text-xs sm:text-sm lg:text-base font-medium text-muted-foreground truncate">
                             {card.title}
                           </div>
                         </div>
-                        <div className="text-xl sm:text-2xl lg:text-2xl font-bold text-foreground mb-1 truncate">
+                        <div className="text-sm sm:text-xl lg:text-2xl font-bold text-foreground mb-0.5 sm:mb-1 truncate">
                           {card.value}
                         </div>
                         <div
-                          className={`text-xs font-medium capitalize ${statusStyles.text}`}
+                          className={`text-[10px] sm:text-xs font-medium capitalize ${statusStyles.text}`}
                         >
-                          {card.status} • {card.activeDeviceCount}/
-                          {card.deviceCount} devices
+                          <span className="hidden sm:inline">
+                            {card.status} • {card.activeDeviceCount}/{card.deviceCount} devices
+                          </span>
+                          <span className="sm:hidden">
+                            {card.status} • {card.activeDeviceCount}/{card.deviceCount}
+                          </span>
                         </div>
                       </div>
                     </CardContent>

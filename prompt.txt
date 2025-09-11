@@ -1,17 +1,3 @@
-1. Ubah agar device menggunakan seed ini untuk device denagn beberapa jenis sensor dengan topicnya dan buat incremenrt Containment/Sensor/Temperature_Rack_1, Containment/Sensor/Dust_Rack_1,Containment/Sensor/AirFlow_Rack_1,Containment/Sensor/Vibration_Rack_1
-2. Pisahkan pin config dan system config component dari menu settings ke sebuah menu baru tersendiiri yaiut configuration
-3. Sensor Log Data Function
-4. analisa semua isi file folder dari /dashboard-overview dan modifikasi agar tammpilannya itu responsive dan support semua media query modifkasi semua style layoutnya
-6. Global attendance provider tidak aktif untuk save data yang masuk dari topic accessControl/attendance/live bahkan tidak berhasil subscribe datanya di live attendance
-7. buatkan file baru untuk menyimpan halaman component pin-config.tsx dan juga system-config.tsx lalu tambahkan ke seed data sebagai menu items untuk settings/controller
-8. analisa fungsi average sensor compoennt containment-average-sensor-tabs.tsx, buat agar UI nyabisa responsive dan juga aktifkan fitur untuk semua sensor dapat menampilkan data averangenya masing masing. Modifikasi agar UI nya juga responsive untuk media querynya
-9. implementasikan SidebarInset, Sidebar Triger, Separator, Lucide Icon. pada halaman /reports/sensor-data/, /reports/access-log/, analisa pada halaman dashboard sebagai referensi penggunakan sidebar
-10. pada manageemnt user fitur create user tidak ada input dan validation password
-11. apakah bisa saat mode mobile klik navigasi route bisa auto close sidebarnya? 
-12. Cek halaman /management/rack add U capacity adn fix error
-13. Cek halaman /management/camera/ modifikasi agar lebih baik UI nya untuk layout dalam media query mobile
-14. Analisa dan perbaiki /reports/sensor-data/
-15. Anakisa /auth/login dan /auth/register modifikasi agar lebih baik UI nya untuk layout dalam media query mobile
-16. Buatkan fitur get attendance from ZKTeco Access 
+tambahkan route link capacity management pada seed data menuItems
+Analisa file configuration/sensor-interval dan buatkan dia sebagai component. lalu gabungkan dan buatkan di amenjadi sebuah tabs pada configuration/controller
 
-Modiifkasi fungsi scroll pada containment-racks-tabs.tsx jika device lebih dari 3 agar card racknya fix, yang discroll itu list device datanya

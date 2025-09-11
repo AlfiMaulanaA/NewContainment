@@ -371,56 +371,62 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
         {/* Total Cameras Card */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xl font-bold">Total Cameras</CardTitle>
-            <div className="p-2 bg-primary/10 text-primary rounded-full">
-              <Camera className="h-6 w-6" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-xl font-bold">
+              <span className="hidden sm:inline">Total Cameras</span>
+              <span className="sm:hidden">Total</span>
+            </CardTitle>
+            <div className="p-1.5 sm:p-2 bg-primary/10 text-primary rounded-full">
+              <Camera className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{totalCameraCount}</div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Total registered camera devices
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-2xl sm:text-4xl font-bold">{totalCameraCount}</div>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+              <span className="hidden sm:inline">Total registered camera devices</span>
+              <span className="sm:hidden">Registered devices</span>
             </p>
           </CardContent>
         </Card>
 
         {/* Online Cameras Card */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xl font-bold">Online</CardTitle>
-            <div className="p-2 bg-green-100 text-green-600 rounded-full">
-              <Video className="h-6 w-6" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-xl font-bold">Online</CardTitle>
+            <div className="p-1.5 sm:p-2 bg-green-100 text-green-600 rounded-full">
+              <Video className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{totalCameraOnline}</div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Active and connected camera devices
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-2xl sm:text-4xl font-bold">{totalCameraOnline}</div>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+              <span className="hidden sm:inline">Active and connected camera devices</span>
+              <span className="sm:hidden">Active devices</span>
             </p>
           </CardContent>
         </Card>
 
         {/* Offline Cameras Card */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xl font-bold">Offline</CardTitle>
-            <div className="p-2 bg-red-100 text-red-600 rounded-full">
-              <VideoOff className="h-6 w-6" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-xl font-bold">Offline</CardTitle>
+            <div className="p-1.5 sm:p-2 bg-red-100 text-red-600 rounded-full">
+              <VideoOff className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{totalCameraOffline}</div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Disconnected camera devices
+          <CardContent className="pb-3 sm:pb-6">
+            <div className="text-2xl sm:text-4xl font-bold">{totalCameraOffline}</div>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+              <span className="hidden sm:inline">Disconnected camera devices</span>
+              <span className="sm:hidden">Disconnected</span>
             </p>
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         {allStreams.map((streamItem, index) => {
           const streamUrl = `http://${streamItem.camera.ipAddress}:${streamItem.camera.port}/${streamItem.camera.apiKey}/hls/${streamItem.camera.group}/${streamItem.mid}/s.m3u8`;
 
@@ -429,14 +435,16 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
               key={index}
               className="bg-white shadow-lg border border-gray-200 overflow-hidden"
             >
-              <div className="bg-gray-50 px-4 py-3">
+              <div className="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3">
                 <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-sm">
-                      Live Stream - {streamItem.name}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                      <span className="hidden sm:inline">Live Stream - {streamItem.name}</span>
+                      <span className="sm:hidden">{streamItem.name}</span>
                     </h3>
-                    <div className="text-xs text-muted-foreground">
-                      Camera: {streamItem.host}
+                    <div className="text-xs text-muted-foreground truncate">
+                      <span className="hidden sm:inline">Camera: {streamItem.host}</span>
+                      <span className="sm:hidden">{streamItem.host}</span>
                     </div>
                   </div>
                   <Badge
@@ -445,20 +453,21 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
                         ? "outline"
                         : "destructive"
                     }
+                    className="text-xs px-2 py-0.5 flex-shrink-0 ml-2"
                   >
                     {streamItem.status}
                   </Badge>
                 </div>
               </div>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <LiveStreamPlayer src={streamUrl} title={streamItem.name} />
 
-                <div className="mt-2 flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                <div className="mt-2 flex flex-col sm:flex-row items-center justify-between bg-gray-50 rounded-lg p-2 gap-2">
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 w-8 p-0"
+                      className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       onClick={() => handleExpand(streamItem)}
                       title="Fullscreen"
                     >
@@ -469,8 +478,9 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
                     </span>
                   </div>
 
-                  <div className="mt-2 text-xs text-gray-500 text-center">
-                    | Monitor ID: {streamItem.mid}
+                  <div className="text-xs text-gray-500 text-center">
+                    <span className="hidden sm:inline">Monitor ID: {streamItem.mid}</span>
+                    <span className="sm:hidden">ID: {streamItem.mid}</span>
                   </div>
                 </div>
               </CardContent>
@@ -622,16 +632,22 @@ const MotionVideosTab = ({
 
   return (
     <>
-      <Card className="m-4">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="m-2 sm:m-4">
+        <CardHeader className="pb-3 sm:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="h-5 w-5 text-primary" />
-                Motion Detection Videos
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Video className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <span className="hidden sm:inline">Motion Detection Videos</span>
+                <span className="sm:hidden">Motion Videos</span>
               </CardTitle>
-              <CardDescription>
-                Motion detection videos recorded from all active camera monitors
+              <CardDescription className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">
+                  Motion detection videos recorded from all active camera monitors
+                </span>
+                <span className="sm:hidden">
+                  Recorded motion videos from cameras
+                </span>
               </CardDescription>
             </div>
             <Button
@@ -639,9 +655,11 @@ const MotionVideosTab = ({
               size="sm"
               onClick={loadAllVideos}
               disabled={Object.values(loadingVideos).some(Boolean)}
+              className="flex-shrink-0"
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Refresh Videos
+              <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Refresh Videos</span>
+              <span className="sm:hidden">Refresh</span>
             </Button>
           </div>
         </CardHeader>
@@ -653,18 +671,24 @@ const MotionVideosTab = ({
               const isLoading = loadingVideos[key];
 
               return (
-                <div key={key} className="mb-8 border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="font-semibold text-lg">{item.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        Camera: {monData.camera.name} | Monitor ID: {item.mid}
+                <div key={key} className="mb-6 sm:mb-8 border rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-semibold text-base sm:text-lg truncate">{item.name}</h4>
+                      <p className="text-xs sm:text-sm text-gray-600">
+                        <span className="hidden sm:inline">
+                          Camera: {monData.camera.name} | Monitor ID: {item.mid}
+                        </span>
+                        <span className="sm:hidden">
+                          {monData.camera.name} • ID: {item.mid}
+                        </span>
                       </p>
                     </div>
                     <Badge
                       variant={
                         item.status === "Watching" ? "success" : "destructive"
                       }
+                      className="self-start sm:self-center"
                     >
                       {item.status}
                     </Badge>
@@ -1088,12 +1112,15 @@ export default function CctvManagementPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-16 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-2">
+      <header className="flex h-16 items-center justify-between border-b px-2 sm:px-4">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Camera className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">CCTV Camera Management</h1>
+          <Separator orientation="vertical" className="mr-1 sm:mr-2 h-4 hidden sm:block" />
+          <Camera className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+          <h1 className="text-sm sm:text-lg font-semibold truncate">
+            <span className="hidden sm:inline">CCTV Camera Management</span>
+            <span className="sm:hidden">CCTV</span>
+          </h1>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
@@ -1102,9 +1129,11 @@ export default function CctvManagementPage() {
                 resetForm();
                 setShowCreateDialog(true);
               }}
+              size="sm"
+              className="flex-shrink-0"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Camera
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Camera</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
@@ -1203,136 +1232,241 @@ export default function CctvManagementPage() {
         </Dialog>
       </header>
 
-      <Tabs defaultValue="cameras" className="w-full mt-4 p-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="cameras">Camera Configuration</TabsTrigger>
-          <TabsTrigger value="monitors">Monitor List</TabsTrigger>
-          <TabsTrigger value="streams">Live Streams</TabsTrigger>
-          <TabsTrigger value="videos">Motion Videos</TabsTrigger>
+      <Tabs defaultValue="cameras" className="w-full mt-2 sm:mt-4 p-2 sm:p-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="cameras" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+            <span className="hidden sm:inline">Camera Configuration</span>
+            <span className="sm:hidden">Config</span>
+          </TabsTrigger>
+          <TabsTrigger value="monitors" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+            <span className="hidden sm:inline">Monitor List</span>
+            <span className="sm:hidden">Monitors</span>
+          </TabsTrigger>
+          <TabsTrigger value="streams" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+            <span className="hidden sm:inline">Live Streams</span>
+            <span className="sm:hidden">Live</span>
+          </TabsTrigger>
+          <TabsTrigger value="videos" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+            <span className="hidden sm:inline">Motion Videos</span>
+            <span className="sm:hidden">Videos</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="cameras" className="space-y-4">
+        <TabsContent value="cameras" className="space-y-3 sm:space-y-4">
           <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>
-                  CCTV Camera Configuration ({filteredCameras.length})
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <CardTitle className="text-base sm:text-lg">
+                  <span className="hidden sm:inline">
+                    CCTV Camera Configuration ({filteredCameras.length})
+                  </span>
+                  <span className="sm:hidden">
+                    Cameras ({filteredCameras.length})
+                  </span>
                 </CardTitle>
                 <div className="flex gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="absolute left-2 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search cameras..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 w-[300px]"
+                      className="pl-7 sm:pl-8 w-full sm:w-[300px] text-sm"
                     />
                   </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">#</TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:text-foreground"
-                      onClick={() => handleSort("name")}
-                    >
-                      Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
-                    </TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:text-foreground"
-                      onClick={() => handleSort("ipAddress")}
-                    >
-                      IP Address <ArrowUpDown className="inline ml-1 h-4 w-4" />
-                    </TableHead>
-                    <TableHead>Api Keys</TableHead>
-                    <TableHead>Group</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedCameras.map((camera, index) => (
-                    <TableRow key={camera.id}>
-                      <TableCell className="font-medium">
-                        {startIndex + index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{camera.name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <a
-                          href={`http://${camera.ipAddress}:${camera.port}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          {camera.ipAddress}:{camera.port}
-                        </a>
-                      </TableCell>
-                      <TableCell className="w-[80px]">
-                        <span className="block w-full truncate">
-                          {camera.apiKey || "Not set"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{camera.group}</Badge>
-                      </TableCell>
-                      <TableCell>
+            <CardContent className="px-2 sm:px-6">
+              {/* Mobile Card View */}
+              <div className="block sm:hidden space-y-3">
+                {paginatedCameras.map((camera, index) => (
+                  <Card key={camera.id} className="border border-border">
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-medium text-sm">{camera.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            #{startIndex + index + 1}
+                          </p>
+                        </div>
                         <Badge
-                          variant={
-                            camera.isActive === true ? "success" : "destructive"
-                          }
-                          className="capitalize"
+                          variant={camera.isActive ? "success" : "destructive"}
+                          className="text-xs"
                         >
                           {camera.isActive ? "Active" : "Inactive"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEditDialog(camera)}
+                      </div>
+                      
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">IP:</span>
+                          <a
+                            href={`http://${camera.ipAddress}:${camera.port}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete CCTV Camera
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete camera "
-                                  {camera.name}"? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteCamera(camera)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                            {camera.ipAddress}:{camera.port}
+                          </a>
                         </div>
-                      </TableCell>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">API Key:</span>
+                          <span className="truncate max-w-20">
+                            {camera.apiKey || "Not set"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Group:</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {camera.group}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(camera)}
+                          className="h-8 px-3"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 px-3">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete CCTV Camera</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete camera "{camera.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteCamera(camera)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">#</TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:text-foreground"
+                        onClick={() => handleSort("name")}
+                      >
+                        Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:text-foreground"
+                        onClick={() => handleSort("ipAddress")}
+                      >
+                        IP Address <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                      </TableHead>
+                      <TableHead>Api Keys</TableHead>
+                      <TableHead>Group</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedCameras.map((camera, index) => (
+                      <TableRow key={camera.id}>
+                        <TableCell className="font-medium">
+                          {startIndex + index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{camera.name}</div>
+                        </TableCell>
+                        <TableCell>
+                          <a
+                            href={`http://${camera.ipAddress}:${camera.port}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {camera.ipAddress}:{camera.port}
+                          </a>
+                        </TableCell>
+                        <TableCell className="w-[80px]">
+                          <span className="block w-full truncate">
+                            {camera.apiKey || "Not set"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{camera.group}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              camera.isActive === true ? "success" : "destructive"
+                            }
+                            className="capitalize"
+                          >
+                            {camera.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openEditDialog(camera)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete CCTV Camera
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete camera "
+                                    {camera.name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteCamera(camera)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {totalPages > 1 && (
                 <div className="mt-4">

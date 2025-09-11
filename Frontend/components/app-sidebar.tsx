@@ -35,6 +35,7 @@ import {
   SidebarRail,
   SidebarFooter,
   SidebarMenuBadge,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@radix-ui/react-separator";
 import { deleteCookie } from "cookies-next";
@@ -75,6 +76,7 @@ export function AppSidebar() {
     refreshMenu,
   } = useDynamicMenu();
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isScrollVisible, setIsScrollVisible] = useState(false);
@@ -82,6 +84,22 @@ export function AppSidebar() {
   const [isRetrying, setIsRetrying] = useState(false);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const { apiBaseUrl } = getAppConfig();
+
+  // Enhanced function to check if menu item is active
+  const isMenuItemActive = (itemUrl: string) => {
+    // Exact match for root routes
+    if (itemUrl === "/" && pathname === "/") return true;
+    if (itemUrl === "/" && pathname !== "/") return false;
+    
+    // For non-root routes, check if pathname starts with itemUrl
+    if (itemUrl !== "/" && pathname.startsWith(itemUrl)) {
+      // Additional check to avoid false positives like "/user" matching "/users"
+      const nextChar = pathname[itemUrl.length];
+      return nextChar === "/" || nextChar === undefined || nextChar === "?" || nextChar === "#";
+    }
+    
+    return false;
+  };
 
   const fetchUserPhoto = async (userId: number) => {
     try {
@@ -116,6 +134,13 @@ export function AppSidebar() {
       };
     }
   }, []);
+
+  // Auto-close mobile sidebar on navigation
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [pathname, isMobile, setOpenMobile]);
 
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   
@@ -263,18 +288,25 @@ export function AppSidebar() {
                     <SidebarMenu>
                       {group.items.map((item) => {
                         const IconComponent = getIconComponent(item.icon);
+                        const isActive = isMenuItemActive(item.url);
                         return (
                           <SidebarMenuItem key={item.id}>
                             <SidebarMenuButton
                               asChild
-                              isActive={pathname === item.url}
-                              className="w-full"
+                              isActive={isActive}
+                              className={`w-full ${isActive ? "sidebar-menu-active" : ""}`}
                             >
                               <Link href={item.url} className="flex items-center gap-3">
                                 {IconComponent && (
-                                  <IconComponent className="h-4 w-4" />
+                                  <IconComponent className={`sidebar-icon h-4 w-4 transition-colors ${
+                                    isActive 
+                                      ? "" 
+                                      : "text-sidebar-foreground/60"
+                                  }`} />
                                 )}
-                                <span>{item.title}</span>
+                                <span className={`sidebar-text transition-colors ${
+                                  isActive ? "" : ""
+                                }`}>{item.title}</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -497,6 +529,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {group.items.map((item: any) => {
                   const IconComponent = getIconComponent(item.icon);
+                  const isActive = isMenuItemActive(item.url);
 
                   return (
                     <SidebarMenuItem
@@ -505,17 +538,25 @@ export function AppSidebar() {
                     >
                       <SidebarMenuButton
                         asChild
-                        isActive={pathname === item.url}
-                        className="group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm hover:scale-[1.01] data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-md data-[active=true]:scale-[1.01] data-[active=true]:border-l-3 data-[active=true]:border-primary sidebar-focus-ring"
+                        isActive={isActive}
+                        className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm hover:scale-[1.01] sidebar-focus-ring ${
+                          isActive ? "sidebar-menu-active" : ""
+                        }`}
                       >
                         <Link href={item.url}>
                           {IconComponent && (
-                            <IconComponent className="h-4 w-4 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110 transition-all duration-200" />
+                            <IconComponent className={`sidebar-icon h-4 w-4 transition-all duration-200 ${
+                              isActive 
+                                ? "" 
+                                : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110"
+                            }`} />
                           )}
-                          <span className="truncate">{item.title}</span>
+                          <span className={`sidebar-text truncate transition-all duration-200 ${
+                            isActive ? "" : ""
+                          }`}>{item.title}</span>
                           {item.badgeText && (
                             <SidebarMenuBadge
-                              className={`ml-auto text-xs ${
+                              className={`ml-auto text-xs transition-colors ${
                                 item.badgeVariant === "destructive"
                                   ? "bg-red-100 text-red-700"
                                   : "bg-blue-100 text-blue-700"

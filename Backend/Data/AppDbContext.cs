@@ -44,6 +44,9 @@ namespace Backend.Data
         public DbSet<UserRoleAssignment> UserRoles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
 
+        // Capacity Management tables
+        public DbSet<RackCapacity> RackCapacities { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -700,6 +703,30 @@ namespace Backend.Data
                 entity.HasIndex(e => new { e.IsGlobalConfiguration, e.IsActive })
                       .IsUnique()
                       .HasFilter("[IsGlobalConfiguration] = 1 AND [IsActive] = 1");
+            });
+
+            // Capacity Management entity configurations
+            modelBuilder.Entity<RackCapacity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RackId).IsRequired();
+                entity.Property(e => e.TotalCapacityU).IsRequired();
+                entity.Property(e => e.UsedCapacityU).HasDefaultValue(0);
+                entity.Property(e => e.PowerCapacityW);
+                entity.Property(e => e.UsedPowerW);
+                entity.Property(e => e.WeightCapacityKg).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.UsedWeightKg).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+
+                // Foreign key relationship to Rack
+                entity.HasOne(e => e.Rack)
+                      .WithMany()
+                      .HasForeignKey(e => e.RackId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Unique index to ensure one capacity record per rack
+                entity.HasIndex(e => e.RackId).IsUnique();
             });
 
             // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing

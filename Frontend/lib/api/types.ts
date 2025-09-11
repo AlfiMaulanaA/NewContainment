@@ -78,6 +78,7 @@ export interface ResetPasswordResponse {
 export interface CreateUserRequest {
   name: string;
   email: string;
+  password: string;
   phoneNumber?: string;
   role: UserRole;
 }
@@ -356,4 +357,86 @@ export interface NetworkConfiguration {
   updatedAt?: string;
   createdBy: number;
   updatedBy?: number;
+}
+
+// Capacity Management types
+export interface RackCapacity {
+  rackId: number;
+  rackName: string;
+  totalCapacityU: number;
+  usedCapacityU: number;
+  availableCapacityU: number;
+  utilizationPercentage: number;
+  devices: DeviceCapacityInfo[];
+}
+
+export interface DeviceCapacityInfo {
+  deviceId: number;
+  deviceName: string;
+  deviceType: string;
+  uCapacity: number;
+}
+
+export interface DeviceCapacity {
+  id: number;
+  deviceId: number;
+  rackId: number;
+  uCapacity: number;
+  startPosition?: number;
+  endPosition?: number;
+  powerConsumptionW?: number;
+  weightKg?: number;
+  device?: Device;
+  rack?: Rack;
+}
+
+export interface CapacitySummary {
+  totalRacks: number;
+  totalCapacityU: number;
+  totalUsedU: number;
+  totalAvailableU: number;
+  averageUtilization: number;
+  totalDevices: number;
+  capacityByType: Array<{
+    type: string;
+    count: number;
+    usedCapacityU: number;
+  }>;
+  utilizationTrend: Array<{
+    date: string;
+    utilization: number;
+  }>;
+}
+
+export interface CapacityAlert {
+  id: number;
+  type: 'capacity' | 'power' | 'weight';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  rackId?: number;
+  deviceId?: number;
+  threshold: number;
+  currentValue: number;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface CapacityPlanningRequest {
+  deviceType: string;
+  uCapacity: number;
+  quantity: number;
+}
+
+export interface CapacityPlanningResponse {
+  canAccommodate: boolean;
+  suggestedRacks: Array<{
+    rackId: number;
+    rackName: string;
+    availableCapacityU: number;
+    availablePositions: Array<{
+      startPosition: number;
+      endPosition: number;
+    }>;
+  }>;
+  constraints: string[];
 }

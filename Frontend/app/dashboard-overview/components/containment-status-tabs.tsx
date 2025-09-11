@@ -90,15 +90,18 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
     try {
       const result = await containmentsApi.getContainments();
       if (result.success && result.data) {
-        setContainments(result.data);
-        if (result.data.length > 0 && activeTab === "0") {
-          setActiveTab(result.data[0].id.toString());
-        }
+        setContainments(prevContainments => {
+          // Only set active tab if it's still "0" and we have data
+          if (result.data!.length > 0) {
+            setActiveTab(prevTab => prevTab === "0" ? result.data![0].id.toString() : prevTab);
+          }
+          return result.data!;
+        });
       }
     } catch (error) {
       console.error("Failed to load containments:", error);
     }
-  }, [activeTab]);
+  }, []); // Remove activeTab dependency to prevent infinite loop
 
   const loadStatuses = useCallback(async () => {
     if (!isPollingActive || loading) return;
@@ -312,17 +315,17 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
     type,
     description,
   }: StatusCardProps) => (
-    <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between p-2 sm:p-3 border border-border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
         {getStatusIcon(status === undefined ? false : status, type)}
-        <div>
-          <div className="font-medium text-sm text-foreground">{title}</div>
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-xs sm:text-sm text-foreground truncate">{title}</div>
           {description && (
-            <div className="text-xs text-muted-foreground">{description}</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{description}</div>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         {getStatusBadge(status === undefined ? false : status, type)}
       </div>
     </div>
@@ -375,17 +378,31 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
           <TabsList
             className="grid w-full"
             style={{
-              gridTemplateColumns: `repeat(${containments.length}, 1fr)`,
+              gridTemplateColumns: containments.length <= 2 
+                ? `repeat(${containments.length}, 1fr)` 
+                : containments.length <= 4
+                ? `repeat(${Math.min(containments.length, 2)}, 1fr)`
+                : `repeat(2, 1fr)`,
             }}
           >
-            {containments.map((containment) => (
+            {containments.slice(0, containments.length <= 4 ? containments.length : 2).map((containment) => (
               <TabsTrigger
                 key={containment.id}
                 value={containment.id.toString()}
+                className="text-xs sm:text-sm truncate"
               >
-                {containment.name}
+                <span className="hidden sm:inline">{containment.name}</span>
+                <span className="sm:hidden">{containment.name.substring(0, 8)}{containment.name.length > 8 ? '...' : ''}</span>
               </TabsTrigger>
             ))}
+            {containments.length > 4 && (
+              <TabsTrigger
+                value="more"
+                className="text-xs sm:text-sm"
+              >
+                +{containments.length - 2} More
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {containments.map((containment) => {
@@ -395,28 +412,28 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
               <TabsContent
                 key={containment.id}
                 value={containment.id.toString()}
-                className="mt-2"
+                className="mt-2 sm:mt-4"
               >
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {status ? (
                     <>
                       <Card
-                        className={`relative flex items-center gap-3 p-3 ${
+                        className={`relative flex items-center gap-2 sm:gap-3 p-2 sm:p-3 ${
                           status.emergencyStatus
                             ? "bg-destructive text-destructive-foreground border-destructive"
                             : "bg-green-600 dark:bg-green-700 text-white border-green-600 dark:border-green-700"
                         }`}
                       >
                         {status.emergencyStatus ? (
-                          <AlertTriangle className="h-6 w-6 animate-pulse flex-shrink-0" />
+                          <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 animate-pulse flex-shrink-0" />
                         ) : (
-                          <CheckCircle2 className="h-6 w-6 flex-shrink-0" />
+                          <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
                         )}
-                        <div className="flex-grow">
-                          <h3 className="text-base font-semibold">
+                        <div className="flex-grow min-w-0">
+                          <h3 className="text-sm sm:text-base font-semibold truncate">
                             Overall Emergency Status
                           </h3>
-                          <p className="text-sm font-medium">
+                          <p className="text-xs sm:text-sm font-medium">
                             {status.emergencyStatus
                               ? "ALERT! Critical Situation Detected"
                               : "Normal Operation"}
@@ -426,17 +443,18 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
                           <div className="flex-shrink-0 ml-auto">
                             <Badge
                               variant="secondary"
-                              className="bg-white text-red-600 font-bold"
+                              className="bg-white text-red-600 font-bold text-xs sm:text-sm px-1 sm:px-2"
                             >
-                              ACTION REQUIRED
+                              <span className="hidden sm:inline">ACTION REQUIRED</span>
+                              <span className="sm:hidden">ACTION</span>
                             </Badge>
                           </div>
                         )}
                       </Card>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-2 sm:space-y-3">
+                          <h4 className="font-medium text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
                             Emergency Systems
                           </h4>
                           <StatusCard
@@ -465,8 +483,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
                           />
                         </div>
 
-                        <div className="space-y-3">
-                          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                        <div className="space-y-2 sm:space-y-3">
+                          <h4 className="font-medium text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
                             Control Systems
                           </h4>
                           <StatusCard
@@ -513,10 +531,10 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p>No status data available for this containment</p>
-                      <p className="text-sm">Waiting for MQTT data...</p>
+                    <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                      <AlertTriangle className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 opacity-50" />
+                      <p className="text-sm sm:text-base">No status data available for this containment</p>
+                      <p className="text-xs sm:text-sm">Waiting for MQTT data...</p>
                     </div>
                   )}
                 </div>

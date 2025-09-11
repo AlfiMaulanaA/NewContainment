@@ -1082,6 +1082,49 @@ namespace Backend.Migrations
                     b.ToTable("Racks");
                 });
 
+            modelBuilder.Entity("Backend.Models.RackCapacity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PowerCapacityW")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RackId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TotalCapacityU")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UsedCapacityU")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<int?>("UsedPowerW")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("UsedWeightKg")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("WeightCapacityKg")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RackId")
+                        .IsUnique();
+
+                    b.ToTable("RackCapacities");
+                });
+
             modelBuilder.Entity("Backend.Models.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -1885,6 +1928,17 @@ namespace Backend.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Backend.Models.RackCapacity", b =>
+                {
+                    b.HasOne("Backend.Models.Rack", "Rack")
+                        .WithMany()
+                        .HasForeignKey("RackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rack");
                 });
 
             modelBuilder.Entity("Backend.Models.RolePermission", b =>

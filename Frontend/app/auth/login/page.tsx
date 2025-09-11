@@ -112,10 +112,8 @@ const LoginPage = () => {
         // Show success notification
         AuthNotifications.loginSuccess(result.data.user.name);
 
-        // Small delay to ensure token is stored, then navigate using router
-        setTimeout(() => {
-          router.push("/dashboard-overview");
-        }, 100);
+        // Navigate immediately after successful login
+        router.push("/dashboard-overview");
       } else {
         const errorMessage = result.message || "Login failed";
         setError(errorMessage);
@@ -130,11 +128,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div
-      className={`flex min-h-screen font-sans relative ${
-        theme === "dark" ? "bg-gray-900" : "bg-gray-100"
-      }`}
-    >
+    <div className="flex min-h-screen font-sans relativebg-background">
       {/* Kiri: Gambar dan informasi */}
       <div
         className="flex-1 relative bg-cover bg-center overflow-hidden hidden lg:block"
@@ -149,11 +143,6 @@ const LoginPage = () => {
             <div className="text-sm font-medium mb-2">Production By</div>
             <div className="flex items-center gap-2 animate-fadeInUp">
               <div className="w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden backdrop-blur-sm flex items-center justify-centerbg-background/70">
-                {/* <div
-                className={`w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden backdrop-blur-sm flex items-center justify-center ${
-                  theme === "dark" ? "bg-gray-800/80 shadow-lg" : "bg-white/10"
-                }`}
-              > */}
                 <img
                   src="/images/gspe.jpg"
                   alt="GSPE"
@@ -195,16 +184,20 @@ const LoginPage = () => {
       <div className="bg-background flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="absolute top-4 right-4 z-50">
           <Button
-            variant="outline"
-            size="icon"
+            variant="ghost"
+            size="default"
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             aria-label="Toggle Theme"
+            className="flex items-center gap-2" // Menggunakan flexbox untuk tata letak
           >
             {theme === "light" ? (
               <Moon className="h-5 w-5" />
             ) : (
               <Sun className="h-5 w-5" />
             )}
+            <span className="ml-2">
+              {theme === "light" ? "Dark Mode" : "Light Mode"}
+            </span>
           </Button>
         </div>
 

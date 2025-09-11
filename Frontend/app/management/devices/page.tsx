@@ -83,6 +83,7 @@ import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { useDeviceStatus } from "@/hooks/useDeviceStatus";
 import { DeviceStatusBadge } from "@/components/device-status-badge";
+import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
 import {
   usePermissions,
@@ -542,37 +543,12 @@ export default function DeviceManagementPage({
 
   return (
     <SidebarInset>
-      <header className="flex h-16 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-
-          {/* Back button when filtering by rack */}
-          {rackId && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/management/racks")}
-                className="mr-2"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-              </Button>
-              <Separator orientation="vertical" className="mr-2 h-4" />
-            </>
-          )}
-
-          <HardDrive className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">
-            Device Management
-            {rackId && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                - {rackName || getRackName(rackId)}
-              </span>
-            )}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        icon={HardDrive}
+        title="Device Management"
+        subtitle={rackId ? `${rackName || getRackName(rackId)}` : undefined}
+        backButton={rackId ? { href: "/management/racks", label: "Back to Racks" } : undefined}
+        actions={
           <CrudPermission module="deviceManagement" operation="create">
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
@@ -784,8 +760,8 @@ export default function DeviceManagementPage({
               </DialogContent>
             </Dialog>
           </CrudPermission>
-        </div>
-      </header>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 m-4">

@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  useEffect(() => {
-    // Prevent multiple redirects
-    if (isRedirecting) return;
-    
-    setIsRedirecting(true);
-    
-    // Small delay to prevent potential loops and ensure proper mounting
-    const timer = setTimeout(() => {
-      router.replace('/dashboard-overview');
-    }, 100);
+  // useEffect(() => {
+  //   // Prevent multiple redirects
+  //   if (isRedirecting) return;
 
-    return () => clearTimeout(timer);
-  }, [router, isRedirecting]);
+  //   setIsRedirecting(true);
+
+  //   // Small delay to prevent potential loops and ensure proper mounting
+  //   const timer = setTimeout(() => {
+  //     router.replace('/dashboard-overview');
+  //   }, 100);
+
+  //   return () => clearTimeout(timer);
+  // }, [router, isRedirecting]);
 
   // Show a loading indicator while redirecting
   return (

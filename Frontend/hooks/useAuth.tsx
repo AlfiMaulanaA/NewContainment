@@ -29,17 +29,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(() => {
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("authToken")
-          : null;
-      // console.log('🔍 RefreshUser: Token from localStorage:', token ? 'EXISTS' : 'NULL');
-
       const currentUser = getCurrentUserFromToken();
+      console.log('🔍 RefreshUser: Current user from token:', currentUser ? `EXISTS (${currentUser.email})` : 'NULL');
 
       setUser(currentUser);
       setIsLoading(false);
+      
+      // If no valid user but we're trying to stay authenticated, force logout
+      if (!currentUser && typeof window !== "undefined") {
+        const hasToken = localStorage.getItem("authToken") || 
+                        document.cookie.includes("authToken=");
+        if (hasToken) {
+          console.log('🔍 RefreshUser: Invalid token found, clearing and redirecting');
+          localStorage.removeItem("authToken");
+          document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          // Force redirect to login if we have invalid tokens
+          if (!window.location.pathname.startsWith("/auth/")) {
+            window.location.href = "/auth/login";
+          }
+        }
+      }
     } catch (error) {
+      console.error('RefreshUser error:', error);
       setUser(null);
       setIsLoading(false);
     }
@@ -54,7 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       // Clear all authentication data
       if (typeof window !== "undefined") {
+        console.log('useAuth: Clearing all authentication tokens');
         localStorage.removeItem("authToken");
+        document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname + ";";
       }
       setUser(null);
       // Use replace to prevent back button issues
@@ -67,10 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const result = await authApi.login({ email, password });
         if (result.success) {
+          console.log('🔍 Login successful, refreshing user data');
           // Immediately refresh user data after successful login
           refreshUser();
           return true;
         }
+        console.log('🔍 Login failed:', result.message);
         return false;
       } catch (error) {
         console.error("Login error:", error);

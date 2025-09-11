@@ -112,8 +112,12 @@ const LoginPage = () => {
         // Show success notification
         AuthNotifications.loginSuccess(result.data.user.name);
 
-        // Navigate immediately after successful login
-        router.push("/dashboard-overview");
+        console.log('🔍 Login successful, token stored:', result.data.token ? 'YES' : 'NO');
+        
+        // Wait a bit for the auth state to update, then navigate
+        setTimeout(() => {
+          router.push("/dashboard-overview");
+        }, 100);
       } else {
         const errorMessage = result.message || "Login failed";
         setError(errorMessage);

@@ -777,9 +777,7 @@ export default function RackManagementPage({
                   {racks.map((rack) => (
                     <Card
                       key={rack.id}
-                      className={`group flex flex-col shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground min-h-[350px] sm:min-h-[400px] ${
-                        expandedRacks.has(rack.id) ? 'max-h-none' : 'max-h-[500px] sm:max-h-[600px]'
-                      }`}
+                      className="group flex flex-col shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 bg-background text-foreground min-h-[350px] sm:min-h-[400px] max-h-none"
                     >
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center justify-between">
@@ -819,11 +817,7 @@ export default function RackManagementPage({
                           rackDevices[rack.id].length > 0 ? (
                             <div className="flex flex-col gap-2">
                               {/* Container dengan dynamic height berdasarkan expansion state */}
-                              <div className={`flex flex-col gap-2 ${
-                                expandedRacks.has(rack.id) 
-                                  ? 'min-h-[200px] max-h-80 overflow-y-auto' 
-                                  : 'min-h-[200px]'
-                              }`}>
+                              <div className="flex flex-col gap-2 min-h-[200px]">
                                 {(() => {
                                   const sensorDevices = rackDevices[
                                     rack.id

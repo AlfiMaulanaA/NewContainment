@@ -130,17 +130,22 @@ export function middleware(request: NextRequest) {
 
     // If token is valid and trying to access auth pages, redirect to dashboard
     // Prevent redirect loops by checking exact paths
-    if (isValid && isPublicRoute && pathname !== "/dashboard-overview" && pathname !== "/") {
+    if (
+      isValid &&
+      isPublicRoute &&
+      pathname !== "/dashboard-overview" &&
+      pathname !== "/"
+    ) {
       // console.log(`[Middleware] Valid token on public route, redirecting to dashboard`);
-      const dashboardUrl = new URL("/dashboard-overview", request.url);
-      return NextResponse.redirect(dashboardUrl);
+      // const dashboardUrl = new URL("/dashboard-overview", request.url);
+      // return NextResponse.redirect(dashboardUrl);
     }
 
     // Special handling for root path with valid token
     if (isValid && pathname === "/" && request.nextUrl.search === "") {
       // console.log(`[Middleware] Valid token on root path, redirecting to dashboard`);
-      const dashboardUrl = new URL("/dashboard-overview", request.url);
-      return NextResponse.redirect(dashboardUrl);
+      // const dashboardUrl = new URL("/dashboard-overview", request.url);
+      // return NextResponse.redirect(dashboardUrl);
     }
 
     // Check route-specific permissions for protected routes
@@ -160,8 +165,8 @@ export function middleware(request: NextRequest) {
       );
       if (isAdminRoute && userRole.level < 3) {
         // Admin level = 3, redirect unauthorized users
-        const dashboardUrl = new URL("/dashboard-overview", request.url);
-        return NextResponse.redirect(dashboardUrl);
+        // const dashboardUrl = new URL("/dashboard-overview", request.url);
+        // return NextResponse.redirect(dashboardUrl);
       }
     }
   }

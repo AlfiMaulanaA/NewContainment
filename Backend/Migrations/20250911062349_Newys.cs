@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class Newsj : Migration
+    public partial class Newys : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -683,6 +683,33 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RackCapacities",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    RackId = table.Column<int>(type: "INTEGER", nullable: false),
+                    TotalCapacityU = table.Column<int>(type: "INTEGER", nullable: false),
+                    UsedCapacityU = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
+                    PowerCapacityW = table.Column<int>(type: "INTEGER", nullable: true),
+                    UsedPowerW = table.Column<int>(type: "INTEGER", nullable: true),
+                    WeightCapacityKg = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
+                    UsedWeightKg = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RackCapacities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RackCapacities_Racks_RackId",
+                        column: x => x.RackId,
+                        principalTable: "Racks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DeviceActivityStatuses",
                 columns: table => new
                 {
@@ -811,6 +838,54 @@ namespace Backend.Migrations
                         column: x => x.UpdatedBy,
                         principalTable: "Users",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SensorDataIntervalConfigs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    SaveIntervalMinutes = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 15),
+                    IsEnabled = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    DeviceId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ContainmentId = table.Column<int>(type: "INTEGER", nullable: true),
+                    IsGlobalConfiguration = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
+                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SensorDataIntervalConfigs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SensorDataIntervalConfigs_Containments_ContainmentId",
+                        column: x => x.ContainmentId,
+                        principalTable: "Containments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SensorDataIntervalConfigs_Devices_DeviceId",
+                        column: x => x.DeviceId,
+                        principalTable: "Devices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SensorDataIntervalConfigs_Users_CreatedBy",
+                        column: x => x.CreatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SensorDataIntervalConfigs_Users_UpdatedBy",
+                        column: x => x.UpdatedBy,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1197,6 +1272,12 @@ namespace Backend.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_RackCapacities_RackId",
+                table: "RackCapacities",
+                column: "RackId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Racks_ContainmentId",
                 table: "Racks",
                 column: "ContainmentId");
@@ -1310,6 +1391,62 @@ namespace Backend.Migrations
                 column: "UpdatedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_ContainmentId",
+                table: "SensorDataIntervalConfigs",
+                column: "ContainmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_ContainmentId_IsActive",
+                table: "SensorDataIntervalConfigs",
+                columns: new[] { "ContainmentId", "IsActive" },
+                unique: true,
+                filter: "[ContainmentId] IS NOT NULL AND [IsActive] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_CreatedBy",
+                table: "SensorDataIntervalConfigs",
+                column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_DeviceId",
+                table: "SensorDataIntervalConfigs",
+                column: "DeviceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_DeviceId_IsActive",
+                table: "SensorDataIntervalConfigs",
+                columns: new[] { "DeviceId", "IsActive" },
+                unique: true,
+                filter: "[DeviceId] IS NOT NULL AND [IsActive] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_IsActive",
+                table: "SensorDataIntervalConfigs",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_IsGlobalConfiguration",
+                table: "SensorDataIntervalConfigs",
+                column: "IsGlobalConfiguration");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_IsGlobalConfiguration_IsActive",
+                table: "SensorDataIntervalConfigs",
+                columns: new[] { "IsGlobalConfiguration", "IsActive" },
+                unique: true,
+                filter: "[IsGlobalConfiguration] = 1 AND [IsActive] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_SaveIntervalMinutes",
+                table: "SensorDataIntervalConfigs",
+                column: "SaveIntervalMinutes");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SensorDataIntervalConfigs_UpdatedBy",
+                table: "SensorDataIntervalConfigs",
+                column: "UpdatedBy");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_IsActive",
                 table: "UserRoles",
                 column: "IsActive");
@@ -1382,6 +1519,9 @@ namespace Backend.Migrations
                 name: "NetworkConfigurations");
 
             migrationBuilder.DropTable(
+                name: "RackCapacities");
+
+            migrationBuilder.DropTable(
                 name: "RolePermissions");
 
             migrationBuilder.DropTable(
@@ -1389,6 +1529,9 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "SensorConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "SensorDataIntervalConfigs");
 
             migrationBuilder.DropTable(
                 name: "UserRoles");

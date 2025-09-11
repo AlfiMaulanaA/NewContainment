@@ -217,20 +217,73 @@ deploy_frontend() {
     
     log "Stopping existing PM2 processes..."
     pm2 delete newcontainment-frontend 2>/dev/null || true
+    pm2 kill 2>/dev/null || true
     
-    log "Starting frontend with PM2..."
-    pm2 start npm --name "newcontainment-frontend" -- start -- --port 3000
+    # Create PM2 ecosystem file for better control
+    log "Creating PM2 configuration..."
+    cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [
+    {
+      name: 'newcontainment-frontend',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start',
+      cwd: process.cwd(),
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+        HOSTNAME: '0.0.0.0'
+      },
+      error_file: '/var/log/pm2/newcontainment-frontend-error.log',
+      out_file: '/var/log/pm2/newcontainment-frontend-out.log',
+      log_file: '/var/log/pm2/newcontainment-frontend.log',
+      time: true
+    }
+  ]
+};
+EOF
+    
+    # Ensure log directory exists
+    sudo mkdir -p /var/log/pm2
+    sudo chown $(whoami):$(whoami) /var/log/pm2 2>/dev/null || true
+    
+    log "Starting frontend with PM2 using ecosystem config..."
+    pm2 start ecosystem.config.js
     pm2 save
     
     log "Waiting for frontend to start..."
-    sleep 5
+    sleep 8
     
-    # Verify frontend is running
-    if pm2 list | grep -q "newcontainment-frontend.*online"; then
-        log_success "Frontend is running"
-    else
-        log_error "Frontend failed to start"
-        pm2 logs newcontainment-frontend --lines 10
+    # Verify frontend is running and accessible
+    local frontend_running=false
+    for i in {1..10}; do
+        if pm2 list | grep -q "newcontainment-frontend.*online"; then
+            log "PM2 process is online, checking port accessibility..."
+            
+            # Check if port 3000 is actually listening
+            if netstat -tuln | grep -q ":3000"; then
+                log_success "Frontend is accessible on port 3000"
+                frontend_running=true
+                break
+            else
+                log_warning "Port 3000 not listening yet, waiting..."
+            fi
+        fi
+        sleep 2
+    done
+    
+    if [ "$frontend_running" = false ]; then
+        log_error "Frontend failed to start properly"
+        log "PM2 Status:"
+        pm2 list
+        log "PM2 Logs:"
+        pm2 logs newcontainment-frontend --lines 20
+        log "Port Status:"
+        netstat -tuln | grep ":3000" || log "Port 3000 not listening"
         exit 1
     fi
     
@@ -281,10 +334,20 @@ deploy_backend() {
         log "Cleaned previous build"
     fi
     
+    # Fix NuGet configuration before building
+    fix_nuget_linux
+    
+    # Restore packages first
+    log "Restoring packages with Linux configuration..."
+    if ! dotnet restore --no-cache --force; then
+        log_error "Package restore failed"
+        return 1
+    fi
+    
     # Build with framework-dependent deployment (more reliable)
     log "Building backend for $target_arch (framework-dependent)..."
     dotnet clean -c Release
-    dotnet publish -c Release -r $target_arch --no-self-contained -o publish
+    dotnet publish -c Release -r $target_arch --no-self-contained --no-restore -o publish
     
     # Verify build
     if [ ! -f "publish/Backend.dll" ]; then
@@ -296,6 +359,46 @@ deploy_backend() {
     chmod +x publish/Backend 2>/dev/null || true
     
     log_success "Backend built successfully"
+}
+
+# Function to fix NuGet configuration for Linux
+fix_nuget_linux() {
+    log "=== Fixing NuGet Configuration for Linux ==="
+    cd "$BACKEND_DIR"
+    
+    # Clear NuGet caches to remove Windows paths
+    log "Clearing NuGet caches..."
+    dotnet nuget locals global-packages --clear 2>/dev/null || true
+    dotnet nuget locals temp --clear 2>/dev/null || true
+    dotnet nuget locals plugins-cache --clear 2>/dev/null || true
+    
+    # Set Linux-specific NuGet environment variables
+    log "Setting Linux NuGet environment..."
+    export NUGET_PACKAGES="$HOME/.nuget/packages"
+    export NUGET_FALLBACK_PACKAGES=""
+    export NUGET_HTTP_CACHE_PATH="$HOME/.local/share/NuGet/v3-cache"
+    
+    # Create directories if they don't exist
+    mkdir -p "$NUGET_PACKAGES"
+    mkdir -p "$HOME/.local/share/NuGet/v3-cache"
+    
+    # Create temporary NuGet.Config to override Windows paths
+    cat > nuget.config << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+  </packageSources>
+  <config>
+    <add key="globalPackagesFolder" value="~/.nuget/packages" />
+  </config>
+  <fallbackPackageFolders>
+    <clear />
+  </fallbackPackageFolders>
+</configuration>
+EOF
+    
+    log_success "NuGet Linux configuration fixed"
 }
 
 # Function to setup database

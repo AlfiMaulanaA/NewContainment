@@ -197,26 +197,33 @@ export function getCurrentUserFromToken(): CurrentUser | null {
     let token = null;
     if (typeof window !== "undefined") {
       token = localStorage.getItem("authToken");
-      // console.log('🔍 getCurrentUserFromToken: Token from localStorage:', token ? 'EXISTS' : 'NULL');
+      console.log('🔍 getCurrentUserFromToken: Token from localStorage:', token ? 'EXISTS' : 'NULL');
 
       // Fallback to cookies if localStorage is empty
       if (!token) {
         const cookies = document.cookie.split(";");
+        console.log('🔍 getCurrentUserFromToken: Checking cookies:', document.cookie);
         const authCookie = cookies.find((cookie) =>
           cookie.trim().startsWith("authToken=")
         );
         if (authCookie) {
           token = authCookie.split("=")[1];
+          console.log('🔍 getCurrentUserFromToken: Token from cookies:', token ? 'EXISTS' : 'NULL');
         }
       }
     }
 
     if (!token) {
+      console.log('🔍 getCurrentUserFromToken: No token found');
       return null;
     }
 
     // Check if token is expired (without buffer for initial check)
-    if (isTokenExpired(token, 0)) {
+    const expired = isTokenExpired(token, 0);
+    console.log('🔍 getCurrentUserFromToken: Token expired?', expired);
+    
+    if (expired) {
+      console.log('🔍 getCurrentUserFromToken: Token is expired, clearing localStorage');
       if (typeof window !== "undefined") {
         localStorage.removeItem("authToken");
       }

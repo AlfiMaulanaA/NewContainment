@@ -593,16 +593,21 @@ class ApiClient {
 
   private clearAuthToken(): void {
     if (typeof window !== "undefined") {
+      console.log('API Service: Clearing authentication tokens');
       localStorage.removeItem("authToken");
       document.cookie =
         "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie =
+        "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + window.location.hostname + ";";
     }
   }
 
   private redirectToLogin(): void {
-    // COMPLETELY DISABLE REDIRECT to prevent loops
-    // Let middleware handle all authentication redirects
-    console.log('API Service: Authentication failed - redirect disabled to prevent loops');
+    console.log('API Service: Authentication failed, redirecting to login');
+    // Force a hard redirect to break any client-side loops
+    if (typeof window !== "undefined") {
+      window.location.href = "/auth/login";
+    }
   }
 
   async get<T = any>(endpoint: string): Promise<T> {

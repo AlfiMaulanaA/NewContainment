@@ -133,6 +133,47 @@ pull_updates() {
     return 0
 }
 
+# Function to fix NuGet configuration for Linux
+fix_nuget_linux() {
+    log "=== Fixing NuGet Configuration for Linux ==="
+    cd "$BACKEND_DIR"
+    
+    # Clear NuGet caches to remove Windows paths
+    log "Clearing NuGet caches..."
+    dotnet nuget locals global-packages --clear 2>/dev/null || true
+    dotnet nuget locals temp --clear 2>/dev/null || true
+    dotnet nuget locals plugins-cache --clear 2>/dev/null || true
+    
+    # Set Linux-specific NuGet environment variables
+    log "Setting Linux NuGet environment..."
+    export NUGET_PACKAGES="$HOME/.nuget/packages"
+    export NUGET_FALLBACK_PACKAGES=""
+    export NUGET_HTTP_CACHE_PATH="$HOME/.local/share/NuGet/v3-cache"
+    
+    # Create directories if they don't exist
+    mkdir -p "$NUGET_PACKAGES"
+    mkdir -p "$HOME/.local/share/NuGet/v3-cache"
+    
+    # Create temporary NuGet.Config to override Windows paths
+    cat > nuget.config << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+  </packageSources>
+  <config>
+    <add key="globalPackagesFolder" value="~/.nuget/packages" />
+  </config>
+  <fallbackPackageFolders>
+    <clear />
+  </fallbackPackageFolders>
+</configuration>
+EOF
+
+    log_success "NuGet Linux configuration applied"
+    cd "$PROJECT_ROOT"
+}
+
 # Function to detect system architecture
 detect_architecture() {
     local arch=$(uname -m)
@@ -232,17 +273,20 @@ update_backend() {
     local target_arch=$(detect_architecture)
     log "Building for architecture: $target_arch"
     
-    # Restore packages
-    log "Restoring packages..."
-    if ! dotnet restore; then
-        log_error "Failed to restore packages"
+    # Fix NuGet configuration before building
+    fix_nuget_linux
+    
+    # Restore packages with Linux configuration
+    log "Restoring packages with Linux configuration..."
+    if ! dotnet restore --no-cache --force; then
+        log_error "Package restore failed"
         return 1
     fi
     
     # Build and publish with correct architecture
     log "Building and publishing backend..."
     dotnet clean -c Release
-    if ! dotnet publish -c Release -r $target_arch --no-self-contained -o publish; then
+    if ! dotnet publish -c Release -r $target_arch --no-self-contained --no-restore -o publish; then
         log_error "Backend publish failed"
         return 1
     fi
@@ -344,35 +388,77 @@ restart_services() {
     
     # Start frontend PM2 process
     cd "$FRONTEND_DIR"
-    if pm2_process_exists "newcontainment-frontend"; then
-        log "Restarting frontend PM2 process..."
-        pm2 restart newcontainment-frontend
-    else
-        log "Starting new frontend PM2 process..."
-        pm2 start npm --name "newcontainment-frontend" -- start -- --port 3000
-    fi
     
-    # Save PM2 configuration
+    log "Stopping existing PM2 processes..."
+    pm2 delete newcontainment-frontend 2>/dev/null || true
+    pm2 kill 2>/dev/null || true
+    
+    # Create PM2 ecosystem file for better control
+    log "Creating PM2 configuration..."
+    cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [
+    {
+      name: 'newcontainment-frontend',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start',
+      cwd: process.cwd(),
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+        HOSTNAME: '0.0.0.0'
+      },
+      error_file: '/var/log/pm2/newcontainment-frontend-error.log',
+      out_file: '/var/log/pm2/newcontainment-frontend-out.log',
+      log_file: '/var/log/pm2/newcontainment-frontend.log',
+      time: true
+    }
+  ]
+};
+EOF
+    
+    # Ensure log directory exists
+    sudo mkdir -p /var/log/pm2
+    sudo chown $(whoami):$(whoami) /var/log/pm2 2>/dev/null || true
+    
+    log "Starting frontend with PM2 using ecosystem config..."
+    pm2 start ecosystem.config.js
     pm2 save
     
-    # Wait for frontend to start
-    sleep 3
+    log "Waiting for frontend to start..."
+    sleep 8
     
-    # Frontend health check
-    log "Performing frontend health check..."
-    local frontend_ready=false
+    # Verify frontend is running and accessible
+    local frontend_running=false
     for i in {1..10}; do
-        if curl -s http://localhost:3000 > /dev/null 2>&1; then
-            frontend_ready=true
-            break
+        if pm2 list | grep -q "newcontainment-frontend.*online"; then
+            log "PM2 process is online, checking port accessibility..."
+            
+            # Check if port 3000 is actually listening
+            if netstat -tuln | grep -q ":3000"; then
+                log_success "Frontend is accessible on port 3000"
+                frontend_running=true
+                break
+            else
+                log_warning "Port 3000 not listening yet, waiting..."
+            fi
         fi
         sleep 2
     done
     
-    if [ "$frontend_ready" = true ]; then
-        log_success "Frontend health check passed"
-    else
-        log_warning "Frontend health check failed"
+    if [ "$frontend_running" = false ]; then
+        log_error "Frontend failed to start properly"
+        log "PM2 Status:"
+        pm2 list
+        log "PM2 Logs:"
+        pm2 logs newcontainment-frontend --lines 20
+        log "Port Status:"
+        netstat -tuln | grep ":3000" || log "Port 3000 not listening"
+        return 1
     fi
     
     log_success "Services restarted successfully"

@@ -13,6 +13,12 @@ export function RouteGuard({ children }: RouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isChecking, setIsChecking] = useState(true);
+  const [hasRedirected, setHasRedirected] = useState(false);
+
+  useEffect(() => {
+    // Reset redirect flag when pathname changes
+    setHasRedirected(false);
+  }, [pathname]);
 
   useEffect(() => {
     const authCheck = () => {
@@ -37,18 +43,24 @@ export function RouteGuard({ children }: RouteGuardProps) {
       // RouteGuard should only handle client-side state, not navigation
 
       if (!user && !isPublicRoute) {
-        // Don't redirect here - middleware will handle it
-        console.log("RouteGuard: User not authenticated for protected route");
-        setIsChecking(false);
+        console.log(
+          "RouteGuard: User not authenticated for protected route, redirecting"
+        );
+        // Prevent infinite redirect loops
+        if (!hasRedirected && pathname !== "/auth/login") {
+          setHasRedirected(true);
+          router.replace("/auth/login");
+        } else {
+          setIsChecking(false);
+        }
         return;
       }
 
       if (user && isPublicRoute) {
         // Only redirect away from auth pages if user is authenticated
-        // TEMPORARILY DISABLED TO TEST REDIRECT LOOPS
-        // console.log('RouteGuard: User authenticated, redirecting to dashboard');
+        console.log("RouteGuard: User authenticated, redirecting to dashboard");
         // router.replace('/dashboard-overview');
-        // return;
+        return;
       }
 
       // All checks passed

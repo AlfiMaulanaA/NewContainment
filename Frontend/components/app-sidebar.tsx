@@ -539,21 +539,27 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm hover:scale-[1.01] sidebar-focus-ring ${
+                        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-md ${
                           isActive ? "sidebar-menu-active" : ""
                         }`}
                       >
                         <Link href={item.url}>
                           {IconComponent && (
-                            <IconComponent className={`sidebar-icon h-4 w-4 transition-all duration-200 ${
-                              isActive 
-                                ? "" 
-                                : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110"
-                            }`} />
+                            <IconComponent
+                              className={`sidebar-icon h-4 w-4 transition-all duration-200 ${
+                                isActive
+                                  ? ""
+                                  : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110"
+                              }`}
+                            />
                           )}
-                          <span className={`sidebar-text truncate transition-all duration-200 ${
-                            isActive ? "" : ""
-                          }`}>{item.title}</span>
+                          <span
+                            className={`sidebar-text truncate transition-all duration-200 ${
+                              isActive ? "" : ""
+                            }`}
+                          >
+                            {item.title}
+                          </span>
                           {item.badgeText && (
                             <SidebarMenuBadge
                               className={`ml-auto text-xs transition-colors ${

@@ -19,8 +19,10 @@ export interface EnhancedMQTTConfig {
 
 // Get configuration from environment variables (simplified)
 function getEnvConfig(): EnhancedMQTTConfig {
+  const brokerHosthame = window.location.hostname;
+
   const useWebSocket = process.env.NEXT_PUBLIC_MQTT_USE_WEBSOCKET === "true";
-  const host = process.env.NEXT_PUBLIC_MQTT_HOST || window.location.hostname;
+  const host = process.env.NEXT_PUBLIC_MQTT_HOST || brokerHosthame;
   const port = parseInt(
     process.env.NEXT_PUBLIC_MQTT_PORT || (useWebSocket ? "9000" : "1883")
   );

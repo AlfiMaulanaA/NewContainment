@@ -130,11 +130,25 @@ namespace Backend.Services
             }
 
             _logger.LogInformation("MQTT connection established successfully");
+
+            // Log MQTT configuration source and connection details
+            using var scope = _serviceProvider.CreateScope();
+            var mqttConfigService = scope.ServiceProvider.GetRequiredService<IMqttConfigurationService>();
+            var effectiveConfig = await mqttConfigService.GetEffectiveConfigurationAsync();
+
+            var source = effectiveConfig["Source"].ToString();
+            var host = effectiveConfig["BrokerHost"].ToString();
+            var port = (int)effectiveConfig["BrokerPort"];
+            var isEnabled = (bool)effectiveConfig["IsEnabled"];
+
+            _logger.LogInformation("MQTT Status - Connected: {Connected}, Source: {Source}, Host: {Host}:{Port}, Enabled: {Enabled}",
+                _mqttService.IsConnected, source, host, port, isEnabled);
         }
 
         private async Task HandleContainmentStatusMessage(string topic, string payload)
         {
             _logger.LogInformation("Received containment status message on topic {Topic}", topic);
+            _logger.LogInformation("Payload: {Payload}", payload);
 
             try
             {

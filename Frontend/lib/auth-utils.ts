@@ -8,7 +8,7 @@ interface AuthDebugConfig {
 
 // Global debug configuration - set this to false in production
 const DEBUG_CONFIG: AuthDebugConfig = {
-  enabled: process.env.NODE_ENV === "production", // Auto-disable in production
+  enabled: process.env.NODE_ENV === "development", // Auto-disable in production
   prefix: "🔒 AUTH:",
 };
 

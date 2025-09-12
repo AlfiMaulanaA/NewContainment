@@ -248,7 +248,7 @@ namespace Backend.Data
         var adminUser = users.First(u => u.Role == UserRole.Admin);
         var devices = new List<Device>();
         
-        var sensorTypes = new List<string> { "Temperature", "Dust", "AirFlow", "Vibration" };
+        var sensorTypes = new List<string> { "Temperature", "Dust Sensor", "Air Flow", "Vibration" };
 
         foreach (var rack in racks)
         {

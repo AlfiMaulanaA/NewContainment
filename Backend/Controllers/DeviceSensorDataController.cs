@@ -25,7 +25,7 @@ namespace Backend.Controllers
         /// Get sensor data with advanced filtering and pagination
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DeviceSensorData>>> GetSensorData(
+        public async Task<ActionResult<ApiResponse<IEnumerable<DeviceSensorData>>>> GetSensorData(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
             [FromQuery] int? deviceId = null,
@@ -40,12 +40,30 @@ namespace Backend.Controllers
                 var (data, total) = await _sensorDataService.GetSensorDataAsync(
                     page, pageSize, deviceId, rackId, containmentId, sensorType, startDate, endDate);
 
-                return Ok(data);
+                return Ok(new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = true,
+                    Data = data,
+                    Message = $"Retrieved {data.Count()} sensor data records (page {page}/{Math.Ceiling((double)total / pageSize)})",
+                    Pagination = new PaginationInfo
+                    {
+                        CurrentPage = page,
+                        PageSize = pageSize,
+                        TotalItems = total,
+                        TotalPages = (int)Math.Ceiling((double)total / pageSize),
+                        HasNextPage = page * pageSize < total,
+                        HasPreviousPage = page > 1
+                    }
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving sensor data");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<IEnumerable<DeviceSensorData>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
             }
         }
 
@@ -363,17 +381,26 @@ namespace Backend.Controllers
         /// Get available sensor types
         /// </summary>
         [HttpGet("sensor-types")]
-        public async Task<ActionResult<IEnumerable<string>>> GetAvailableSensorTypes()
+        public async Task<ActionResult<ApiResponse<IEnumerable<string>>>> GetAvailableSensorTypes()
         {
             try
             {
                 var sensorTypes = await _sensorDataService.GetAvailableSensorTypesAsync();
-                return Ok(sensorTypes);
+                return Ok(new ApiResponse<IEnumerable<string>>
+                {
+                    Success = true,
+                    Data = sensorTypes,
+                    Message = $"Retrieved {sensorTypes.Count()} sensor types"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving sensor types");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<IEnumerable<string>>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
             }
         }
 
@@ -381,19 +408,28 @@ namespace Backend.Controllers
         /// Get sensor data summary
         /// </summary>
         [HttpGet("summary")]
-        public async Task<ActionResult<object>> GetSensorDataSummary(
+        public async Task<ActionResult<ApiResponse<object>>> GetSensorDataSummary(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null)
         {
             try
             {
                 var summary = await _sensorDataService.GetSensorDataSummaryAsync(startDate, endDate);
-                return Ok(summary);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = summary,
+                    Message = "Sensor data summary retrieved successfully"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving sensor data summary");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Internal server error"
+                });
             }
         }
 
@@ -435,6 +471,113 @@ namespace Backend.Controllers
                     Success = false,
                     Message = "Internal server error"
                 });
+            }
+        }
+
+        // DELETE endpoints for sensor data management
+        [HttpDelete("all")]
+        public async Task<ActionResult<object>> DeleteAllSensorData()
+        {
+            try
+            {
+                _logger.LogWarning("Request to delete ALL sensor data received from user {User}", User?.Identity?.Name ?? "Unknown");
+                
+                var deletedCount = await _sensorDataService.DeleteAllSensorDataAsync();
+                
+                return Ok(new { 
+                    success = true, 
+                    message = $"Successfully deleted all {deletedCount} sensor data records",
+                    deletedCount = deletedCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting all sensor data");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [HttpDelete("date-range")]
+        public async Task<ActionResult<object>> DeleteSensorDataByDateRange([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            try
+            {
+                if (startDate >= endDate)
+                {
+                    return BadRequest(new { success = false, message = "Start date must be before end date" });
+                }
+
+                _logger.LogWarning("Request to delete sensor data from {StartDate} to {EndDate} received from user {User}", 
+                    startDate, endDate, User?.Identity?.Name ?? "Unknown");
+                
+                var deletedCount = await _sensorDataService.DeleteSensorDataByDateRangeAsync(startDate, endDate);
+                
+                return Ok(new { 
+                    success = true, 
+                    message = $"Successfully deleted {deletedCount} sensor data records from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}",
+                    deletedCount = deletedCount,
+                    startDate = startDate,
+                    endDate = endDate
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting sensor data by date range {StartDate} to {EndDate}", startDate, endDate);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [HttpDelete("device/{deviceId}")]
+        public async Task<ActionResult<object>> DeleteSensorDataByDevice(int deviceId)
+        {
+            try
+            {
+                _logger.LogWarning("Request to delete sensor data for device {DeviceId} received from user {User}", 
+                    deviceId, User?.Identity?.Name ?? "Unknown");
+                
+                var deletedCount = await _sensorDataService.DeleteSensorDataByDeviceAsync(deviceId);
+                
+                return Ok(new { 
+                    success = true, 
+                    message = $"Successfully deleted {deletedCount} sensor data records for device {deviceId}",
+                    deletedCount = deletedCount,
+                    deviceId = deviceId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting sensor data for device {DeviceId}", deviceId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        [HttpDelete("older-than/{days}")]
+        public async Task<ActionResult<object>> DeleteOldSensorData(int days)
+        {
+            try
+            {
+                if (days <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Days must be greater than 0" });
+                }
+
+                _logger.LogWarning("Request to delete sensor data older than {Days} days received from user {User}", 
+                    days, User?.Identity?.Name ?? "Unknown");
+                
+                var maxAge = TimeSpan.FromDays(days);
+                var deletedCount = await _sensorDataService.DeleteOldSensorDataAsync(maxAge);
+                
+                return Ok(new { 
+                    success = true, 
+                    message = $"Successfully deleted {deletedCount} sensor data records older than {days} days",
+                    deletedCount = deletedCount,
+                    maxAgeDays = days
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting sensor data older than {Days} days", days);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
     }

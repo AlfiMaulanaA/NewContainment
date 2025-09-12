@@ -277,11 +277,24 @@ using (var scope = app.Services.CreateScope())
         var seedConfig = new Dictionary<string, bool>
         {
             {"AccessLog", bool.Parse(Environment.GetEnvironmentVariable("SEED_ACCESS_LOG") ?? "false")},
-            {"DeviceSensorData", bool.Parse(Environment.GetEnvironmentVariable("SEED_SENSOR_DATA") ?? "false")}
+            {"DeviceSensorData", bool.Parse(Environment.GetEnvironmentVariable("SEED_SENSOR_DATA") ?? "true")}
         };
 
         logger.LogInformation("Starting optimized database seeding...");
         await Backend.Data.OptimizedSeedData.InitializeAsync(context, authService, scopedLogger, seedConfig);
+        
+        // Initialize sensor interval configuration based on environment
+        logger.LogInformation("Initializing sensor interval configuration...");
+        var intervalService = scope.ServiceProvider.GetRequiredService<Backend.Services.ISensorDataIntervalService>();
+        var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Role == Backend.Enums.UserRole.Admin);
+        if (adminUser != null)
+        {
+            await intervalService.InitializeDefaultConfigurationAsync(adminUser.Id);
+        }
+        else
+        {
+            logger.LogWarning("No admin user found for sensor interval configuration initialization");
+        }
 
         // Optional: Validate seed data integrity
         var enableValidation = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_SEED_VALIDATION") ?? "false");

@@ -536,5 +536,127 @@ namespace Backend.Services
                 .Distinct()
                 .ToListAsync();
         }
+
+        // Delete functionality for sensor data logs
+        public async Task<int> DeleteAllSensorDataAsync()
+        {
+            try
+            {
+                var totalRecords = await _context.DeviceSensorData.CountAsync();
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM DeviceSensorData");
+                
+                _logger.LogInformation("Deleted all {TotalRecords} sensor data records", totalRecords);
+                return totalRecords;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete all sensor data");
+                throw;
+            }
+        }
+
+        public async Task<int> DeleteSensorDataByDateRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var query = _context.DeviceSensorData
+                    .Where(d => d.Timestamp >= startDate && d.Timestamp <= endDate);
+                
+                var recordCount = await query.CountAsync();
+                
+                if (recordCount > 0)
+                {
+                    _context.DeviceSensorData.RemoveRange(query);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Deleted {RecordCount} sensor data records from {StartDate} to {EndDate}", 
+                        recordCount, startDate, endDate);
+                }
+                
+                return recordCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete sensor data by date range {StartDate} to {EndDate}", startDate, endDate);
+                throw;
+            }
+        }
+
+        public async Task<int> DeleteSensorDataByDeviceAsync(int deviceId)
+        {
+            try
+            {
+                var query = _context.DeviceSensorData.Where(d => d.DeviceId == deviceId);
+                var recordCount = await query.CountAsync();
+                
+                if (recordCount > 0)
+                {
+                    _context.DeviceSensorData.RemoveRange(query);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Deleted {RecordCount} sensor data records for device {DeviceId}", 
+                        recordCount, deviceId);
+                }
+                
+                return recordCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete sensor data for device {DeviceId}", deviceId);
+                throw;
+            }
+        }
+
+        public async Task<int> DeleteSensorDataByContainmentAsync(int containmentId)
+        {
+            try
+            {
+                var query = _context.DeviceSensorData.Where(d => d.ContainmentId == containmentId);
+                var recordCount = await query.CountAsync();
+                
+                if (recordCount > 0)
+                {
+                    _context.DeviceSensorData.RemoveRange(query);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Deleted {RecordCount} sensor data records for containment {ContainmentId}", 
+                        recordCount, containmentId);
+                }
+                
+                return recordCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete sensor data for containment {ContainmentId}", containmentId);
+                throw;
+            }
+        }
+
+        public async Task<int> DeleteOldSensorDataAsync(TimeSpan maxAge)
+        {
+            try
+            {
+                var cutoffDate = DateTime.UtcNow - maxAge;
+                var query = _context.DeviceSensorData.Where(d => d.Timestamp < cutoffDate);
+                
+                var recordCount = await query.CountAsync();
+                
+                if (recordCount > 0)
+                {
+                    _context.DeviceSensorData.RemoveRange(query);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Deleted {RecordCount} sensor data records older than {CutoffDate}", 
+                        recordCount, cutoffDate);
+                }
+                
+                return recordCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete old sensor data older than {MaxAge}", maxAge);
+                throw;
+            }
+        }
     }
 }

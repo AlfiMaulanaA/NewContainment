@@ -26,8 +26,8 @@ namespace Backend.Data
             {"MqttConfiguration", true},
             {"NetworkConfiguration", true},
             {"MenuManagement", true},
-            {"AccessLog", false}, // Disabled by default for performance
-            {"DeviceSensorData", false} // Disabled by default for performance
+            {"AccessLog", true}, // Enabled for complete seed demo
+            {"DeviceSensorData", true} // Enabled for complete seed demo
         };
 
         public static async Task InitializeAsync(AppDbContext context, IAuthService authService, ILogger logger, Dictionary<string, bool>? customConfig = null)
@@ -742,40 +742,120 @@ new MenuItem {
 
         private static async Task SeedDeviceSensorDataAsync(AppDbContext context, ILogger logger)
         {
-            if (!_seedConfig["DeviceSensorData"] || await context.DeviceSensorData.AnyAsync())
+            if (!_seedConfig["DeviceSensorData"])
                 return;
+                
+            // Check if we have significant sensor data (more than 100 records)
+            // Clear existing data to regenerate with 4 sensor types
+            var existingCount = await context.DeviceSensorData.CountAsync();
+            if (existingCount > 0)
+            {
+                logger.LogInformation("Clearing {Count} existing DeviceSensorData records for regeneration", existingCount);
+                context.DeviceSensorData.RemoveRange(context.DeviceSensorData);
+                await context.SaveChangesAsync();
+            }
 
-            logger.LogInformation("Seeding device sensor data (performance intensive)...");
+            logger.LogInformation("Seeding enhanced device sensor data with multiple sensor types...");
 
             var devices = await context.Devices.Where(d => d.Type.ToLower() == "sensor").ToListAsync();
-            if (!devices.Any()) return;
+            logger.LogInformation("Found {Count} sensor devices for data seeding", devices.Count);
+            
+            if (!devices.Any()) 
+            {
+                logger.LogWarning("No devices found with Type 'sensor' - DeviceSensorData seeding skipped");
+                return;
+            }
 
             var random = new Random();
             var sensorDataList = new List<DeviceSensorData>();
 
-            // Generate sensor data for last 24 hours only (reduced scope)
-            var startDate = DateTime.UtcNow.AddHours(-24);
+            // Generate sensor data for last 6 hours with 1-minute intervals for development testing
+            var startDate = DateTime.UtcNow.AddHours(-6);
             var endDate = DateTime.UtcNow;
 
-            foreach (var device in devices.Take(5)) // Limit to first 5 devices
+            // Define 4 main sensor types as requested
+            var sensorTypes = new Dictionary<string, Func<Random, DateTime, string>>
             {
-                for (var date = startDate; date <= endDate; date = date.AddHours(1)) // Hourly instead of 15 minutes
+                ["Temperature"] = (rnd, dt) =>
                 {
-                    var temp = Math.Round(20 + random.NextDouble() * 10, 1);
-                    var humidity = Math.Round(45 + random.NextDouble() * 35, 1);
+                    var temp = Math.Round(18 + rnd.NextDouble() * 15, 1); // 18-33°C
+                    var hum = Math.Round(30 + rnd.NextDouble() * 50, 1);  // 30-80%
+                    return $"{{\"temp\": {temp}, \"hum\": {hum}, \"timestamp\": \"{dt:yyyy-MM-ddTHH:mm:ss.fffZ}\"}}";
+                },
+                ["Air Flow"] = (rnd, dt) =>
+                {
+                    var flow = Math.Round(15 + rnd.NextDouble() * 35, 1);     // 15-50 L/min
+                    var pressure = Math.Round(980 + rnd.NextDouble() * 40, 1); // 980-1020 hPa
+                    return $"{{\"air_flow_lpm\": {flow}, \"air_pressure_hpa\": {pressure}, \"timestamp\": \"{dt:yyyy-MM-ddTHH:mm:ss.fffZ}\"}}";
+                },
+                ["Vibration"] = (rnd, dt) =>
+                {
+                    var magnitude = Math.Round(0.1 + rnd.NextDouble() * 2.5, 3);  // 0.1 to 2.6 m/s²
+                    var x = Math.Round((rnd.NextDouble() - 0.5) * 2, 3);  // -1 to 1 m/s²
+                    var y = Math.Round((rnd.NextDouble() - 0.5) * 2, 3);
+                    var z = Math.Round((rnd.NextDouble() - 0.5) * 2, 3);
+                    return $"{{\"vibration_magnitude\": {magnitude}, \"vibration_x\": {x}, \"vibration_y\": {y}, \"vibration_z\": {z}, \"timestamp\": \"{dt:yyyy-MM-ddTHH:mm:ss.fffZ}\"}}";
+                },
+                ["Dust Sensor"] = (rnd, dt) =>
+                {
+                    var dust = Math.Round(5 + rnd.NextDouble() * 45, 1);    // 5-50 µg/m³
+                    var temp = Math.Round(20 + rnd.NextDouble() * 10, 1);
+                    var hum = Math.Round(40 + rnd.NextDouble() * 30, 1);
+                    return $"{{\"dust_level_ug_m3\": {dust}, \"temperature\": {temp}, \"humidity\": {hum}, \"timestamp\": \"{dt:yyyy-MM-ddTHH:mm:ss.fffZ}\"}}";
+                }
+            };
+
+            logger.LogInformation("Generating sensor data from {StartDate} to {EndDate}", startDate, endDate);
+
+            var deviceList = devices.Take(8).ToList(); // Limit to first 8 devices for variety
+            var sensorTypeKeys = sensorTypes.Keys.ToArray();
+            
+            // Ensure all 4 sensor types are represented by assigning them to first 4 devices
+            for (int i = 0; i < Math.Min(deviceList.Count, sensorTypeKeys.Length); i++)
+            {
+                deviceList[i].SensorType = sensorTypeKeys[i];
+            }
+            
+            // For remaining devices, cycle through sensor types
+            for (int i = sensorTypeKeys.Length; i < deviceList.Count; i++)
+            {
+                deviceList[i].SensorType = sensorTypeKeys[i % sensorTypeKeys.Length];
+            }
+
+            foreach (var device in deviceList)
+            {
+                // Use assigned sensor type or default to Temperature
+                if (string.IsNullOrEmpty(device.SensorType))
+                {
+                    device.SensorType = "Temperature";
+                }
+
+                var sensorType = sensorTypes.ContainsKey(device.SensorType) ? device.SensorType : "Temperature";
+                var dataGenerator = sensorTypes[sensorType];
+
+                // Generate data at exact minute intervals for development mode testing
+                for (var date = startDate; date <= endDate; date = date.AddMinutes(1))
+                {
+                    // Round to exact minute for interval testing
+                    var roundedDate = new DateTime(date.Year, date.Month, date.Day, date.Hour, date.Minute, 0, DateTimeKind.Utc);
+                    
+                    var payload = dataGenerator(random, roundedDate);
 
                     sensorDataList.Add(new DeviceSensorData
                     {
                         DeviceId = device.Id,
                         RackId = device.RackId,
                         ContainmentId = device.Rack?.ContainmentId ?? 1,
-                        Topic = device.Topic ?? $"datacenter/sensors/{device.Id}",
-                        Timestamp = date,
-                        ReceivedAt = date.AddSeconds(random.Next(1, 5)),
-                        RawPayload = $"{{\"temp\": {temp}, \"hum\": {humidity}, \"sensor_id\": \"{device.Name}\"}}",
-                        SensorType = device.SensorType ?? "Temperature"
+                        Topic = device.Topic ?? $"sensors/containment/{device.Rack?.ContainmentId ?? 1}/rack/{device.RackId}/device/{device.Id}",
+                        Timestamp = roundedDate,
+                        ReceivedAt = roundedDate.AddSeconds(random.Next(1, 10)),
+                        RawPayload = payload,
+                        SensorType = sensorType
                     });
                 }
+
+                logger.LogDebug("Generated {Count} data points for {SensorType} sensor {DeviceName}", 
+                    (int)((endDate - startDate).TotalMinutes + 1), sensorType, device.Name);
             }
 
             // Batch insert

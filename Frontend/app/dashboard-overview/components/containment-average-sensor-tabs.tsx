@@ -670,6 +670,22 @@ export default function SensorAverageComponent() {
           <div className="mt-4 text-xs text-muted-foreground text-center">
             Real-time data from {devices.length} devices (Sensor & PDU)
             {mqttConnected && " • Live MQTT connection active"}
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <Badge 
+                variant="outline" 
+                className={`text-[10px] px-2 py-0.5 ${
+                  process.env.NODE_ENV === 'development' 
+                    ? "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-300"
+                    : "bg-green-100 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300"
+                }`}
+              >
+                {process.env.NODE_ENV === 'development' ? "DEV Mode (1min)" : "PROD Mode (1hr)"}
+              </Badge>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-[10px] text-muted-foreground">
+                Data saved at exact {process.env.NODE_ENV === 'development' ? 'minute' : 'hour'} intervals
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>

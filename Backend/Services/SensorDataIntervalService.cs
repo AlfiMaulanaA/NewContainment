@@ -181,13 +181,16 @@ namespace Backend.Services
             return await GetGlobalConfigurationAsync();
         }
 
-        // Interval checking
+        // Interval checking with precise timestamp scheduling
         public async Task<bool> ShouldSaveByIntervalAsync(int deviceId, DateTime timestamp, int? containmentId = null)
         {
             var config = await GetEffectiveConfigurationAsync(deviceId, containmentId);
             if (config == null || !config.IsEnabled)
                 return false;
 
+            var intervalMinutes = config.SaveIntervalMinutes;
+            var roundedTimestamp = GetRoundedTime(timestamp, intervalMinutes);
+            
             // Get the last saved data for this device
             var lastData = await _context.DeviceSensorData
                 .Where(d => d.DeviceId == deviceId)
@@ -195,17 +198,105 @@ namespace Backend.Services
                 .FirstOrDefaultAsync();
 
             if (lastData == null)
-                return true; // First data point, always save
+            {
+                // First data point - save if we're at the exact scheduled time
+                var shouldSaveFirst = IsTimeForScheduledSave(timestamp, intervalMinutes);
+                _logger.LogDebug("Device {DeviceId}: First data point at {Timestamp} (rounded: {RoundedTime}), Mode: {Mode}, Should save: {ShouldSave}", 
+                    deviceId, timestamp, roundedTimestamp, config.GetIntervalMode(), shouldSaveFirst);
+                return shouldSaveFirst;
+            }
 
+            // Check if we already saved data for this exact rounded time
+            var timeTolerance = TimeSpan.FromSeconds(5);
+            var alreadySavedForThisInterval = await _context.DeviceSensorData
+                .Where(d => d.DeviceId == deviceId)
+                .AnyAsync(d => Math.Abs((d.Timestamp - roundedTimestamp).TotalSeconds) <= timeTolerance.TotalSeconds);
+
+            if (alreadySavedForThisInterval)
+            {
+                _logger.LogDebug("Device {DeviceId}: Already saved data for interval {RoundedTime}, skipping", 
+                    deviceId, roundedTimestamp);
+                return false;
+            }
+
+            // Check if enough time has passed since last save AND we're at the exact time
             var timeSinceLastSave = timestamp - lastData.Timestamp;
             var intervalSeconds = config.GetIntervalInSeconds();
+            var timeBasedCheck = timeSinceLastSave.TotalSeconds >= (intervalSeconds - 10); // Small buffer for timing
+            var scheduledTimeCheck = IsTimeForScheduledSave(timestamp, intervalMinutes);
+            
+            var shouldSave = timeBasedCheck && scheduledTimeCheck;
 
-            var shouldSave = timeSinceLastSave.TotalSeconds >= intervalSeconds;
-
-            _logger.LogDebug("Device {DeviceId}: Time since last save: {TimeSince}s, Interval: {Interval}s, Should save: {ShouldSave}",
-                deviceId, timeSinceLastSave.TotalSeconds, intervalSeconds, shouldSave);
+            var mode = config.IsDevelopmentMode() ? "DEV" : config.IsProductionMode() ? "PROD" : "CUSTOM";
+            _logger.LogDebug("Device {DeviceId} [{Mode}]: Time since last save: {TimeSince}s, Interval: {Interval}s, Exact time check: {ExactTime}, Should save: {ShouldSave}",
+                deviceId, mode, Math.Round(timeSinceLastSave.TotalSeconds, 1), intervalSeconds, scheduledTimeCheck, shouldSave);
 
             return shouldSave;
+        }
+
+        // Helper method to check if timestamp is at a scheduled interval (precise timing)
+        private bool IsAtScheduledTime(DateTime timestamp, int intervalMinutes)
+        {
+            return intervalMinutes switch
+            {
+                1 => timestamp.Second == 0, // Save at exact minute: xx:xx:00
+                60 => timestamp.Minute == 0 && timestamp.Second == 0, // Save at exact hour: xx:00:00
+                _ => timestamp.Minute % intervalMinutes == 0 && timestamp.Second == 0 // Custom intervals
+            };
+        }
+
+        // Enhanced method to check if we should save based on exact timing
+        private bool IsTimeForScheduledSave(DateTime timestamp, int intervalMinutes)
+        {
+            var roundedTime = GetRoundedTime(timestamp, intervalMinutes);
+            var tolerance = TimeSpan.FromSeconds(5); // 5-second tolerance for network delays
+            
+            return Math.Abs((timestamp - roundedTime).TotalSeconds) <= tolerance.TotalSeconds;
+        }
+
+        // Get the exact rounded time for the interval
+        private DateTime GetRoundedTime(DateTime timestamp, int intervalMinutes)
+        {
+            return intervalMinutes switch
+            {
+                1 => new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, 
+                    timestamp.Hour, timestamp.Minute, 0, DateTimeKind.Utc),
+                60 => new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, 
+                    timestamp.Hour, 0, 0, DateTimeKind.Utc),
+                _ => RoundToNearestInterval(timestamp, intervalMinutes)
+            };
+        }
+
+        // Helper method to get next scheduled save time
+        private DateTime GetNextScheduledSaveTime(DateTime currentTime, int intervalMinutes)
+        {
+            return intervalMinutes switch
+            {
+                1 => new DateTime(currentTime.Year, currentTime.Month, currentTime.Day, 
+                    currentTime.Hour, currentTime.Minute, 0).AddMinutes(1),
+                60 => new DateTime(currentTime.Year, currentTime.Month, currentTime.Day, 
+                    currentTime.Hour, 0, 0).AddHours(1),
+                _ => RoundToNextInterval(currentTime, intervalMinutes)
+            };
+        }
+
+        // Round to the nearest interval time
+        private DateTime RoundToNearestInterval(DateTime dateTime, int intervalMinutes)
+        {
+            var roundedMinutes = (dateTime.Minute / intervalMinutes) * intervalMinutes;
+            return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, roundedMinutes, 0);
+        }
+
+        // Helper method to round to next interval
+        private DateTime RoundToNextInterval(DateTime dateTime, int intervalMinutes)
+        {
+            var roundedMinutes = ((dateTime.Minute / intervalMinutes) + 1) * intervalMinutes;
+            if (roundedMinutes >= 60)
+            {
+                return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0)
+                    .AddHours(1).AddMinutes(roundedMinutes - 60);
+            }
+            return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, roundedMinutes, 0);
         }
 
         // Get devices by interval
@@ -221,7 +312,9 @@ namespace Backend.Services
         // Available intervals
         public List<(int Value, string Label)> GetAvailableIntervals()
         {
-            return SensorDataIntervalConfig.GetAvailableIntervals();
+            return SensorDataIntervalConfig.GetAvailableIntervals()
+                .Select(x => (x.Value, x.Label))
+                .ToList();
         }
 
         // Toggle enable/disable
@@ -267,6 +360,38 @@ namespace Backend.Services
             return true;
         }
 
+        // Initialize default configuration based on environment
+        public async Task<bool> InitializeDefaultConfigurationAsync(int userId)
+        {
+            var existingGlobal = await GetGlobalConfigurationAsync();
+            if (existingGlobal != null)
+            {
+                _logger.LogInformation("Global configuration already exists, skipping initialization");
+                return false;
+            }
+
+            var defaultInterval = SensorDataIntervalConfig.GetDefaultIntervalForEnvironment();
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            var mode = defaultInterval == 1 ? "Debug/Development" : "Production";
+
+            var globalConfig = new SensorDataIntervalConfig
+            {
+                Name = $"Global Sensor Interval ({mode})",
+                Description = $"Default sensor data save interval for {environment} environment - saves data every {(defaultInterval == 1 ? "minute" : "hour")} at exact rounded times",
+                SaveIntervalMinutes = defaultInterval,
+                IsEnabled = true,
+                IsGlobalConfiguration = true,
+                CreatedBy = userId,
+                UpdatedBy = userId
+            };
+
+            await CreateConfigurationAsync(globalConfig);
+            _logger.LogInformation("Initialized global sensor interval configuration: {Interval} minutes for {Environment} mode", 
+                defaultInterval, mode);
+
+            return true;
+        }
+
         // Bulk operations
         public async Task<bool> SetGlobalIntervalAsync(int intervalMinutes, int userId)
         {
@@ -275,10 +400,11 @@ namespace Backend.Services
             if (globalConfig == null)
             {
                 // Create new global configuration
+                var mode = intervalMinutes == 1 ? "Debug/Development" : intervalMinutes == 60 ? "Production" : "Custom";
                 globalConfig = new SensorDataIntervalConfig
                 {
-                    Name = "Global Sensor Interval",
-                    Description = "Global sensor data save interval configuration",
+                    Name = $"Global Sensor Interval ({mode})",
+                    Description = $"Global sensor data save interval configuration - saves data every {(intervalMinutes == 1 ? "minute" : intervalMinutes == 60 ? "hour" : intervalMinutes + " minutes")} at exact rounded times",
                     SaveIntervalMinutes = intervalMinutes,
                     IsEnabled = true,
                     IsGlobalConfiguration = true,
@@ -290,6 +416,9 @@ namespace Backend.Services
             }
             else
             {
+                var mode = intervalMinutes == 1 ? "Debug/Development" : intervalMinutes == 60 ? "Production" : "Custom";
+                globalConfig.Name = $"Global Sensor Interval ({mode})";
+                globalConfig.Description = $"Global sensor data save interval configuration - saves data every {(intervalMinutes == 1 ? "minute" : intervalMinutes == 60 ? "hour" : intervalMinutes + " minutes")} at exact rounded times";
                 globalConfig.SaveIntervalMinutes = intervalMinutes;
                 globalConfig.UpdatedBy = userId;
                 await UpdateConfigurationAsync(globalConfig);

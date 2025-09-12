@@ -35,5 +35,12 @@ namespace Backend.Services
         // Topic management
         Task<IEnumerable<string>> GetActiveTopicsAsync();
         Task<IEnumerable<string>> GetTopicsByContainmentAsync(int containmentId);
+
+        // Delete functionality
+        Task<int> DeleteAllSensorDataAsync();
+        Task<int> DeleteSensorDataByDateRangeAsync(DateTime startDate, DateTime endDate);
+        Task<int> DeleteSensorDataByDeviceAsync(int deviceId);
+        Task<int> DeleteSensorDataByContainmentAsync(int containmentId);
+        Task<int> DeleteOldSensorDataAsync(TimeSpan maxAge);
     }
 }

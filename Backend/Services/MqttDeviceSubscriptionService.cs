@@ -179,7 +179,7 @@ namespace Backend.Services
             return topics.Where(t => !string.IsNullOrEmpty(t)).Distinct().ToList();
         }
 
-        private Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs e)
+        private async Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs e)
         {
             try
             {
@@ -193,22 +193,88 @@ namespace Backend.Services
                 if (deviceId == null)
                 {
                     _logger.LogWarning("Could not extract device ID from topic: {Topic}", topic);
-                    return Task.CompletedTask;
+                    return;
                 }
 
-                // Store sensor data
+                // Process and potentially store sensor data based on interval configuration
                 using var scope = _serviceProvider.CreateScope();
-                // Just log the MQTT message as requested
-                _logger.LogInformation("MQTT Data - Device {DeviceId}, Topic: {Topic}, Payload: {Payload}", deviceId, topic, payload);
+                var intervalService = scope.ServiceProvider.GetService<ISensorDataIntervalService>();
+                var deviceSensorDataService = scope.ServiceProvider.GetService<IDeviceSensorDataService>();
 
-                _logger.LogDebug("Logged MQTT data for device {DeviceId} from topic {Topic}", deviceId, topic);
+                if (intervalService != null && deviceSensorDataService != null)
+                {
+                    // Parse timestamp from payload
+                    var timestamp = ParseTimestampFromPayload(payload);
+                    
+                    // Check if we should save this data based on interval configuration
+                    var shouldSave = await intervalService.ShouldSaveByIntervalAsync(deviceId.Value, timestamp);
+                    
+                    if (shouldSave)
+                    {
+                        try
+                        {
+                            await deviceSensorDataService.ParseAndStoreSensorDataAsync(deviceId.Value, topic, payload);
+                            _logger.LogInformation("MQTT Data Saved - Device {DeviceId}, Topic: {Topic}, Timestamp: {Timestamp}", 
+                                deviceId.Value, topic, timestamp);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to store sensor data for device {DeviceId}", deviceId);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogDebug("MQTT Data Skipped - Device {DeviceId}, Topic: {Topic}, Timestamp: {Timestamp} (not at scheduled interval)", 
+                            deviceId.Value, topic, timestamp);
+                    }
+                }
+                else
+                {
+                    // Fallback: Just log the MQTT message
+                    _logger.LogInformation("MQTT Data - Device {DeviceId}, Topic: {Topic}, Payload: {Payload}", deviceId, topic, payload);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing MQTT message from topic: {Topic}", e.ApplicationMessage.Topic);
             }
+        }
 
-            return Task.CompletedTask;
+        private DateTime ParseTimestampFromPayload(string payload)
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(payload);
+                var root = doc.RootElement;
+
+                // Try to parse timestamp from various field names
+                var timestampFields = new[] { "timestamp", "Timestamp", "time", "Time", "datetime", "DateTime" };
+                
+                foreach (var field in timestampFields)
+                {
+                    if (root.TryGetProperty(field, out var timestampElement))
+                    {
+                        if (timestampElement.TryGetDateTime(out var timestampValue))
+                        {
+                            return timestampValue;
+                        }
+                        else if (timestampElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var timestampString = timestampElement.GetString();
+                            if (DateTime.TryParse(timestampString, out var parsedTimestamp))
+                            {
+                                return parsedTimestamp;
+                            }
+                        }
+                    }
+                }
+
+                return DateTime.UtcNow;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return DateTime.UtcNow;
+            }
         }
 
         private int? ExtractDeviceIdFromTopic(string topic)

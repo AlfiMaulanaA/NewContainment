@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +85,8 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { SensorDataCharts } from "@/components/charts/sensor-data-charts";
+import { SensorDataDelete } from "@/components/ui/sensor-data-delete";
 
 interface SensorDataResponse {
   data: DeviceSensorData[];
@@ -175,7 +177,7 @@ export default function SensorDataReportsPage() {
   const [loadingData, setLoadingData] = useState(false);
   const [filters, setFilters] = useState({
     page: 1,
-    pageSize: 50,
+    pageSize: 1000,
     deviceId: "all",
     rackId: "all",
     containmentId: "all",
@@ -232,7 +234,7 @@ export default function SensorDataReportsPage() {
     if (!loading) {
       loadSensorData();
     }
-  }, [filters.page, loading]);
+  }, [filters.page, filters.deviceId, filters.rackId, filters.containmentId, filters.sensorType, filters.startDate, filters.endDate]);
 
   // Reset pagination when active tab changes
   useEffect(() => {
@@ -265,6 +267,9 @@ export default function SensorDataReportsPage() {
       if (containmentsRes?.data && Array.isArray(containmentsRes.data))
         setContainments(containmentsRes.data || []);
       if (summaryRes?.data) setSummary(summaryRes.data);
+
+      // Load sensor data immediately after initial data
+      await loadSensorDataInternal();
     } catch (error: any) {
       console.error("Error loading initial data:", error);
       toast.error("Failed to load data: " + (error.message || "Unknown error"));
@@ -273,30 +278,44 @@ export default function SensorDataReportsPage() {
     }
   };
 
-  const loadSensorData = async () => {
-    try {
-      setLoadingData(true);
-      const params: any = {
-        page: filters.page,
-        pageSize: filters.pageSize,
-      };
+  const loadSensorDataInternal = async () => {
+    const params: any = {
+      page: filters.page,
+      pageSize: filters.pageSize,
+    };
 
-      if (filters.deviceId && filters.deviceId !== "all")
-        params.deviceId = parseInt(filters.deviceId);
-      if (filters.rackId && filters.rackId !== "all")
-        params.rackId = parseInt(filters.rackId);
-      if (filters.containmentId && filters.containmentId !== "all")
-        params.containmentId = parseInt(filters.containmentId);
-      if (filters.sensorType && filters.sensorType !== "all")
-        params.sensorType = filters.sensorType;
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
+    if (filters.deviceId && filters.deviceId !== "all")
+      params.deviceId = parseInt(filters.deviceId);
+    if (filters.rackId && filters.rackId !== "all")
+      params.rackId = parseInt(filters.rackId);
+    if (filters.containmentId && filters.containmentId !== "all")
+      params.containmentId = parseInt(filters.containmentId);
+    if (filters.sensorType && filters.sensorType !== "all")
+      params.sensorType = filters.sensorType;
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
 
-      const response = await deviceSensorDataApi.getSensorData(params);
+    const response = await deviceSensorDataApi.getSensorData(params);
 
-      if (response?.data && Array.isArray(response.data)) {
-        setSensorData(response.data || []);
-        // Simple pagination calculation since backend now returns direct data
+    console.log("API Response:", response);
+    
+    if (response?.success && response?.data && Array.isArray(response.data)) {
+      console.log("Setting sensor data:", response.data.length, "records");
+      console.log("Pagination info:", response.pagination);
+      setSensorData(response.data || []);
+      
+      // Use backend pagination information if available
+      if (response.pagination) {
+        setPagination({
+          currentPage: response.pagination.currentPage,
+          pageSize: response.pagination.pageSize,
+          totalRecords: response.pagination.totalRecords,
+          totalPages: response.pagination.totalPages,
+          hasNextPage: response.pagination.hasNextPage,
+          hasPreviousPage: response.pagination.hasPreviousPage,
+        });
+      } else {
+        // Fallback pagination calculation
         setPagination({
           currentPage: filters.page,
           pageSize: filters.pageSize,
@@ -305,9 +324,17 @@ export default function SensorDataReportsPage() {
           hasNextPage: response.data.length >= filters.pageSize,
           hasPreviousPage: filters.page > 1,
         });
-      } else {
-        throw new Error("Failed to load sensor data");
       }
+    } else {
+      console.error("Invalid response format:", response);
+      throw new Error("Failed to load sensor data - invalid response format");
+    }
+  };
+
+  const loadSensorData = async () => {
+    try {
+      setLoadingData(true);
+      await loadSensorDataInternal();
     } catch (error: any) {
       console.error("Error loading sensor data:", error);
       toast.error(
@@ -517,13 +544,16 @@ export default function SensorDataReportsPage() {
 
   // Helper function to filter data by sensor type
   const getFilteredDataBySensorType = (sensorType: string) => {
+    console.log(`getFilteredDataBySensorType called with: ${sensorType}, total sensorData: ${sensorData.length}`);
     if (sensorType === "all") {
       return sensorData;
     }
-    return sensorData.filter((item) => {
+    const filtered = sensorData.filter((item) => {
       const itemSensorType = item.sensorType || item.device?.sensorType;
       return itemSensorType === sensorType;
     });
+    console.log(`Filtered ${sensorType} data:`, filtered.length);
+    return filtered;
   };
 
   // Helper function to get sensor type counts
@@ -576,10 +606,12 @@ export default function SensorDataReportsPage() {
           break;
         default:
           // For sensor-specific values
-          const aParsed = parseEnhancedPayload(a.rawPayload || '{}', a.sensorType || a.device?.sensorType || '');
-          const bParsed = parseEnhancedPayload(b.rawPayload || '{}', b.sensorType || b.device?.sensorType || '');
-          aValue = aParsed[sortConfig.key] || 0;
-          bValue = bParsed[sortConfig.key] || 0;
+          if (sortConfig.key) {
+            const aParsed = parseEnhancedPayload(a.rawPayload || '{}', a.sensorType || a.device?.sensorType || '');
+            const bParsed = parseEnhancedPayload(b.rawPayload || '{}', b.sensorType || b.device?.sensorType || '');
+            aValue = (aParsed && typeof aParsed === 'object' && sortConfig.key in aParsed) ? aParsed[sortConfig.key] : 0;
+            bValue = (bParsed && typeof bParsed === 'object' && sortConfig.key in bParsed) ? bParsed[sortConfig.key] : 0;
+          }
           break;
       }
 
@@ -1246,9 +1278,26 @@ export default function SensorDataReportsPage() {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-6" />
           <Database className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            Sensor Data Reports
-          </h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+              Sensor Data Reports
+            </h1>
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="outline" 
+                className={`text-xs px-2 py-1 ${
+                  process.env.NODE_ENV === 'development' 
+                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300"
+                    : "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300"
+                }`}
+              >
+                {process.env.NODE_ENV === 'development' ? "Development (1min intervals)" : "Production (1hr intervals)"}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                • Data saved at rounded times
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -1308,6 +1357,11 @@ export default function SensorDataReportsPage() {
             <TabsTrigger value="charts" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Charts
+            </TabsTrigger>
+            
+            <TabsTrigger value="management" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Management
             </TabsTrigger>
           </TabsList>
 
@@ -1491,6 +1545,74 @@ export default function SensorDataReportsPage() {
             );
           })}
 
+          {/* Charts Tab */}
+          <TabsContent value="charts" className="space-y-6">
+            <SensorDataCharts 
+              containmentId={filters.containmentId ? parseInt(filters.containmentId) : undefined} 
+              deviceId={filters.deviceId ? parseInt(filters.deviceId) : undefined}
+              className="w-full"
+            />
+          </TabsContent>
+
+          {/* Management Tab */}
+          <TabsContent value="management" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SensorDataDelete 
+                onDeleteComplete={() => {
+                  applyFilters();
+                  toast.success("Data deleted successfully. Refreshing table...");
+                }}
+              />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Data Statistics
+                  </CardTitle>
+                  <CardDescription>
+                    Overview of sensor data storage and usage
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {summary ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                          <div className="text-2xl font-bold text-primary">
+                            {summary.totalRecords?.toLocaleString() ?? "0"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Total Records</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                          <div className="text-2xl font-bold text-secondary-foreground">
+                            {summary.activeDevices ?? "0"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Active Devices</div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Sensor Types:</h4>
+                        {summary.sensorTypes?.map((sensor: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between text-sm">
+                            <span>{sensor.SensorType || 'Unknown'}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {(sensor.Count || 0).toLocaleString()}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Database className="h-8 w-8 mx-auto mb-2" />
+                      <p>Load data to view statistics</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="summary" className="space-y-6">
             {summary && (
               <>
@@ -1547,7 +1669,7 @@ export default function SensorDataReportsPage() {
                                 {type.sensorType || "Unknown"}
                               </Badge>
                               <span className="font-medium">
-                                {type.count?.toLocaleString() || 0}
+                                {(type.count || 0).toLocaleString()}
                               </span>
                             </div>
                           ))
@@ -1583,7 +1705,7 @@ export default function SensorDataReportsPage() {
                                 </div>
                               </div>
                               <Badge>
-                                {device.recordCount?.toLocaleString() || 0}
+                                {(device.recordCount || 0).toLocaleString()}
                               </Badge>
                             </div>
                           ))

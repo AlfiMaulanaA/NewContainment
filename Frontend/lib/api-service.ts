@@ -507,10 +507,20 @@ export interface LoginResponse {
   user: UserInfo;
 }
 
+export interface PaginationInfo {
+  currentPage: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   message?: string;
+  pagination?: PaginationInfo;
 }
 
 // Password Reset Interfaces
@@ -3766,12 +3776,10 @@ export const deviceSensorDataApi = {
         ? `/devicesensordata?${queryString}`
         : "/devicesensordata";
 
-      const data = await client.get<DeviceSensorData[]>(endpoint);
-
-      return {
-        success: true,
-        data,
-      };
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<DeviceSensorData[]>>(endpoint);
+      
+      return response;
     } catch (error: any) {
       return {
         success: false,
@@ -3785,18 +3793,17 @@ export const deviceSensorDataApi = {
     limit: number = 100
   ): Promise<ApiResponse<DeviceSensorData[]>> {
     try {
-      const data = await client.get<DeviceSensorData[]>(
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<DeviceSensorData[]>>(
         `/devicesensordata/latest?limit=${limit}`
       );
 
-      return {
-        success: true,
-        data,
-      };
+      return response;
     } catch (error: any) {
       return {
         success: false,
         message: error.message || "Failed to get latest sensor data",
+        data: [],
       };
     }
   },
@@ -3806,18 +3813,17 @@ export const deviceSensorDataApi = {
     limit: number = 50
   ): Promise<ApiResponse<DeviceSensorData[]>> {
     try {
-      const data = await client.get<DeviceSensorData[]>(
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<DeviceSensorData[]>>(
         `/devicesensordata/device/${deviceId}?limit=${limit}`
       );
 
-      return {
-        success: true,
-        data,
-      };
+      return response;
     } catch (error: any) {
       return {
         success: false,
         message: error.message || "Failed to get sensor data for device",
+        data: [],
       };
     }
   },
@@ -3826,14 +3832,12 @@ export const deviceSensorDataApi = {
     deviceId: number
   ): Promise<ApiResponse<DeviceSensorData>> {
     try {
-      const data = await client.get<DeviceSensorData>(
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<DeviceSensorData>>(
         `/devicesensordata/device/${deviceId}/latest`
       );
 
-      return {
-        success: true,
-        data,
-      };
+      return response;
     } catch (error: any) {
       return {
         success: false,
@@ -3868,18 +3872,17 @@ export const deviceSensorDataApi = {
     limit: number = 100
   ): Promise<ApiResponse<DeviceSensorData[]>> {
     try {
-      const data = await client.get<DeviceSensorData[]>(
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<DeviceSensorData[]>>(
         `/devicesensordata/containment/${containmentId}?limit=${limit}`
       );
 
-      return {
-        success: true,
-        data,
-      };
+      return response;
     } catch (error: any) {
       return {
         success: false,
         message: error.message || "Failed to get sensor data for containment",
+        data: [],
       };
     }
   },
@@ -4014,12 +4017,10 @@ export const deviceSensorDataApi = {
 
   async getAvailableSensorTypes(): Promise<ApiResponse<string[]>> {
     try {
-      const data = await client.get<string[]>("/devicesensordata/sensor-types");
-
-      return {
-        success: true,
-        data,
-      };
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<string[]>>("/devicesensordata/sensor-types");
+      
+      return response;
     } catch (error: any) {
       return {
         success: false,
@@ -4043,7 +4044,30 @@ export const deviceSensorDataApi = {
         ? `/devicesensordata/summary?${queryString}`
         : "/devicesensordata/summary";
 
-      const data = await client.get(endpoint);
+      // Backend now returns ApiResponse format directly
+      const response = await client.get<ApiResponse<any>>(endpoint);
+
+      return response;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get sensor data summary",
+      };
+    }
+  },
+
+  // Delete functionality
+  async deleteAllSensorData(): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+  }>> {
+    try {
+      const data = await client.delete<{
+        success: boolean;
+        message: string;
+        deletedCount: number;
+      }>("/devicesensordata/all");
 
       return {
         success: true,
@@ -4052,7 +4076,98 @@ export const deviceSensorDataApi = {
     } catch (error: any) {
       return {
         success: false,
-        message: error.message || "Failed to get sensor data summary",
+        message: error.message || "Failed to delete all sensor data",
+      };
+    }
+  },
+
+  async deleteSensorDataByDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+    startDate: string;
+    endDate: string;
+  }>> {
+    try {
+      const params = new URLSearchParams();
+      params.append("startDate", startDate);
+      params.append("endDate", endDate);
+
+      const data = await client.delete<{
+        success: boolean;
+        message: string;
+        deletedCount: number;
+        startDate: string;
+        endDate: string;
+      }>(`/devicesensordata/date-range?${params.toString()}`);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete sensor data by date range",
+      };
+    }
+  },
+
+  async deleteSensorDataByDevice(
+    deviceId: number
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+    deviceId: number;
+  }>> {
+    try {
+      const data = await client.delete<{
+        success: boolean;
+        message: string;
+        deletedCount: number;
+        deviceId: number;
+      }>(`/devicesensordata/device/${deviceId}`);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete sensor data for device",
+      };
+    }
+  },
+
+  async deleteOldSensorData(
+    days: number
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+    maxAgeDays: number;
+  }>> {
+    try {
+      const data = await client.delete<{
+        success: boolean;
+        message: string;
+        deletedCount: number;
+        maxAgeDays: number;
+      }>(`/devicesensordata/older-than/${days}`);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete old sensor data",
       };
     }
   },
@@ -4201,6 +4316,137 @@ export const enhancedMqttConfigApi = {
       return {
         success: false,
         message: error.message || "Failed to reload MQTT configuration",
+      };
+    }
+  },
+};
+
+// Sensor Interval Configuration Types
+export interface SensorDataIntervalConfig {
+  id: number;
+  name: string;
+  description?: string;
+  saveIntervalMinutes: number;
+  isEnabled: boolean;
+  deviceId?: number;
+  containmentId?: number;
+  isGlobalConfiguration: boolean;
+  createdBy: number;
+  updatedBy?: number;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export interface IntervalOption {
+  value: number;
+  label: string;
+  mode: string;
+}
+
+// Sensor Interval API
+export const sensorIntervalApi = {
+  async getAllConfigurations(): Promise<ApiResponse<SensorDataIntervalConfig[]>> {
+    try {
+      const data = await client.get<SensorDataIntervalConfig[]>("/sensorinterval/configurations");
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get sensor interval configurations",
+      };
+    }
+  },
+
+  async getConfiguration(id: number): Promise<ApiResponse<SensorDataIntervalConfig>> {
+    try {
+      const data = await client.get<SensorDataIntervalConfig>(`/sensorinterval/configurations/${id}`);
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get sensor interval configuration",
+      };
+    }
+  },
+
+  async getGlobalConfiguration(): Promise<ApiResponse<SensorDataIntervalConfig>> {
+    try {
+      const data = await client.get<SensorDataIntervalConfig>("/sensorinterval/global");
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get global sensor interval configuration",
+      };
+    }
+  },
+
+  async getAvailableIntervals(): Promise<ApiResponse<IntervalOption[]>> {
+    try {
+      const data = await client.get<IntervalOption[]>("/sensorinterval/intervals");
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get available intervals",
+      };
+    }
+  },
+
+  async setGlobalInterval(intervalMinutes: number): Promise<ApiResponse<boolean>> {
+    try {
+      const data = await client.post<boolean>("/sensorinterval/global", { intervalMinutes });
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to set global interval",
+      };
+    }
+  },
+
+  async setDeviceInterval(deviceId: number, intervalMinutes: number): Promise<ApiResponse<boolean>> {
+    try {
+      const data = await client.post<boolean>(`/sensorinterval/device/${deviceId}`, { intervalMinutes });
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to set device interval",
+      };
+    }
+  },
+
+  async toggleConfiguration(id: number, enabled: boolean): Promise<ApiResponse<boolean>> {
+    try {
+      const data = await client.put<boolean>(`/sensorinterval/configurations/${id}/toggle`, { enabled });
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to toggle configuration",
       };
     }
   },

@@ -230,12 +230,46 @@ handle_database_updates() {
     return 0
 }
 
+# Function to check if .NET is available
+check_dotnet() {
+    if command -v dotnet >/dev/null 2>&1; then
+        local dotnet_version=$(dotnet --version)
+        log_success ".NET $dotnet_version is available"
+        return 0
+    else
+        log_error ".NET SDK not found"
+        return 1
+    fi
+}
+
+# Function to check if Node.js and npm are available
+check_nodejs() {
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+        local node_version=$(node --version)
+        local npm_version=$(npm --version)
+        log_success "Node.js $node_version and npm $npm_version are available"
+        return 0
+    else
+        log_error "Node.js or npm not found"
+        return 1
+    fi
+}
+
 # Function to update backend
 update_backend() {
     log "=== Updating Backend ==="
     
     if [ ! -d "$BACKEND_DIR" ]; then
         log_error "Backend directory not found: $BACKEND_DIR"
+        return 1
+    fi
+    
+    # Check if .NET is available
+    if ! check_dotnet; then
+        log_warning "Skipping backend update - .NET SDK not available"
+        log "To update backend later:"
+        log "1. Install .NET SDK"
+        log "2. Re-run this script"
         return 1
     fi
     
@@ -315,6 +349,22 @@ update_frontend() {
         return 1
     fi
     
+    # Check if Node.js is available
+    if ! check_nodejs; then
+        log_warning "Skipping frontend update - Node.js/npm not available"
+        log "To update frontend later:"
+        log "1. Install Node.js and npm"
+        log "2. Re-run this script"
+        return 1
+    fi
+    
+    # Check if PM2 is available
+    if ! command -v pm2 >/dev/null 2>&1; then
+        log_warning "PM2 not found - required for frontend deployment"
+        log "Install PM2: npm install -g pm2"
+        return 1
+    fi
+    
     cd "$FRONTEND_DIR"
     
     # Stop PM2 process if running
@@ -350,7 +400,52 @@ update_frontend() {
 
 # Function to restart services
 restart_services() {
+    restart_services_selective true true
+}
+
+# Function to restart services selectively
+restart_services_selective() {
+    local backend_updated=$1
+    local frontend_updated=$2
+    
     log "=== Restarting Services ==="
+    log "Backend updated: $backend_updated"
+    log "Frontend updated: $frontend_updated"
+    
+    local services_restarted=false
+    
+    # Restart backend only if it was updated
+    if [ "$backend_updated" = true ]; then
+        restart_backend_service
+        if [ $? -eq 0 ]; then
+            services_restarted=true
+        fi
+    else
+        log "Skipping backend service restart - not updated"
+    fi
+    
+    # Restart frontend only if it was updated
+    if [ "$frontend_updated" = true ]; then
+        restart_frontend_service
+        if [ $? -eq 0 ]; then
+            services_restarted=true
+        fi
+    else
+        log "Skipping frontend service restart - not updated"
+    fi
+    
+    if [ "$services_restarted" = true ]; then
+        log_success "Services restarted successfully"
+        return 0
+    else
+        log_warning "No services were restarted"
+        return 1
+    fi
+}
+
+# Function to restart backend service
+restart_backend_service() {
+    log "Restarting backend service..."
     
     # Start backend service
     if service_exists; then
@@ -374,8 +469,10 @@ restart_services() {
             
             if [ "$backend_ready" = true ]; then
                 log_success "Backend health check passed"
+                return 0
             else
                 log_warning "Backend health check failed, but service is running"
+                return 1
             fi
         else
             log_error "Backend service failed to start"
@@ -384,7 +481,13 @@ restart_services() {
         fi
     else
         log_warning "Backend service not found. Please install it first using deploy.sh"
+        return 1
     fi
+}
+
+# Function to restart frontend service
+restart_frontend_service() {
+    log "Restarting frontend service..."
     
     # Start frontend PM2 process
     cd "$FRONTEND_DIR"
@@ -458,10 +561,11 @@ EOF
         pm2 logs newcontainment-frontend --lines 20
         log "Port Status:"
         netstat -tuln | grep ":3000" || log "Port 3000 not listening"
+        cd "$PROJECT_ROOT"
         return 1
     fi
     
-    log_success "Services restarted successfully"
+    log_success "Frontend service restarted successfully"
     cd "$PROJECT_ROOT"
     return 0
 }
@@ -586,34 +690,44 @@ create_backup() {
 verify_environment() {
     log "=== Verifying Environment ==="
     
-    local errors=0
+    local missing_commands=()
+    local error_count=0
     
     # Check if running as correct user
     if [[ "$USER" != "containment" ]] && [[ "$USER" != "root" ]]; then
         log_warning "Not running as expected user (containment). Current user: $USER"
     fi
     
-    # Check required commands
-    for cmd in git dotnet npm pm2; do
+    # Check critical commands (git is always required)
+    if ! command -v git >/dev/null 2>&1; then
+        log_error "Required command not found: git"
+        missing_commands+=("git")
+        ((error_count++))
+    fi
+    
+    # Check optional commands but warn if missing
+    local optional_commands=("dotnet" "node" "npm" "pm2")
+    for cmd in "${optional_commands[@]}"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
-            log_error "Required command not found: $cmd"
-            errors=$((errors + 1))
+            log_warning "Optional command not found: $cmd (may limit deployment capabilities)"
         fi
     done
     
     # Check write permissions
     if [ ! -w "$PROJECT_ROOT" ]; then
         log_error "No write permission to project directory"
-        errors=$((errors + 1))
+        ((error_count++))
     fi
     
-    if [ $errors -eq 0 ]; then
-        log_success "Environment verification passed"
-        return 0
-    else
-        log_error "Environment verification failed with $errors errors"
+    if [ $error_count -gt 0 ]; then
+        log_error "Environment verification failed with $error_count critical errors"
+        log_error "Missing critical commands: ${missing_commands[*]}"
+        log_error "Please install missing dependencies and try again"
         return 1
     fi
+    
+    log_success "Environment verification passed (some optional dependencies may be missing)"
+    return 0
 }
 
 # Main function
@@ -638,22 +752,37 @@ main() {
         exit 1
     fi
     
-    # Step 2: Update backend
-    if ! update_backend; then
-        log_error "Failed to update backend"
+    # Initialize update status flags
+    local backend_updated=false
+    local frontend_updated=false
+    
+    # Step 2: Update backend (with error handling)
+    if update_backend; then
+        backend_updated=true
+        log_success "Backend updated successfully"
+    else
+        log_warning "Backend update failed - continuing with frontend if possible"
+    fi
+    
+    # Step 3: Update frontend (with error handling)
+    if update_frontend; then
+        frontend_updated=true
+        log_success "Frontend updated successfully"
+    else
+        log_warning "Frontend update failed - continuing with backend if updated"
+    fi
+    
+    # Check if at least one component was updated
+    if [ "$backend_updated" = false ] && [ "$frontend_updated" = false ]; then
+        log_error "Both backend and frontend updates failed"
+        log_error "Please fix the issues and try again"
         exit 1
     fi
     
-    # Step 3: Update frontend
-    if ! update_frontend; then
-        log_error "Failed to update frontend"
-        exit 1
-    fi
-    
-    # Step 4: Restart services
-    if ! restart_services; then
-        log_error "Failed to restart services"
-        exit 1
+    # Step 4: Restart services (only restart what was updated)
+    if ! restart_services_selective "$backend_updated" "$frontend_updated"; then
+        log_error "Failed to restart some services, but update completed"
+        log_warning "Please check service status manually"
     fi
     
     # Step 5: Show status

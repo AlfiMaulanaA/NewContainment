@@ -37,6 +37,9 @@ namespace Backend.Services
         // Update interval only
         Task<bool> UpdateIntervalAsync(int id, int intervalMinutes);
 
+        // Environment-based initialization
+        Task<bool> InitializeDefaultConfigurationAsync(int userId);
+
         // Bulk operations
         Task<bool> SetGlobalIntervalAsync(int intervalMinutes, int userId);
         Task<bool> SetDeviceIntervalAsync(int deviceId, int intervalMinutes, int userId);

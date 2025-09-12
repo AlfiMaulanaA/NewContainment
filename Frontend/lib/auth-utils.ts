@@ -1,5 +1,35 @@
 // lib/auth-utils.ts
 
+// Debug configuration
+interface AuthDebugConfig {
+  enabled: boolean;
+  prefix: string;
+}
+
+// Global debug configuration - set this to false in production
+const DEBUG_CONFIG: AuthDebugConfig = {
+  enabled: process.env.NODE_ENV === 'development', // Auto-disable in production
+  prefix: '🔒 AUTH:'
+};
+
+// Helper function for debug logging
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_CONFIG.enabled) {
+    console.log(`${DEBUG_CONFIG.prefix} ${message}`, ...args);
+  }
+}
+
+// Function to enable/disable auth debugging at runtime
+export function setAuthDebug(enabled: boolean) {
+  DEBUG_CONFIG.enabled = enabled;
+  debugLog(`Debug ${enabled ? 'ENABLED' : 'DISABLED'}`);
+}
+
+// Function to get current debug status
+export function isAuthDebugEnabled(): boolean {
+  return DEBUG_CONFIG.enabled;
+}
+
 export interface DecodedToken {
   nameid: string;
   unique_name: string;
@@ -56,7 +86,7 @@ export function decodeJWT(token: string): DecodedToken | null {
     // Parse JSON
     return JSON.parse(decodedPayload) as DecodedToken;
   } catch (error) {
-    console.error("Error decoding JWT:", error);
+    debugLog("Error decoding JWT:", error);
     return null;
   }
 }
@@ -197,33 +227,33 @@ export function getCurrentUserFromToken(): CurrentUser | null {
     let token = null;
     if (typeof window !== "undefined") {
       token = localStorage.getItem("authToken");
-      console.log('🔍 getCurrentUserFromToken: Token from localStorage:', token ? 'EXISTS' : 'NULL');
+      debugLog('Token from localStorage:', token ? 'EXISTS' : 'NULL');
 
       // Fallback to cookies if localStorage is empty
       if (!token) {
         const cookies = document.cookie.split(";");
-        console.log('🔍 getCurrentUserFromToken: Checking cookies:', document.cookie);
+        debugLog('Checking cookies:', document.cookie);
         const authCookie = cookies.find((cookie) =>
           cookie.trim().startsWith("authToken=")
         );
         if (authCookie) {
           token = authCookie.split("=")[1];
-          console.log('🔍 getCurrentUserFromToken: Token from cookies:', token ? 'EXISTS' : 'NULL');
+          debugLog('Token from cookies:', token ? 'EXISTS' : 'NULL');
         }
       }
     }
 
     if (!token) {
-      console.log('🔍 getCurrentUserFromToken: No token found');
+      debugLog('No token found');
       return null;
     }
 
     // Check if token is expired (without buffer for initial check)
     const expired = isTokenExpired(token, 0);
-    console.log('🔍 getCurrentUserFromToken: Token expired?', expired);
+    debugLog('Token expired?', expired);
     
     if (expired) {
-      console.log('🔍 getCurrentUserFromToken: Token is expired, clearing localStorage');
+      debugLog('Token is expired, clearing localStorage');
       if (typeof window !== "undefined") {
         localStorage.removeItem("authToken");
       }
@@ -258,7 +288,7 @@ export function getCurrentUserFromToken(): CurrentUser | null {
 
     return user;
   } catch (error) {
-    console.error("Error getting current user:", error);
+    debugLog("Error getting current user:", error);
     return null;
   }
 }

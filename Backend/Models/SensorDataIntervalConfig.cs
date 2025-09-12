@@ -81,19 +81,49 @@ namespace Backend.Models
             };
         }
 
-        // Static method to get available intervals
-        public static List<(int Value, string Label)> GetAvailableIntervals()
+        // Static method to get available intervals with mode support
+        public static List<(int Value, string Label, string Mode)> GetAvailableIntervals()
         {
-            return new List<(int, string)>
+            return new List<(int, string, string)>
             {
-                (1, "1 minute"),
-                (15, "15 minutes"),
-                (30, "30 minutes"),
-                (60, "1 hour"),
-                (360, "6 hours"),
-                (720, "12 hours"),
-                (1440, "24 hours")
+                (1, "1 minute", "Debug/Development"),
+                (60, "1 hour", "Production"),
+                (15, "15 minutes", "Custom"),
+                (30, "30 minutes", "Custom"),
+                (360, "6 hours", "Custom"),
+                (720, "12 hours", "Custom"),
+                (1440, "24 hours", "Custom")
             };
+        }
+
+        // Get interval mode
+        public string GetIntervalMode()
+        {
+            return SaveIntervalMinutes switch
+            {
+                1 => "Debug/Development",
+                60 => "Production",
+                _ => "Custom"
+            };
+        }
+
+        // Get environment-based default interval
+        public static int GetDefaultIntervalForEnvironment()
+        {
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            return environment.Equals("Development", StringComparison.OrdinalIgnoreCase) ? 1 : 60;
+        }
+
+        // Check if interval is production mode
+        public bool IsProductionMode()
+        {
+            return SaveIntervalMinutes == 60;
+        }
+
+        // Check if interval is development mode
+        public bool IsDevelopmentMode()
+        {
+            return SaveIntervalMinutes == 1;
         }
 
         // Validation method for allowed intervals

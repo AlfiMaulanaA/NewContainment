@@ -49,7 +49,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
             "RouteGuard: User not authenticated for protected route, redirecting"
           );
           setHasRedirected(true);
-          router.replace("/auth/login");
+          // router.replace("/auth/login");
         } else {
           setIsChecking(false);
         }

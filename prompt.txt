@@ -46,3 +46,5 @@ containment@containment:~ $ sudo /usr/local/bin/dotnet --version
 
 dan juga gunakan reverse proxy server untuk ke port 80
 
+
+modifikasi juga pada mqtt.ts jika development bisa atur mqttConfig di /mqtt ke .env atau dari databasae, tapi jika production bisa atur dari window.location.hostname atau database

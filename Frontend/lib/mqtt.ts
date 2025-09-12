@@ -19,10 +19,21 @@ export interface EnhancedMQTTConfig {
 
 // Get configuration from environment variables (simplified)
 function getEnvConfig(): EnhancedMQTTConfig {
-  const brokerHosthame = window.location.hostname;
+  // Safe hostname detection for both client and server
+  const getBrokerHostname = () => {
+    if (typeof window !== "undefined") {
+      // Client-side: use window.location.hostname
+      return window.location.hostname;
+    } else {
+      // Server-side: use localhost as fallback for build time
+      return "localhost";
+    }
+  };
+
+  const brokerHostname = getBrokerHostname();
 
   const useWebSocket = process.env.NEXT_PUBLIC_MQTT_USE_WEBSOCKET === "true";
-  const host = process.env.NEXT_PUBLIC_MQTT_HOST || brokerHosthame;
+  const host = process.env.NEXT_PUBLIC_MQTT_HOST || brokerHostname;
   const port = parseInt(
     process.env.NEXT_PUBLIC_MQTT_PORT || (useWebSocket ? "9000" : "1883")
   );
@@ -44,14 +55,11 @@ function getEnvConfig(): EnhancedMQTTConfig {
   };
 }
 
-// Default configuration
-const DEFAULT_CONFIG: EnhancedMQTTConfig = getEnvConfig();
-
 // Enhanced MQTT Client supporting env and database config
 class EnhancedMQTTClient {
   private static instance: EnhancedMQTTClient;
   private client: MqttClient | null = null;
-  private config: EnhancedMQTTConfig = DEFAULT_CONFIG;
+  private config: EnhancedMQTTConfig;
   private subscriptions = new Map<
     string,
     Set<(topic: string, message: string) => void>
@@ -62,8 +70,13 @@ class EnhancedMQTTClient {
   private connectionCheckInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
-    // Load database config asynchronously without blocking
-    this.loadConfigFromDatabaseAsync();
+    // Initialize with environment config
+    this.config = getEnvConfig();
+    
+    // Load database config asynchronously without blocking (client-side only)
+    if (typeof window !== "undefined") {
+      this.loadConfigFromDatabaseAsync();
+    }
   }
 
   // Async wrapper to avoid blocking constructor
@@ -123,6 +136,11 @@ class EnhancedMQTTClient {
     return EnhancedMQTTClient.instance;
   }
 
+  // Check if running on client-side
+  private isClientSide(): boolean {
+    return typeof window !== "undefined";
+  }
+
   // Get connection URLs based on configuration (plain connections only)
   private getConnectionUrls(): string[] {
     const { host, port, useWebSocket } = this.config;
@@ -145,6 +163,11 @@ class EnhancedMQTTClient {
 
   // Connect to MQTT broker with WebSocket fallback
   async connect(): Promise<boolean> {
+    // Only connect on client-side
+    if (!this.isClientSide()) {
+      return false;
+    }
+
     if (!this.config.enabled) {
       // MQTT is disabled
       return false;
@@ -533,8 +556,83 @@ class EnhancedMQTTClient {
   }
 }
 
-// Export singleton instance
-export const mqttClient = EnhancedMQTTClient.getInstance();
+// Export singleton instance (only initialize on client-side)
+let mqttClientInstance: EnhancedMQTTClient | null = null;
+
+export const mqttClient = {
+  getInstance: (): EnhancedMQTTClient | null => {
+    if (typeof window === "undefined") {
+      // Server-side: return null or a mock
+      return null;
+    }
+    
+    if (!mqttClientInstance) {
+      mqttClientInstance = EnhancedMQTTClient.getInstance();
+    }
+    return mqttClientInstance;
+  },
+  
+  // Proxy common methods with null checks
+  async connect(): Promise<boolean> {
+    const client = this.getInstance();
+    if (!client) return false;
+    return await client.connect();
+  },
+  
+  disconnect(): void {
+    const client = this.getInstance();
+    if (!client) return;
+    client.disconnect();
+  },
+  
+  isConnected(): boolean {
+    const client = this.getInstance();
+    if (!client) return false;
+    return client.isConnected();
+  },
+  
+  async subscribe(topic: string, callback: (topic: string, message: string) => void): Promise<boolean> {
+    const client = this.getInstance();
+    if (!client) return false;
+    return await client.subscribe(topic, callback);
+  },
+  
+  unsubscribe(topic: string, callback?: (topic: string, message: string) => void): void {
+    const client = this.getInstance();
+    if (!client) return;
+    client.unsubscribe(topic, callback);
+  },
+  
+  async publish(topic: string, message: string, retain = false): Promise<boolean> {
+    const client = this.getInstance();
+    if (!client) return false;
+    return await client.publish(topic, message, retain);
+  },
+  
+  getStatus() {
+    const client = this.getInstance();
+    if (!client) return {
+      connected: false,
+      connecting: false,
+      config: {},
+      subscriptions: [],
+      protocol: "N/A"
+    };
+    return client.getStatus();
+  },
+  
+  addConnectionListener(listener: (connected: boolean) => void): void {
+    const client = this.getInstance();
+    if (!client) return;
+    client.addConnectionListener(listener);
+  },
+  
+  removeConnectionListener(listener: (connected: boolean) => void): void {
+    const client = this.getInstance();
+    if (!client) return;
+    client.removeConnectionListener(listener);
+  }
+};
 
 // Export default
 export default mqttClient;

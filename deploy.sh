@@ -566,7 +566,15 @@ deploy_backend() {
         return 1
     fi
     
-    if ! dotnet publish -c Release -r $target_arch --no-self-contained -o publish; then
+    # First restore with specific runtime
+    log "Restoring packages for $target_arch..."
+    if ! dotnet restore -r $target_arch; then
+        log_error "Backend restore with runtime failed"
+        return 1
+    fi
+    
+    # Build and publish
+    if ! dotnet publish -c Release -r $target_arch --self-contained false -o publish; then
         log_error "Backend build/publish failed"
         return 1
     fi
@@ -670,16 +678,27 @@ setup_database() {
 install_systemd_service() {
     log "=== Installing Systemd Service ==="
     
-    if [ ! -f "$SERVICE_FILE" ]; then
-        create_systemd_service
+    # Always recreate service file to ensure correct paths
+    if ! create_systemd_service; then
+        log_error "Failed to create service file"
+        return 1
     fi
     
-    log "Using existing service file: $SERVICE_FILE"
     log "Service configuration:"
     echo "$(grep -E '^(Description|ExecStart|WorkingDirectory)=' "$SERVICE_FILE" | sed 's/^/    /')"
     
     log "Copying service file to systemd..."
     sudo cp "$SERVICE_FILE" /etc/systemd/system/
+    
+    log "Setting correct permissions on backend files..."
+    sudo chown -R containment:containment "$BACKEND_DIR/publish" 2>/dev/null || true
+    sudo chmod +x "$BACKEND_DIR/publish/Backend" 2>/dev/null || true
+    
+    # Fix dotnet permissions if needed
+    if [ -f "/usr/local/bin/dotnet" ]; then
+        sudo chmod +x /usr/local/bin/dotnet
+        sudo chown containment:containment /usr/local/bin/dotnet 2>/dev/null || true
+    fi
     
     log "Reloading systemd daemon..."
     sudo systemctl daemon-reload
@@ -692,14 +711,45 @@ install_systemd_service() {
 
 # Function to create default systemd service file
 create_systemd_service() {
-    log_error "Service file not found: $SERVICE_FILE"
-    log_error "Please ensure NewContainmentWeb.service file exists in the project root"
-    log "Expected service file should contain:"
-    echo "    [Unit]"
-    echo "    Description=Containment service"
-    echo "    After=network.target"
-    echo "    ..."
-    exit 1
+    log "Creating NewContainmentWeb.service file..."
+    
+    # Determine correct dotnet path
+    local dotnet_path=""
+    if [ -x "/usr/local/bin/dotnet" ]; then
+        dotnet_path="/usr/local/bin/dotnet"
+    elif [ -x "$HOME/.dotnet/dotnet" ]; then
+        dotnet_path="$HOME/.dotnet/dotnet"
+    elif command -v dotnet >/dev/null 2>&1; then
+        dotnet_path=$(which dotnet)
+    else
+        log_error "Could not find dotnet executable"
+        return 1
+    fi
+    
+    log "Using dotnet path: $dotnet_path"
+    
+    cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=Containment service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=$dotnet_path $BACKEND_DIR/publish/Backend.dll
+WorkingDirectory=$BACKEND_DIR/publish
+User=containment
+Group=containment
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_ROOT=$HOME/.dotnet
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    log_success "Service file created: $SERVICE_FILE"
 }
 
 # Function to start services
@@ -966,14 +1016,14 @@ setup_nginx_port80() {
     fi
 }
 
-# Function to create basic Nginx configuration if not exists
+# Function to create enhanced Nginx configuration
 create_nginx_config() {
     log "Creating Nginx directory..."
     mkdir -p "$NGINX_DIR"
     
-    log "Creating basic Nginx configuration..."
+    log "Creating enhanced Nginx reverse proxy configuration..."
     cat > "$NGINX_DIR/newcontainment.conf" << 'EOF'
-# NewContainment Nginx Configuration for Port 80
+# NewContainment Nginx Reverse Proxy Configuration for Port 80
 server {
     listen 80;
     listen [::]:80;
@@ -983,13 +1033,37 @@ server {
     add_header X-Frame-Options DENY always;
     add_header X-Content-Type-Options nosniff always;
     add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Permitted-Cross-Domain-Policies none always;
+    
+    # Remove server signature
+    server_tokens off;
     
     # Gzip compression
     gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml;
     
-    # Backend API proxy
+    # Rate limiting for API endpoints
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+    
+    # Backend API proxy with enhanced settings
     location /api/ {
+        # Apply rate limiting
+        limit_req zone=api burst=20 nodelay;
+        
         proxy_pass http://localhost:5000/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -999,9 +1073,64 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Timeout settings
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+        
+        # Buffer settings
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+        
+        # Error handling
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
     }
     
-    # Frontend proxy
+    # Special rate limiting for auth endpoints
+    location /api/auth/login {
+        limit_req zone=login burst=5 nodelay;
+        
+        proxy_pass http://localhost:5000/api/auth/login;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # WebSocket support for MQTT and real-time features
+    location /ws/ {
+        proxy_pass http://localhost:3000/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket specific timeouts
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+    
+    # Static assets with caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Cache static assets for 1 month
+        expires 1M;
+        add_header Cache-Control "public, immutable";
+        add_header X-Cache-Status "HIT-STATIC";
+    }
+    
+    # Frontend proxy for all other requests
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -1012,17 +1141,62 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Frontend specific timeouts
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 10s;
+        proxy_read_timeout 10s;
     }
     
-    # Health check
+    # Health check endpoint
     location /health {
-        return 200 "healthy\n";
-        add_header Content-Type text/plain;
+        access_log off;
+        return 200 '{"status":"healthy","timestamp":"$time_iso8601","server":"nginx"}';
+        add_header Content-Type application/json;
+    }
+    
+    # Nginx status for monitoring (restrict to localhost)
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+    }
+    
+    # Block common attack patterns
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+    
+    location ~* /(wp-admin|admin|phpmyadmin|wp-login|xmlrpc) {
+        deny all;
+        access_log off;
+        log_not_found off;
+        return 444;
+    }
+    
+    # Custom error pages
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
+    
+    location = /50x.html {
+        root /usr/share/nginx/html;
     }
 }
+
+# Optional: Redirect HTTP to HTTPS (uncomment when SSL is configured)
+# server {
+#     listen 80;
+#     listen [::]:80;
+#     server_name your-domain.com www.your-domain.com;
+#     return 301 https://$server_name$request_uri;
+# }
 EOF
     
-    log_success "Basic Nginx configuration created"
+    log_success "Enhanced Nginx reverse proxy configuration created"
 }
 
 # Function to setup production environment

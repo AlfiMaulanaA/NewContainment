@@ -403,6 +403,74 @@ restart_services() {
     restart_services_selective true true
 }
 
+# Function to check PM2 status
+check_pm2_status() {
+    local process_name="$1"
+    if pm2 list 2>/dev/null | grep -q "$process_name"; then
+        if pm2 list 2>/dev/null | grep -q "$process_name.*online"; then
+            log_success "PM2 process '$process_name' is running"
+            return 0
+        elif pm2 list 2>/dev/null | grep -q "$process_name.*stopped"; then
+            log_warning "PM2 process '$process_name' is stopped"
+            return 1
+        else
+            log_warning "PM2 process '$process_name' is in unknown state"
+            return 2
+        fi
+    else
+        log_warning "PM2 process '$process_name' not found"
+        return 3
+    fi
+}
+
+# Function to start or restart PM2 process
+manage_pm2_process() {
+    local process_name="$1"
+    local action="$2"  # start, restart, or stop
+    
+    case $action in
+        "start")
+            if check_pm2_status "$process_name"; then
+                log "PM2 process '$process_name' is already running"
+                return 0
+            else
+                log "Starting PM2 process '$process_name'..."
+                if pm2 start "$process_name" 2>/dev/null; then
+                    log_success "PM2 process '$process_name' started"
+                    return 0
+                else
+                    log_error "Failed to start PM2 process '$process_name'"
+                    return 1
+                fi
+            fi
+            ;;
+        "restart")
+            log "Restarting PM2 process '$process_name'..."
+            if pm2 restart "$process_name" 2>/dev/null; then
+                log_success "PM2 process '$process_name' restarted"
+                return 0
+            else
+                log_error "Failed to restart PM2 process '$process_name'"
+                return 1
+            fi
+            ;;
+        "stop")
+            log "Stopping PM2 process '$process_name'..."
+            if pm2 stop "$process_name" 2>/dev/null; then
+                log_success "PM2 process '$process_name' stopped"
+                return 0
+            else
+                log_error "Failed to stop PM2 process '$process_name'"
+                return 1
+            fi
+            ;;
+        *)
+            log_error "Invalid PM2 action: $action"
+            return 1
+            ;;
+    esac
+}
+
 # Function to restart services selectively
 restart_services_selective() {
     local backend_updated=$1
@@ -422,6 +490,13 @@ restart_services_selective() {
         fi
     else
         log "Skipping backend service restart - not updated"
+        # Still check if backend service is running
+        if systemctl is-enabled --quiet NewContainmentWeb.service 2>/dev/null; then
+            if ! systemctl is-active --quiet NewContainmentWeb.service; then
+                log_warning "Backend service is not running, starting it..."
+                sudo systemctl start NewContainmentWeb.service
+            fi
+        fi
     fi
     
     # Restart frontend only if it was updated
@@ -432,14 +507,19 @@ restart_services_selective() {
         fi
     else
         log "Skipping frontend service restart - not updated"
+        # Still check if frontend PM2 process is running
+        if ! check_pm2_status "newcontainment-frontend"; then
+            log_warning "Frontend PM2 process not running properly, attempting to start..."
+            manage_pm2_process "newcontainment-frontend" "start"
+        fi
     fi
     
     if [ "$services_restarted" = true ]; then
         log_success "Services restarted successfully"
         return 0
     else
-        log_warning "No services were restarted"
-        return 1
+        log_warning "No services were restarted, but status checked"
+        return 0  # Don't fail if services are already running
     fi
 }
 

@@ -8,8 +8,8 @@ interface AuthDebugConfig {
 
 // Global debug configuration - set this to false in production
 const DEBUG_CONFIG: AuthDebugConfig = {
-  enabled: process.env.NODE_ENV === 'development', // Auto-disable in production
-  prefix: '🔒 AUTH:'
+  enabled: process.env.NODE_ENV === "production", // Auto-disable in production
+  prefix: "🔒 AUTH:",
 };
 
 // Helper function for debug logging
@@ -22,7 +22,7 @@ function debugLog(message: string, ...args: any[]) {
 // Function to enable/disable auth debugging at runtime
 export function setAuthDebug(enabled: boolean) {
   DEBUG_CONFIG.enabled = enabled;
-  debugLog(`Debug ${enabled ? 'ENABLED' : 'DISABLED'}`);
+  debugLog(`Debug ${enabled ? "ENABLED" : "DISABLED"}`);
 }
 
 // Function to get current debug status
@@ -227,33 +227,33 @@ export function getCurrentUserFromToken(): CurrentUser | null {
     let token = null;
     if (typeof window !== "undefined") {
       token = localStorage.getItem("authToken");
-      debugLog('Token from localStorage:', token ? 'EXISTS' : 'NULL');
+      debugLog("Token from localStorage:", token ? "EXISTS" : "NULL");
 
       // Fallback to cookies if localStorage is empty
       if (!token) {
         const cookies = document.cookie.split(";");
-        debugLog('Checking cookies:', document.cookie);
+        debugLog("Checking cookies:", document.cookie);
         const authCookie = cookies.find((cookie) =>
           cookie.trim().startsWith("authToken=")
         );
         if (authCookie) {
           token = authCookie.split("=")[1];
-          debugLog('Token from cookies:', token ? 'EXISTS' : 'NULL');
+          debugLog("Token from cookies:", token ? "EXISTS" : "NULL");
         }
       }
     }
 
     if (!token) {
-      debugLog('No token found');
+      debugLog("No token found");
       return null;
     }
 
     // Check if token is expired (without buffer for initial check)
     const expired = isTokenExpired(token, 0);
-    debugLog('Token expired?', expired);
-    
+    debugLog("Token expired?", expired);
+
     if (expired) {
-      debugLog('Token is expired, clearing localStorage');
+      debugLog("Token is expired, clearing localStorage");
       if (typeof window !== "undefined") {
         localStorage.removeItem("authToken");
       }

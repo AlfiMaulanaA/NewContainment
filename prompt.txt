@@ -1,3 +1,48 @@
 Task : 
 
-Lakukan pengecekan juga jika pm2 sudah running atau belum? jika belum jalankan, dan jika sudah cukup restart pada saat update-prod
+Lakukan pengecekan juga jika pm2 sudah running atau belum? jika belum jalankan, dan jika sudah cukup restart pada saat update-prod, sama juga untuk service backend
+
+dan juga ubah agar menggunakan service ini
+
+/etc/systemd/system $ sudo cat NewContainmentWeb.service
+[Unit]
+Description=Containment service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/home/containment/.dotnet/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
+WorkingDirectory=/home/containment/NewContainment/Backend/publish
+
+[Install]
+WantedBy=multi-user.target
+
+dan error backend service karena
+
+ find / -name "dotnet" 2>/dev/null
+/usr/local/bin/dotnet
+
+~/NewContainment $ sudo systemctl status NewContainmentWeb.service
+● NewContainmentWeb.service - Containment service
+     Loaded: loaded (/etc/systemd/system/NewContainmentWeb.service; enabled; vendor preset: enabled)
+     Active: activating (auto-restart) (Result: exit-code) since Fri 2025-09-12 09:24:12 WIB; 949ms ago
+    Process: 10318 ExecStart=/home/containment/.dotnet/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll (code=exited, status=203>
+   Main PID: 10318 (code=exited, status=203/EXEC)
+        CPU: 3ms
+lines 1-6/6 (END)
+
+ find / -name "dotnet" 2>/dev/null
+/usr/local/bin/dotnet
+^C
+containment@containment:~ $ dotnet --version
+-bash: dotnet: command not found
+containment@containment:~ $ sudo systemctl ^C
+containment@containment:~ $ /usr/local/bin/dotnet --version
+-bash: /usr/local/bin/dotnet: Permission denied
+containment@containment:~ $ sudo /usr/local/bin/dotnet --version
+9.0.305
+
+dan juga gunakan reverse proxy server untuk ke port 80
+

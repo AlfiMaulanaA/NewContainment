@@ -42,12 +42,12 @@ export function RouteGuard({ children }: RouteGuardProps) {
       // IMPORTANT: Let middleware handle redirects to avoid conflicts
       // RouteGuard should only handle client-side state, not navigation
 
-      if (!user && !isPublicRoute) {
-        console.log(
-          "RouteGuard: User not authenticated for protected route, redirecting"
-        );
+      if (!user) {
         // Prevent infinite redirect loops
         if (!hasRedirected && pathname !== "/auth/login") {
+          console.log(
+            "RouteGuard: User not authenticated for protected route, redirecting"
+          );
           setHasRedirected(true);
           router.replace("/auth/login");
         } else {

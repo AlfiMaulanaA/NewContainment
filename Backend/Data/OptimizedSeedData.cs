@@ -20,7 +20,7 @@ namespace Backend.Data
             {"Devices", true},
             {"ContainmentStatus", true},
             {"Maintenance", true},
-            {"CameraConfig", true},
+            {"CameraConfig", false},
             {"ActivityReports", false},
             {"EmergencyReports", false},
             {"MqttConfiguration", true},
@@ -66,7 +66,6 @@ namespace Backend.Data
                 await SeedOptimizedMenuManagementAsync(context, logger);
 
                 // Activity and reporting seeding
-                await SeedActivityReportsAsync(context, users, logger);
                 await SeedEmergencyReportsAsync(context, logger);
 
                 // Optional data seeding (performance intensive)
@@ -102,7 +101,7 @@ namespace Backend.Data
                     Name = "System Administrator",
                     Email = "admin@gmail.com",
                     PhoneNumber = "+1234567890",
-                    PasswordHash = authService.HashPassword("password123"),
+                    PasswordHash = authService.HashPassword("pass123"),
                     Role = UserRole.Admin,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -113,7 +112,7 @@ namespace Backend.Data
                     Name = "Lead Developer",
                     Email = "developer@gmail.com",
                     PhoneNumber = "+1234567891",
-                    PasswordHash = authService.HashPassword("password123"),
+                    PasswordHash = authService.HashPassword("pass123"),
                     Role = UserRole.Developer,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -124,7 +123,7 @@ namespace Backend.Data
                     Name = "Operations User",
                     Email = "user@gmail.com",
                     PhoneNumber = "+1234567892",
-                    PasswordHash = authService.HashPassword("password123"),
+                    PasswordHash = authService.HashPassword("pass123"),
                     Role = UserRole.User,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -135,7 +134,7 @@ namespace Backend.Data
                     Name = "Demo User",
                     Email = "demo@gmail.com",
                     PhoneNumber = "+1234567893",
-                    PasswordHash = authService.HashPassword("password123"),
+                    PasswordHash = authService.HashPassword("pass123"),
                     Role = UserRole.User,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -200,7 +199,7 @@ namespace Backend.Data
                 var containment = containments[i];
                 var rackPrefix = containment.Name == "Primary Data Center" ? "PDC" : "SDC";
 
-                for (int j = 1; j <= 8; j++) // 6 racks per containment
+                for (int j = 1; j <= 4; j++) // 6 racks per containment
                 {
                     racks.Add(new Rack
                     {
@@ -346,7 +345,7 @@ namespace Backend.Data
                     new MenuItem { Title = "Containments", Url = "/management/containments", Icon = "Server", SortOrder = 2, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "Racks", Url = "/management/racks", Icon = "Computer", SortOrder = 3, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "Devices", Url = "/management/devices", Icon = "HardDrive", SortOrder = 4, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
-                    // new MenuItem { Title = "Capacity", Url = "/management/capacity", Icon = "BarChart3", SortOrder = 5, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
+                    new MenuItem { Title = "Capacity", Url = "/management/capacity", Icon = "BarChart3", SortOrder = 5, MinRoleLevel = 2, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
                     new MenuItem { Title = "Maintenance", Url = "/management/maintenance", Icon = "Wrench", SortOrder = 6, MinRoleLevel = 1, IsActive = true, MenuGroupId = menuGroups[1].Id, CreatedAt = DateTime.UtcNow },
 
                     // Security items
@@ -362,54 +361,6 @@ new MenuItem {
     MenuGroupId = menuGroups[2].Id, 
     CreatedAt = DateTime.UtcNow 
 },
-new MenuItem { 
-    Title = "User Management", 
-    Url = "/access-control/user", 
-    Icon = "Users", 
-    SortOrder = 2, 
-    MinRoleLevel = 2, 
-    RequiresDeveloperMode = false, 
-    IsActive = true, 
-    MenuGroupId = menuGroups[2].Id, 
-    CreatedAt = DateTime.UtcNow 
-},
-
-new MenuItem { 
-    Title = "Device Management", 
-    Url = "/access-control/device", 
-    Icon = "Monitor", 
-    SortOrder = 3, 
-    MinRoleLevel = 2, 
-    RequiresDeveloperMode = false, 
-    IsActive = true, 
-    MenuGroupId = menuGroups[2].Id, 
-    CreatedAt = DateTime.UtcNow 
-},
-
-new MenuItem { 
-    Title = "Access Log", 
-    Url = "/access-control/attendance", 
-    Icon = "FileText", 
-    SortOrder = 4, 
-    MinRoleLevel = 2, 
-    RequiresDeveloperMode = false, 
-    IsActive = true, 
-    MenuGroupId = menuGroups[2].Id, 
-    CreatedAt = DateTime.UtcNow 
-},
-
-new MenuItem { 
-    Title = "Access Configuration", 
-    Url = "/access-control/configuration", 
-    Icon = "Bolt", 
-    SortOrder = 5, 
-    MinRoleLevel = 2, 
-    RequiresDeveloperMode = false, 
-    IsActive = true, 
-    MenuGroupId = menuGroups[2].Id, 
-    CreatedAt = DateTime.UtcNow 
-},
-
 new MenuItem { 
     Title = "Camera Setup", 
     Url = "/management/camera", 
@@ -572,42 +523,7 @@ new MenuItem {
             logger.LogInformation($"Seeded {cameras.Count} camera configurations");
         }
 
-        private static async Task SeedActivityReportsAsync(AppDbContext context, List<User> users, ILogger logger)
-        {
-            if (!_seedConfig["ActivityReports"] || await context.ActivityReports.AnyAsync())
-                return;
-
-            logger.LogInformation("Seeding activity reports...");
-
-            var adminUser = users.First(u => u.Role == UserRole.Admin);
-            var activities = new List<ActivityReport>
-            {
-                new ActivityReport
-                {
-                    Description = "Optimized database seeding completed",
-                    Timestamp = DateTime.UtcNow,
-                    Status = "Success",
-                    Trigger = "System Initialization",
-                    UserId = adminUser.Id,
-                    AdditionalData = "All systems initialized successfully"
-                },
-                new ActivityReport
-                {
-                    Description = "Data center monitoring systems online",
-                    Timestamp = DateTime.UtcNow.AddMinutes(-5),
-                    Status = "Success",
-                    Trigger = "System Startup",
-                    UserId = adminUser.Id,
-                    AdditionalData = "All monitoring services operational"
-                }
-            };
-
-            await context.ActivityReports.AddRangeAsync(activities);
-            await context.SaveChangesAsync();
-
-            logger.LogInformation($"Seeded {activities.Count} activity reports");
-        }
-
+        
         private static async Task SeedEmergencyReportsAsync(AppDbContext context, ILogger logger)
         {
             if (!_seedConfig["EmergencyReports"] || await context.EmergencyReports.AnyAsync())
@@ -652,7 +568,7 @@ new MenuItem {
                 {
                     IsEnabled = true,
                     UseEnvironmentConfig = false,
-                    BrokerHost = "192.168.0.138",
+                    BrokerHost = "192.168.0.151",
                     BrokerPort = 1883,
                     Username = "",
                     Password = "",

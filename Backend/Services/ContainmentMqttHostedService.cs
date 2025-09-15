@@ -9,6 +9,7 @@ namespace Backend.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IMqttService _mqttService;
         private readonly IConfiguration _configuration;
+        private readonly IMqttConfigurationChangeNotificationService? _configChangeNotificationService;
         private readonly string _containmentStatusTopic = "IOT/Containment/Status";
         private readonly Dictionary<int, DateTime> _lastSaveTime = new();
         private readonly int _saveIntervalSeconds;
@@ -21,12 +22,14 @@ namespace Backend.Services
             ILogger<ContainmentMqttHostedService> logger,
             IServiceProvider serviceProvider,
             IMqttService mqttService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IMqttConfigurationChangeNotificationService? configChangeNotificationService = null)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
             _mqttService = mqttService;
             _configuration = configuration;
+            _configChangeNotificationService = configChangeNotificationService;
 
             // Load interval configuration from environment variables
             _saveIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("SENSOR_DATA_SAVE_INTERVAL") ??
@@ -44,6 +47,13 @@ namespace Backend.Services
                     TimeSpan.FromSeconds(_saveIntervalSeconds),
                     TimeSpan.FromSeconds(_saveIntervalSeconds));
                 _logger.LogInformation("Batch save timer initialized with {SaveInterval}s interval", _saveIntervalSeconds);
+            }
+
+            // Subscribe to configuration change notifications
+            if (_configChangeNotificationService != null)
+            {
+                _configChangeNotificationService.ConfigurationChanged += OnMqttConfigurationChanged;
+                _logger.LogInformation("Subscribed to MQTT configuration change notifications");
             }
         }
 
@@ -461,8 +471,39 @@ namespace Backend.Services
             await base.StopAsync(stoppingToken);
         }
 
+        private async void OnMqttConfigurationChanged(object? sender, MqttConfigurationChangedEventArgs e)
+        {
+            try
+            {
+                _logger.LogInformation("MQTT configuration change detected in ContainmentMqttHostedService. Config ID: {ConfigId}", e.ConfigurationId);
+                
+                // Resubscribe to topics with new configuration
+                if (_mqttService.IsConnected)
+                {
+                    _logger.LogInformation("Re-subscribing to topics after configuration change...");
+                    await _mqttService.SubscribeAsync(_containmentStatusTopic, HandleContainmentStatusMessage);
+                    await SubscribeToSensorDeviceTopics();
+                    _logger.LogInformation("✅ Successfully re-subscribed to all topics");
+                }
+                else
+                {
+                    _logger.LogInformation("MQTT not connected, will subscribe when connection is established");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error handling MQTT configuration change in ContainmentMqttHostedService");
+            }
+        }
+
         public override void Dispose()
         {
+            // Unsubscribe from configuration change notifications
+            if (_configChangeNotificationService != null)
+            {
+                _configChangeNotificationService.ConfigurationChanged -= OnMqttConfigurationChanged;
+            }
+            
             _batchSaveTimer?.Dispose();
             base.Dispose();
         }

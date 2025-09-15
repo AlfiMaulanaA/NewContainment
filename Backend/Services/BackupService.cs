@@ -54,22 +54,18 @@ namespace Backend.Services
 
                     _logger.LogInformation("Database backup completed successfully: {BackupPath}", compressedPath);
 
-                    // Log backup activity
-                    await LogBackupActivity("Success", $"Backup created: {Path.GetFileName(compressedPath)}");
 
                     return true;
                 }
                 else
                 {
                     _logger.LogWarning("Database file not found at {DbPath}", _dbPath);
-                    await LogBackupActivity("Failed", "Database file not found");
                     return false;
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create database backup");
-                await LogBackupActivity("Failed", $"Error: {ex.Message}");
                 return false;
             }
         }
@@ -114,17 +110,12 @@ namespace Backend.Services
                     _logger.LogInformation("Deleted old backup: {FileName}", Path.GetFileName(file));
                 }
 
-                if (backupFiles.Any())
-                {
-                    await LogBackupActivity("Cleanup", $"Deleted {backupFiles.Count} old backup(s)");
-                }
 
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to delete old backups");
-                await LogBackupActivity("Cleanup Failed", $"Error: {ex.Message}");
                 return false;
             }
         }
@@ -193,33 +184,12 @@ namespace Backend.Services
 
         private async Task CompressFileAsync(string sourceFile, string compressedFile)
         {
-            using var originalFileStream = File.OpenRead(sourceFile);
-            using var compressedFileStream = File.Create(compressedFile);
-            using var compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress);
+            await using var originalFileStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+            await using var compressedFileStream = new FileStream(compressedFile, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true);
+            await using var compressionStream = new GZipStream(compressedFileStream, CompressionMode.Compress);
 
             await originalFileStream.CopyToAsync(compressionStream);
         }
 
-        private async Task LogBackupActivity(string status, string description)
-        {
-            try
-            {
-                var activityReport = new Models.ActivityReport
-                {
-                    Description = description,
-                    Status = status,
-                    Trigger = "BackupService",
-                    AdditionalData = $"Backup directory: {_backupDirectory}",
-                    Timestamp = DateTime.UtcNow
-                };
-
-                _context.ActivityReports.Add(activityReport);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to log backup activity");
-            }
-        }
     }
 }

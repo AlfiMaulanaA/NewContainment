@@ -9,14 +9,24 @@ namespace Backend.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<MqttDeviceSubscriptionService> _logger;
+        private readonly IMqttConfigurationChangeNotificationService? _configChangeNotificationService;
         private IMqttClient? _mqttClient;
 
         public MqttDeviceSubscriptionService(
             IServiceProvider serviceProvider,
-            ILogger<MqttDeviceSubscriptionService> logger)
+            ILogger<MqttDeviceSubscriptionService> logger,
+            IMqttConfigurationChangeNotificationService? configChangeNotificationService = null)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
+            _configChangeNotificationService = configChangeNotificationService;
+
+            // Subscribe to configuration change notifications
+            if (_configChangeNotificationService != null)
+            {
+                _configChangeNotificationService.ConfigurationChanged += OnMqttConfigurationChanged;
+                _logger.LogInformation("Subscribed to MQTT configuration change notifications");
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -348,8 +358,37 @@ namespace Backend.Services
 
 
 
+        private async void OnMqttConfigurationChanged(object? sender, MqttConfigurationChangedEventArgs e)
+        {
+            try
+            {
+                _logger.LogInformation("MQTT configuration change detected in MqttDeviceSubscriptionService. Config ID: {ConfigId}", e.ConfigurationId);
+                
+                // Disconnect current client and reconnect with new configuration
+                if (_mqttClient?.IsConnected == true)
+                {
+                    await _mqttClient.DisconnectAsync();
+                    _logger.LogInformation("Disconnected from MQTT broker due to configuration change");
+                }
+
+                // The ExecuteAsync method will automatically attempt to reconnect
+                // with the new configuration in the next iteration
+                _logger.LogInformation("Configuration change handled - will reconnect with new settings");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error handling MQTT configuration change in MqttDeviceSubscriptionService");
+            }
+        }
+
         public override void Dispose()
         {
+            // Unsubscribe from configuration change notifications
+            if (_configChangeNotificationService != null)
+            {
+                _configChangeNotificationService.ConfigurationChanged -= OnMqttConfigurationChanged;
+            }
+            
             _mqttClient?.Dispose();
             base.Dispose();
         }

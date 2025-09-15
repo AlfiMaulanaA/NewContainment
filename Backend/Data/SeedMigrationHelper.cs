@@ -158,9 +158,8 @@ namespace Backend.Data
                 {
                     // Check if user has important data associated
                     var hasMaintenanceData = await context.Maintenances.AnyAsync(m => m.CreatedBy == testUser.Id || m.AssignTo == testUser.Id);
-                    var hasActivityData = await context.ActivityReports.AnyAsync(a => a.UserId == testUser.Id);
 
-                    if (!hasMaintenanceData && !hasActivityData)
+                    if (!hasMaintenanceData)
                     {
                         context.Users.Remove(testUser);
                         logger.LogInformation($"Removed old test user: {testUser.Email}");
@@ -194,7 +193,6 @@ namespace Backend.Data
                 {"ContainmentStatuses", await context.ContainmentStatuses.CountAsync()},
                 {"Maintenances", await context.Maintenances.CountAsync()},
                 {"CameraConfigs", await context.CameraConfigs.CountAsync()},
-                {"ActivityReports", await context.ActivityReports.CountAsync()},
                 {"EmergencyReports", await context.EmergencyReports.CountAsync()},
                 {"MqttConfigurations", await context.MqttConfigurations.CountAsync()},
                 {"NetworkConfigurations", await context.NetworkConfigurations.CountAsync()},

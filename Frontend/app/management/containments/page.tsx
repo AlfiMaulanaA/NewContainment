@@ -16,6 +16,7 @@ import {
   HardDriveUpload,
   Eye,
   Computer,
+  Layout,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -319,6 +320,15 @@ export default function ContainmentManagementPage() {
   const handleManageRacks = (containment: Containment) => {
     router.push(
       `/management/racks?containmentId=${
+        containment.id
+      }&containmentName=${encodeURIComponent(containment.name)}`
+    );
+  };
+
+  // Handle containment layout - redirect to containment layout page with containment ID
+  const handleContainmentLayout = (containment: Containment) => {
+    router.push(
+      `/management/containment-layout?containmentId=${
         containment.id
       }&containmentName=${encodeURIComponent(containment.name)}`
     );
@@ -700,6 +710,14 @@ export default function ContainmentManagementPage() {
                         </TableCell>
                         <PermissionWrapper condition={permissions.containment.canUpdate || permissions.containment.canDelete}>
                           <TableCell className="text-right space-x-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleContainmentLayout(containment)}
+                              title="View Layout"
+                            >
+                              <Layout className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="sm"
                               variant="secondary"

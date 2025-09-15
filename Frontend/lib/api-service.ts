@@ -2329,6 +2329,22 @@ export const mqttConfigurationApi = {
       };
     }
   },
+
+  async reloadConfiguration(): Promise<ApiResponse> {
+    try {
+      await client.post("/mqttconfiguration/reload");
+
+      return {
+        success: true,
+        message: "MQTT configuration reloaded successfully",
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to reload MQTT configuration",
+      };
+    }
+  },
 };
 
 export const emergencyReportsApi = {
@@ -2850,9 +2866,9 @@ export const accessControlApi = {
 
 // System Information API methods
 export const systemInfoApi = {
-  async getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
+  async getSystemStatusInfo(): Promise<ApiResponse<SystemStatusInfo>> {
     try {
-      const data = await client.get<SystemInfo>("/system/info");
+      const data = await client.get<SystemStatusInfo>("/system/info");
 
       return {
         success: true,
@@ -2866,9 +2882,9 @@ export const systemInfoApi = {
     }
   },
 
-  async getSystemStatus(): Promise<ApiResponse<SystemInfo>> {
+  async getSystemStatus(): Promise<ApiResponse<SystemStatusInfo>> {
     try {
-      const data = await client.get<SystemInfo>("/system/status");
+      const data = await client.get<SystemStatusInfo>("/system/status");
 
       return {
         success: true,
@@ -2882,9 +2898,9 @@ export const systemInfoApi = {
     }
   },
 
-  async refreshSystemInfo(): Promise<ApiResponse<SystemInfo>> {
+  async refreshSystemStatusInfo(): Promise<ApiResponse<SystemStatusInfo>> {
     try {
-      const data = await client.post<SystemInfo>("/system/refresh");
+      const data = await client.post<SystemStatusInfo>("/system/refresh");
 
       return {
         success: true,
@@ -2898,9 +2914,9 @@ export const systemInfoApi = {
     }
   },
 
-  async getBasicSystemInfo(): Promise<ApiResponse<BasicSystemInfo>> {
+  async getBasicSystemStatusInfo(): Promise<ApiResponse<BasicSystemStatusInfo>> {
     try {
-      const data = await client.get<BasicSystemInfo>("/system/basic");
+      const data = await client.get<BasicSystemStatusInfo>("/system/basic");
 
       return {
         success: true,
@@ -2932,7 +2948,7 @@ export const systemInfoApi = {
 };
 
 // System Information types
-export interface SystemInfo {
+export interface SystemStatusInfo {
   cpu_usage: number;
   cpu_temp: string;
   memory_usage: number;
@@ -2953,7 +2969,7 @@ export interface SystemInfo {
   error_message?: string;
 }
 
-export interface BasicSystemInfo {
+export interface BasicSystemStatusInfo {
   hostname: string;
   os_platform: string;
   os_version: string;
@@ -4451,6 +4467,170 @@ export const sensorIntervalApi = {
     }
   },
 };
+
+// System Management API
+export const systemManagementApi = {
+  async rebootSystem(): Promise<ApiResponse<SystemCommandResult>> {
+    try {
+      const data = await client.post<SystemCommandResult>("/systemmanagement/reboot");
+      return {
+        success: true,
+        data,
+        message: "Reboot command sent successfully"
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to reboot system",
+      };
+    }
+  },
+
+  async shutdownSystem(): Promise<ApiResponse<SystemCommandResult>> {
+    try {
+      const data = await client.post<SystemCommandResult>("/systemmanagement/shutdown");
+      return {
+        success: true,
+        data,
+        message: "Shutdown command sent successfully"
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to shutdown system",
+      };
+    }
+  },
+
+  async startService(serviceName: string): Promise<ApiResponse<SystemCommandResult>> {
+    try {
+      const data = await client.post<SystemCommandResult>(`/systemmanagement/services/${serviceName}/start`);
+      return {
+        success: true,
+        data,
+        message: `Service ${serviceName} start command sent successfully`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || `Failed to start service ${serviceName}`,
+      };
+    }
+  },
+
+  async stopService(serviceName: string): Promise<ApiResponse<SystemCommandResult>> {
+    try {
+      const data = await client.post<SystemCommandResult>(`/systemmanagement/services/${serviceName}/stop`);
+      return {
+        success: true,
+        data,
+        message: `Service ${serviceName} stop command sent successfully`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || `Failed to stop service ${serviceName}`,
+      };
+    }
+  },
+
+  async restartService(serviceName: string): Promise<ApiResponse<SystemCommandResult>> {
+    try {
+      const data = await client.post<SystemCommandResult>(`/systemmanagement/services/${serviceName}/restart`);
+      return {
+        success: true,
+        data,
+        message: `Service ${serviceName} restart command sent successfully`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || `Failed to restart service ${serviceName}`,
+      };
+    }
+  },
+
+  async getServiceStatus(serviceName: string): Promise<ApiResponse<SystemCommandResult>> {
+    try {
+      const data = await client.get<SystemCommandResult>(`/systemmanagement/services/${serviceName}/status`);
+      return {
+        success: true,
+        data,
+        message: `Service ${serviceName} status retrieved successfully`
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || `Failed to get service ${serviceName} status`,
+      };
+    }
+  },
+
+  async getAvailableServices(): Promise<ApiResponse<SystemService[]>> {
+    try {
+      const data = await client.get<SystemService[]>("/systemmanagement/services");
+      return {
+        success: true,
+        data,
+        message: "Services retrieved successfully"
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get available services",
+      };
+    }
+  },
+
+  async getSystemInfo(): Promise<ApiResponse<SystemStatusInfo>> {
+    try {
+      const data = await client.get<SystemStatusInfo>("/systemmanagement/info");
+      return {
+        success: true,
+        data,
+        message: "System information retrieved successfully"
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get system information",
+      };
+    }
+  },
+};
+
+// System Management Types
+export interface SystemCommandResult {
+  success: boolean;
+  message: string;
+  output: string;
+  error: string;
+  exitCode: number;
+  executedAt: string;
+  command: string;
+  executedBy: string;
+}
+
+export interface SystemService {
+  name: string;
+  displayName: string;
+  status: string;
+  isActive: boolean;
+  isEnabled: boolean;
+  description: string;
+}
+
+export interface SystemStatusInfo {
+  hostName: string;
+  operatingSystem: string;
+  architecture: string;
+  kernelVersion: string;
+  uptime: string;
+  loadAverage: string;
+  memoryUsage: string;
+  diskUsage: string;
+  checkedAt: string;
+}
 
 // Export aliases for backward compatibility
 export const accessLogApi = accessLogService;

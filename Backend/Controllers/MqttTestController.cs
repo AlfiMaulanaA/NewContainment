@@ -29,10 +29,10 @@ namespace Backend.Controllers
             try
             {
                 var isConnected = _mqttService.IsConnected;
-                var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? _configuration["Mqtt:UseWebSocket"] ?? "false");
-                var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? _configuration["Mqtt:WebSocketUri"];
-                var brokerHost = Environment.GetEnvironmentVariable("MQTT_BROKER_HOST") ?? _configuration["Mqtt:BrokerHost"];
-                var brokerPort = Environment.GetEnvironmentVariable("MQTT_BROKER_PORT") ?? _configuration["Mqtt:BrokerPort"];
+                var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? "false");
+                var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? "";
+                var brokerHost = Environment.GetEnvironmentVariable("MQTT_BROKER_HOST") ?? "localhost";
+                var brokerPort = Environment.GetEnvironmentVariable("MQTT_BROKER_PORT") ?? "1883";
 
                 return Ok(new
                 {
@@ -46,8 +46,8 @@ namespace Backend.Controllers
                         webSocketUri = webSocketUri,
                         tcpHost = brokerHost,
                         tcpPort = brokerPort,
-                        clientId = Environment.GetEnvironmentVariable("MQTT_CLIENT_ID") ?? _configuration["Mqtt:ClientId"],
-                        enableMqtt = Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? _configuration["Mqtt:EnableMqtt"]
+                        clientId = Environment.GetEnvironmentVariable("MQTT_CLIENT_ID") ?? "Backend_Client",
+                        enableMqtt = Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? "true"
                     }
                 });
             }
@@ -177,14 +177,14 @@ namespace Backend.Controllers
         {
             try
             {
-                var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? _configuration["Mqtt:UseWebSocket"] ?? "false");
+                var useWebSocket = bool.Parse(Environment.GetEnvironmentVariable("MQTT_USE_WEBSOCKET") ?? "false");
 
                 if (!useWebSocket)
                 {
                     return BadRequest(new { message = "WebSocket is not enabled in configuration" });
                 }
 
-                var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? _configuration["Mqtt:WebSocketUri"];
+                var webSocketUri = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_URI") ?? "";
 
                 if (string.IsNullOrEmpty(webSocketUri))
                 {

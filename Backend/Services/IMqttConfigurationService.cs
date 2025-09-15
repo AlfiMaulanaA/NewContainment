@@ -13,7 +13,8 @@ namespace Backend.Services
         Task<bool> SetActiveConfigurationAsync(int id, int userId);
         Task<bool> ToggleMqttAsync(bool enabled, int userId);
         Task<Dictionary<string, object>> GetEffectiveConfigurationAsync();
-        Task<bool> TestConnectionAsync(MqttConfiguration configuration);
+    Task<bool> TestConnectionAsync(MqttConfiguration configuration);
+    Task<Dictionary<string, object>> GetDetailedMqttStatusAsync();
         Task<Dictionary<int, bool>> GetAllConnectionStatusAsync();
     }
 }

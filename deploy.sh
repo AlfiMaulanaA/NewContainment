@@ -419,7 +419,7 @@ deploy_frontend() {
     cd "$FRONTEND_DIR"
     
     log "Installing frontend dependencies..."
-    if ! npm install; then
+    if ! npm install --omit=dev; then
         log_error "Frontend dependency installation failed"
         return 1
     fi

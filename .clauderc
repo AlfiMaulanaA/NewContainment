@@ -1,0 +1,29 @@
+{
+  "project": {
+    "name": "IoT Containment Monitoring System",
+    "description": "Full-stack IoT monitoring system with .NET 9 backend and Next.js frontend for containment and sensor monitoring",
+    "type": "full-stack",
+    "languages": ["typescript", "csharp", "javascript"],
+    "frameworks": ["next.js", "dotnet", "tailwindcss"]
+  },
+  "commands": {
+    "frontend": {
+      "dev": "cd Frontend && npm run dev",
+      "build": "cd Frontend && npm run build", 
+      "lint": "cd Frontend && npm run lint",
+      "start": "cd Frontend && npm run start"
+    },
+    "backend": {
+      "dev": "cd Backend && dotnet run",
+      "build": "cd Backend && dotnet build",
+      "test": "cd Backend && dotnet test"
+    }
+  },
+  "ignore": [
+    "**/node_modules/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/.next/**",
+    "**/dist/**"
+  ]
+}

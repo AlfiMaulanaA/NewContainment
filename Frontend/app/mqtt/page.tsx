@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import Swal from "sweetalert2";
-import { Plus, RefreshCw, TestTube, Wifi, Loader2, Edit2 } from "lucide-react";
+import { Plus, RefreshCw, TestTube, Wifi, Loader2, Edit2, RotateCcw } from "lucide-react";
 import {
   MqttConfiguration,
   CreateMqttConfigurationRequest,
@@ -76,6 +76,7 @@ export default function UnifiedMqttPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [reloadingConfig, setReloadingConfig] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [connectionStatuses, setConnectionStatuses] = useState<
     Record<string, boolean>
@@ -170,6 +171,16 @@ export default function UnifiedMqttPage() {
         setIsCreateDialogOpen(false);
         resetForm();
         loadData();
+        
+        // Auto-reload MQTT configuration after successful creation
+        setTimeout(async () => {
+          try {
+            await mqttConfigurationApi.reloadConfiguration();
+            toast.success("MQTT configuration automatically reloaded");
+          } catch (error) {
+            console.warn("Failed to auto-reload MQTT configuration after creation");
+          }
+        }, 500);
       } else {
         toast.error(response.message || "Failed to create MQTT configuration");
       }
@@ -204,6 +215,16 @@ export default function UnifiedMqttPage() {
         resetForm();
         setSelectedConfiguration(null);
         loadData();
+        
+        // Auto-reload MQTT configuration after successful update
+        setTimeout(async () => {
+          try {
+            await mqttConfigurationApi.reloadConfiguration();
+            toast.success("MQTT configuration automatically reloaded");
+          } catch (error) {
+            console.warn("Failed to auto-reload MQTT configuration after update");
+          }
+        }, 500);
       } else {
         toast.error(response.message || "Failed to update MQTT configuration");
       }
@@ -312,6 +333,67 @@ export default function UnifiedMqttPage() {
     }
   };
 
+  const handleReloadConfiguration = async () => {
+    setReloadingConfig(true);
+    try {
+      const result = await Swal.fire({
+        title: 'Reload MQTT Configuration?',
+        text: 'This will apply any configuration changes and restart MQTT connections. Continue?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, reload it!',
+        cancelButtonText: 'Cancel'
+      });
+
+      if (result.isConfirmed) {
+        const response = await mqttConfigurationApi.reloadConfiguration();
+        
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Configuration Reloaded!',
+            text: response.message || 'MQTT configuration has been reloaded successfully.',
+            position: 'top-end',
+            timer: 3000,
+            timerProgressBar: true,
+            toast: true,
+            showConfirmButton: false,
+          });
+          
+          // Refresh data to show updated status
+          setTimeout(() => {
+            loadData();
+          }, 1000);
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Reload Failed',
+            text: response.message || 'Failed to reload MQTT configuration.',
+            position: 'top-end',
+            timer: 5000,
+            timerProgressBar: true,
+            toast: true,
+            showConfirmButton: false,
+          });
+        }
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'An error occurred while reloading the configuration.',
+        position: 'top-end',
+        timer: 5000,
+        toast: true,
+        showConfirmButton: false,
+      });
+    } finally {
+      setReloadingConfig(false);
+    }
+  };
+
   const openEditDialog = (configuration: MqttConfiguration) => {
     setSelectedConfiguration(configuration);
     setFormData({
@@ -393,6 +475,24 @@ export default function UnifiedMqttPage() {
           <Button onClick={loadData} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button 
+            onClick={handleReloadConfiguration} 
+            variant="outline" 
+            size="sm"
+            disabled={reloadingConfig}
+          >
+            {reloadingConfig ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Reloading...
+              </>
+            ) : (
+              <>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reload Config
+              </>
+            )}
           </Button>
           <Dialog
             open={isCreateDialogOpen}

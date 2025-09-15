@@ -84,9 +84,10 @@ export const mqttConfigurationApi = {
 
   async reloadConfiguration(): Promise<ApiResponse> {
     try {
-      await apiClient.post("/mqttconfiguration/reload");
+      const data = await apiClient.post("/mqtt/reload");
       return {
         success: true,
+        data,
         message: "MQTT configuration reloaded successfully",
       };
     } catch (error: any) {

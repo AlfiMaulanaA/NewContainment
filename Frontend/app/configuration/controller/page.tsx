@@ -1,7 +1,7 @@
 // Modified UI template page
 "use client";
 
-import { Settings, Cpu, Cog, Timer } from "lucide-react";
+import { Settings, Cpu, Cog, Timer, Terminal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import ConfigPin from "@/components/pin-config";
 import SystemConfig from "@/components/system-config";
 import SensorIntervalsConfig from "@/components/sensor-intervals-config";
+import SystemManagement from "@/components/system-management";
 
 // Main function for the system configuration page
 export default function ConfigurationPage() {
@@ -28,7 +29,7 @@ export default function ConfigurationPage() {
 
       <div className="flex flex-1 flex-col gap-4 p-4">
         <Tabs defaultValue="pin-config" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="pin-config" className="flex items-center gap-2">
               <Cpu className="h-4 w-4" />
               Pin Configuration
@@ -47,6 +48,13 @@ export default function ConfigurationPage() {
               <Timer className="h-4 w-4" />
               Sensor Intervals
             </TabsTrigger>
+            <TabsTrigger
+              value="system-management"
+              className="flex items-center gap-2"
+            >
+              <Terminal className="h-4 w-4" />
+              System Management
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="pin-config">
             <ConfigPin />
@@ -56,6 +64,9 @@ export default function ConfigurationPage() {
           </TabsContent>
           <TabsContent value="sensor-intervals">
             <SensorIntervalsConfig />
+          </TabsContent>
+          <TabsContent value="system-management">
+            <SystemManagement />
           </TabsContent>
         </Tabs>
       </div>

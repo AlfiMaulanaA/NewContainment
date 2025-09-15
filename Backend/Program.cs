@@ -12,14 +12,39 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure Logging
 builder.Logging.ClearProviders();
+
+// Set minimum log levels to reduce verbosity
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+// Configure console logging with specific category filters
+builder.Logging.AddConsole(options =>
+{
+    options.FormatterName = "simple";
+}).AddSimpleConsole(options =>
+{
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+});
+
+// Reduce verbosity for specific categories
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authorization", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Diagnostics", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Mvc", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+
+// Keep detailed logging for our application
+builder.Logging.AddFilter("Backend", LogLevel.Information);
+builder.Logging.AddFilter("Backend.Services.ContainmentMqttHostedService", LogLevel.Information);
+builder.Logging.AddFilter("Backend.Services.MqttService", LogLevel.Information);
+builder.Logging.AddFilter("Backend.Services.MqttConfigurationService", LogLevel.Information);
+
+// Add debug logging in development
 if (builder.Environment.IsDevelopment())
 {
-    builder.Logging.AddConsole();
     builder.Logging.AddDebug();
-}
-else
-{
-    builder.Logging.AddConsole();
+    builder.Logging.AddFilter("Backend", LogLevel.Debug);
 }
 
 // Add services to the container.
@@ -57,7 +82,6 @@ builder.Services.AddScoped<Backend.Services.IRackService, Backend.Services.RackS
 builder.Services.AddScoped<Backend.Services.IDeviceService, Backend.Services.DeviceService>();
 builder.Services.AddScoped<Backend.Services.IDeviceStatusMonitoringService, Backend.Services.DeviceStatusMonitoringService>();
 builder.Services.AddScoped<Backend.Services.IMaintenanceService, Backend.Services.MaintenanceService>();
-builder.Services.AddScoped<Backend.Services.IActivityReportService, Backend.Services.ActivityReportService>();
 builder.Services.AddScoped<Backend.Services.IBackupService, Backend.Services.BackupService>();
 builder.Services.AddScoped<Backend.Services.IContainmentStatusService, Backend.Services.ContainmentStatusService>();
 builder.Services.AddScoped<Backend.Services.IContainmentControlService, Backend.Services.ContainmentControlService>();
@@ -69,15 +93,15 @@ builder.Services.AddSingleton<Backend.Services.IMqttService, Backend.Services.Mq
 builder.Services.AddScoped<Backend.Services.ISystemInfoService, Backend.Services.SystemInfoService>();
 builder.Services.AddScoped<Backend.Services.ICameraConfigsService, Backend.Services.CameraConfigService>();
 builder.Services.AddScoped<Backend.Services.IDeviceSensorDataService, Backend.Services.DeviceSensorDataService>();
-builder.Services.AddScoped<Backend.Services.ISensorDataConfigurationService, Backend.Services.SensorDataConfigurationService>();
-builder.Services.AddScoped<Backend.Services.IEnhancedDeviceSensorDataService, Backend.Services.EnhancedDeviceSensorDataService>();
 builder.Services.AddScoped<Backend.Services.ISensorDataIntervalService, Backend.Services.SensorDataIntervalService>();
+builder.Services.AddScoped<Backend.Services.ISystemManagementService, Backend.Services.SystemManagementService>();
 builder.Services.AddScoped<Backend.Services.IDeviceActivityService, Backend.Services.DeviceActivityService>();
 builder.Services.AddSingleton<Backend.Services.IpScannerService>();
 builder.Services.AddScoped<Backend.Services.IAccessLogService, Backend.Services.AccessLogService>();
 builder.Services.AddScoped<Backend.Services.IMaintenanceNotificationService, Backend.Services.MaintenanceNotificationService>();
 builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Services.WhatsAppService>();
 builder.Services.AddScoped<Backend.Services.ICapacityService, Backend.Services.CapacityService>();
+builder.Services.AddSingleton<Backend.Services.IMqttConfigurationChangeNotificationService, Backend.Services.MqttConfigurationChangeNotificationService>();
 
 // Add Role Mapping and Migration Services
 builder.Services.AddScoped<Backend.Services.IRoleMappingService, Backend.Services.RoleMappingService>();
@@ -92,7 +116,7 @@ builder.Services.AddHostedService<Backend.Services.MaintenanceReminderHostedServ
 builder.Services.AddHostedService<Backend.Services.DeviceStatusMonitoringHostedService>();
 
 // Add MQTT hosted service only if MQTT is enabled
-var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? builder.Configuration["Mqtt:EnableMqtt"] ?? "true");
+var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? "true");
 if (enableMqtt)
 {
     builder.Services.AddHostedService<Backend.Services.ContainmentMqttHostedService>();
@@ -126,12 +150,20 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+            // Use proper logging instead of Console.WriteLine
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("JWT Authentication failed: {Message}", context.Exception.Message);
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
         {
-            Console.WriteLine($"JWT Token validated for user: {context.Principal?.Identity?.Name}");
+            // Reduce verbosity - only log at Debug level or if explicitly enabled
+            var enableJwtVerboseLogging = Environment.GetEnvironmentVariable("ENABLE_JWT_VERBOSE_LOGGING")?.ToLower() == "true";
+            if (enableJwtVerboseLogging)
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogDebug("JWT Token validated for user: {UserName}", context.Principal?.Identity?.Name);
+            }
             return Task.CompletedTask;
         }
     };

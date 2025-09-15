@@ -557,7 +557,8 @@ export default function RackManagementPage({
                       placeholder="Enter rack capacity in U units (default: 42U)"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Standard rack capacities: 42U (full), 24U (half), 12U (quarter)
+                      Standard rack capacities: 42U (full), 24U (half), 12U
+                      (quarter)
                     </p>
                   </div>
                   <div>
@@ -735,7 +736,7 @@ export default function RackManagementPage({
                     </TableHead>
                     {!containmentId && <TableHead>Containment</TableHead>}
                     {!containmentId && <TableHead>Containment Type</TableHead>}
-                    <TableHead>Description</TableHead>
+                    <TableHead>Capacity U</TableHead>
                     <TableHead>Devices</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
@@ -795,7 +796,9 @@ export default function RackManagementPage({
                             </TableCell>
                           )}
                           <TableCell className="max-w-[150px] truncate">
-                            {rack.description || "-"}
+                            <div className="rounded-full px-2 py-1 bg-muted text-muted-foreground w-max text-sm font-mono">
+                              {rack.capacityU || "-"} U
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">

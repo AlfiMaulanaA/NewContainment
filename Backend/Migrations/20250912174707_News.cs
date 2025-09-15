@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreateComplete : Migration
+    public partial class News : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -257,30 +257,6 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ActivityReports",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    Trigger = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    AdditionalData = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    UserId = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ActivityReports", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ActivityReports_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Containments",
                 columns: table => new
                 {
@@ -428,77 +404,6 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_NetworkConfigurations_Users_UpdatedBy",
-                        column: x => x.UpdatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ScanConfigurations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    MaxAddressToScan = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 247),
-                    SelectedPort = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false, defaultValue: "COM3"),
-                    SelectedSensor = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false, defaultValue: "XY_MD02"),
-                    ScanTimeoutMs = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 1000),
-                    ScanIntervalMs = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 100),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
-                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ScanConfigurations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ScanConfigurations_Users_CreatedBy",
-                        column: x => x.CreatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ScanConfigurations_Users_UpdatedBy",
-                        column: x => x.UpdatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SensorConfigurations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    SensorNumber = table.Column<int>(type: "INTEGER", nullable: false),
-                    SensorName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    ModbusAddress = table.Column<int>(type: "INTEGER", nullable: false),
-                    ModbusPort = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    SensorType = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    IsEnabled = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
-                    TemperatureOffset = table.Column<decimal>(type: "TEXT", nullable: false, defaultValue: 0m),
-                    HumidityOffset = table.Column<decimal>(type: "TEXT", nullable: false, defaultValue: 0m),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
-                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SensorConfigurations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_SensorConfigurations_Users_CreatedBy",
-                        column: x => x.CreatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SensorConfigurations_Users_UpdatedBy",
                         column: x => x.UpdatedBy,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -683,33 +588,6 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RackCapacities",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    RackId = table.Column<int>(type: "INTEGER", nullable: false),
-                    TotalCapacityU = table.Column<int>(type: "INTEGER", nullable: false),
-                    UsedCapacityU = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
-                    PowerCapacityW = table.Column<int>(type: "INTEGER", nullable: true),
-                    UsedPowerW = table.Column<int>(type: "INTEGER", nullable: true),
-                    WeightCapacityKg = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    UsedWeightKg = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RackCapacities", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_RackCapacities_Racks_RackId",
-                        column: x => x.RackId,
-                        principalTable: "Racks",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "DeviceActivityStatuses",
                 columns: table => new
                 {
@@ -775,72 +653,6 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SensorDataConfigurations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    SaveIntervalSeconds = table.Column<int>(type: "INTEGER", nullable: false),
-                    IsIntervalEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    IsTemperatureThresholdEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    TemperatureUpperThreshold = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
-                    TemperatureLowerThreshold = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
-                    TemperatureColdColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    TemperatureNormalColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    TemperatureWarmColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    TemperatureHotColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    TemperatureCriticalColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    TemperatureColdMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureNormalMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureNormalMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureWarmMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureWarmMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureHotMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureHotMax = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    TemperatureCriticalMin = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    AutoSaveOnThresholdExceed = table.Column<bool>(type: "INTEGER", nullable: false),
-                    AutoSaveOnUpperThreshold = table.Column<bool>(type: "INTEGER", nullable: false),
-                    AutoSaveOnLowerThreshold = table.Column<bool>(type: "INTEGER", nullable: false),
-                    EnableNotifications = table.Column<bool>(type: "INTEGER", nullable: false),
-                    NotificationRecipients = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    DeviceId = table.Column<int>(type: "INTEGER", nullable: true),
-                    ContainmentId = table.Column<int>(type: "INTEGER", nullable: true),
-                    IsGlobalConfiguration = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedBy = table.Column<int>(type: "INTEGER", nullable: false),
-                    UpdatedBy = table.Column<int>(type: "INTEGER", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SensorDataConfigurations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_SensorDataConfigurations_Containments_ContainmentId",
-                        column: x => x.ContainmentId,
-                        principalTable: "Containments",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_SensorDataConfigurations_Devices_DeviceId",
-                        column: x => x.DeviceId,
-                        principalTable: "Devices",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_SensorDataConfigurations_Users_CreatedBy",
-                        column: x => x.CreatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SensorDataConfigurations_Users_UpdatedBy",
-                        column: x => x.UpdatedBy,
-                        principalTable: "Users",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SensorDataIntervalConfigs",
                 columns: table => new
                 {
@@ -888,51 +700,6 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "AutoSensorDataLogs",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DeviceId = table.Column<int>(type: "INTEGER", nullable: false),
-                    SensorDataId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ConfigurationId = table.Column<int>(type: "INTEGER", nullable: false),
-                    TriggerReason = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    TemperatureValue = table.Column<decimal>(type: "decimal(8,3)", nullable: true),
-                    ThresholdValue = table.Column<decimal>(type: "decimal(8,3)", nullable: true),
-                    ViolationType = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    TemperatureStatus = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    TemperatureColor = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    TriggerTime = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    AdditionalData = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
-                    NotificationSent = table.Column<bool>(type: "INTEGER", nullable: false),
-                    NotificationSentAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    NotificationStatus = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AutoSensorDataLogs", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AutoSensorDataLogs_DeviceSensorData_SensorDataId",
-                        column: x => x.SensorDataId,
-                        principalTable: "DeviceSensorData",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_AutoSensorDataLogs_Devices_DeviceId",
-                        column: x => x.DeviceId,
-                        principalTable: "Devices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_AutoSensorDataLogs_SensorDataConfigurations_ConfigurationId",
-                        column: x => x.ConfigurationId,
-                        principalTable: "SensorDataConfigurations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_AccessLogs_Timestamp",
                 table: "AccessLogs",
@@ -952,41 +719,6 @@ namespace Backend.Migrations
                 name: "IX_AccessLogs_Via_Timestamp",
                 table: "AccessLogs",
                 columns: new[] { "Via", "Timestamp" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ActivityReports_Status",
-                table: "ActivityReports",
-                column: "Status");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ActivityReports_Timestamp",
-                table: "ActivityReports",
-                column: "Timestamp");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ActivityReports_Trigger",
-                table: "ActivityReports",
-                column: "Trigger");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ActivityReports_UserId",
-                table: "ActivityReports",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AutoSensorDataLogs_ConfigurationId",
-                table: "AutoSensorDataLogs",
-                column: "ConfigurationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AutoSensorDataLogs_DeviceId",
-                table: "AutoSensorDataLogs",
-                column: "DeviceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AutoSensorDataLogs_SensorDataId",
-                table: "AutoSensorDataLogs",
-                column: "SensorDataId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CameraConfigs_IpAddress",
@@ -1272,12 +1004,6 @@ namespace Backend.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_RackCapacities_RackId",
-                table: "RackCapacities",
-                column: "RackId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Racks_ContainmentId",
                 table: "Racks",
                 column: "ContainmentId");
@@ -1318,77 +1044,6 @@ namespace Backend.Migrations
                 table: "Roles",
                 column: "Name",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ScanConfigurations_CreatedAt",
-                table: "ScanConfigurations",
-                column: "CreatedAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ScanConfigurations_CreatedBy",
-                table: "ScanConfigurations",
-                column: "CreatedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ScanConfigurations_IsActive",
-                table: "ScanConfigurations",
-                column: "IsActive");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ScanConfigurations_UpdatedBy",
-                table: "ScanConfigurations",
-                column: "UpdatedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorConfigurations_CreatedAt",
-                table: "SensorConfigurations",
-                column: "CreatedAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorConfigurations_CreatedBy",
-                table: "SensorConfigurations",
-                column: "CreatedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorConfigurations_IsEnabled",
-                table: "SensorConfigurations",
-                column: "IsEnabled");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorConfigurations_SensorName",
-                table: "SensorConfigurations",
-                column: "SensorName");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorConfigurations_SensorNumber",
-                table: "SensorConfigurations",
-                column: "SensorNumber",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorConfigurations_UpdatedBy",
-                table: "SensorConfigurations",
-                column: "UpdatedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorDataConfigurations_ContainmentId",
-                table: "SensorDataConfigurations",
-                column: "ContainmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorDataConfigurations_CreatedBy",
-                table: "SensorDataConfigurations",
-                column: "CreatedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorDataConfigurations_DeviceId",
-                table: "SensorDataConfigurations",
-                column: "DeviceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SensorDataConfigurations_UpdatedBy",
-                table: "SensorDataConfigurations",
-                column: "UpdatedBy");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SensorDataIntervalConfigs_ContainmentId",
@@ -1486,12 +1141,6 @@ namespace Backend.Migrations
                 name: "AccessLogs");
 
             migrationBuilder.DropTable(
-                name: "ActivityReports");
-
-            migrationBuilder.DropTable(
-                name: "AutoSensorDataLogs");
-
-            migrationBuilder.DropTable(
                 name: "CameraConfigs");
 
             migrationBuilder.DropTable(
@@ -1502,6 +1151,9 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "DeviceActivityStatuses");
+
+            migrationBuilder.DropTable(
+                name: "DeviceSensorData");
 
             migrationBuilder.DropTable(
                 name: "EmergencyReports");
@@ -1519,28 +1171,13 @@ namespace Backend.Migrations
                 name: "NetworkConfigurations");
 
             migrationBuilder.DropTable(
-                name: "RackCapacities");
-
-            migrationBuilder.DropTable(
                 name: "RolePermissions");
-
-            migrationBuilder.DropTable(
-                name: "ScanConfigurations");
-
-            migrationBuilder.DropTable(
-                name: "SensorConfigurations");
 
             migrationBuilder.DropTable(
                 name: "SensorDataIntervalConfigs");
 
             migrationBuilder.DropTable(
                 name: "UserRoles");
-
-            migrationBuilder.DropTable(
-                name: "DeviceSensorData");
-
-            migrationBuilder.DropTable(
-                name: "SensorDataConfigurations");
 
             migrationBuilder.DropTable(
                 name: "MenuItems");

@@ -15,7 +15,6 @@ namespace Backend.Data
         public DbSet<Rack> Racks { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<Maintenance> Maintenances { get; set; }
-        public DbSet<ActivityReport> ActivityReports { get; set; }
         public DbSet<ContainmentStatus> ContainmentStatuses { get; set; }
         public DbSet<ContainmentControl> ContainmentControls { get; set; }
         public DbSet<EmergencyReport> EmergencyReports { get; set; }
@@ -24,13 +23,7 @@ namespace Backend.Data
         public DbSet<CameraConfig> CameraConfigs { get; set; }
         public DbSet<DeviceSensorData> DeviceSensorData { get; set; }
         public DbSet<AccessLog> AccessLogs { get; set; }
-        public DbSet<SensorConfiguration> SensorConfigurations { get; set; }
-        public DbSet<ScanConfiguration> ScanConfigurations { get; set; }
         public DbSet<DeviceActivityStatus> DeviceActivityStatuses { get; set; }
-
-        // New sensor data configuration tables
-        public DbSet<SensorDataConfiguration> SensorDataConfigurations { get; set; }
-        public DbSet<AutoSensorDataLog> AutoSensorDataLogs { get; set; }
         
         // Simplified interval-only configuration
         public DbSet<SensorDataIntervalConfig> SensorDataIntervalConfigs { get; set; }
@@ -43,9 +36,6 @@ namespace Backend.Data
         public DbSet<MenuPermission> MenuPermissions { get; set; }
         public DbSet<UserRoleAssignment> UserRoles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
-
-        // Capacity Management tables
-        public DbSet<RackCapacity> RackCapacities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -194,28 +184,6 @@ namespace Backend.Data
                 entity.Ignore(e => e.TargetDevice);
                 entity.Ignore(e => e.TargetRack);
                 entity.Ignore(e => e.TargetContainment);
-            });
-
-            modelBuilder.Entity<ActivityReport>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
-                entity.Property(e => e.Timestamp).IsRequired();
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Trigger).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.AdditionalData).HasMaxLength(500);
-
-                // Foreign key relationship
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.SetNull)
-                      .IsRequired(false);
-
-                // Index for better query performance
-                entity.HasIndex(e => e.Timestamp);
-                entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.Trigger);
             });
 
             modelBuilder.Entity<ContainmentStatus>(entity =>
@@ -428,68 +396,6 @@ namespace Backend.Data
                 entity.HasIndex(e => e.User);
             });
 
-            modelBuilder.Entity<SensorConfiguration>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.SensorNumber).IsRequired();
-                entity.Property(e => e.SensorName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.ModbusAddress).IsRequired();
-                entity.Property(e => e.ModbusPort).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.SensorType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.IsEnabled).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.TemperatureOffset).HasDefaultValue(0);
-                entity.Property(e => e.HumidityOffset).HasDefaultValue(0);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.CreatedBy).IsRequired();
-
-                // Foreign key relationships
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                // Unique index for sensor number
-                entity.HasIndex(e => e.SensorNumber).IsUnique();
-                entity.HasIndex(e => e.SensorName);
-                entity.HasIndex(e => e.IsEnabled);
-                entity.HasIndex(e => e.CreatedAt);
-            });
-
-            modelBuilder.Entity<ScanConfiguration>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.MaxAddressToScan).IsRequired().HasDefaultValue(247);
-                entity.Property(e => e.SelectedPort).IsRequired().HasMaxLength(20).HasDefaultValue("COM3");
-                entity.Property(e => e.SelectedSensor).IsRequired().HasMaxLength(50).HasDefaultValue("XY_MD02");
-                entity.Property(e => e.ScanTimeoutMs).HasDefaultValue(1000);
-                entity.Property(e => e.ScanIntervalMs).HasDefaultValue(100);
-                entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-                entity.Property(e => e.CreatedBy).IsRequired();
-
-                // Foreign key relationships
-                entity.HasOne(e => e.CreatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.CreatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.UpdatedByUser)
-                      .WithMany()
-                      .HasForeignKey(e => e.UpdatedBy)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                // Indexes for performance
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.CreatedAt);
-            });
 
             // Menu Management entity configurations
             modelBuilder.Entity<Role>(entity =>
@@ -705,29 +611,6 @@ namespace Backend.Data
                       .HasFilter("[IsGlobalConfiguration] = 1 AND [IsActive] = 1");
             });
 
-            // Capacity Management entity configurations
-            modelBuilder.Entity<RackCapacity>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.RackId).IsRequired();
-                entity.Property(e => e.TotalCapacityU).IsRequired();
-                entity.Property(e => e.UsedCapacityU).HasDefaultValue(0);
-                entity.Property(e => e.PowerCapacityW);
-                entity.Property(e => e.UsedPowerW);
-                entity.Property(e => e.WeightCapacityKg).HasColumnType("decimal(10,2)");
-                entity.Property(e => e.UsedWeightKg).HasColumnType("decimal(10,2)");
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-
-                // Foreign key relationship to Rack
-                entity.HasOne(e => e.Rack)
-                      .WithMany()
-                      .HasForeignKey(e => e.RackId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                // Unique index to ensure one capacity record per rack
-                entity.HasIndex(e => e.RackId).IsUnique();
-            });
 
             // Note: Seed data will be created programmatically in Program.cs to ensure proper password hashing
         }

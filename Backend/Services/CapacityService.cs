@@ -35,7 +35,7 @@ namespace Backend.Services
                         DeviceId = d.Id,
                         DeviceName = d.Name,
                         DeviceType = d.Type,
-                        UCapacity = d.UCapacity.Value
+                        UCapacity = d.UCapacity ?? 0
                     })
                     .ToList();
 
@@ -77,7 +77,7 @@ namespace Backend.Services
                             DeviceId = d.Id,
                             DeviceName = d.Name,
                             DeviceType = d.Type,
-                            UCapacity = d.UCapacity.Value
+                            UCapacity = d.UCapacity ?? 0
                         })
                         .ToList();
 

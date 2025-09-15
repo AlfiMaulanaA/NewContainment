@@ -1,26 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
-  BarChart3,
-  Server,
+  HardDriveUpload,
+  HardDrive,
+  ArrowUpDown,
   Activity,
+  Server,
   AlertTriangle,
   Search,
+  Building,
   Filter,
-  RefreshCw,
-  Calculator,
-  TrendingUp,
-  Zap,
-  Weight,
-  Package,
+  ArrowLeft,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -29,6 +26,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -37,165 +39,235 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
-  RackCapacity,
-  DeviceCapacity,
-  CapacitySummary,
-  CapacityAlert,
-  CapacityPlanningRequest,
-  CapacityPlanningResponse,
+  racksApi,
+  containmentsApi,
+  devicesApi,
   Rack,
+  Containment,
   Device,
-} from "@/lib/api/types";
-import { capacityApi } from "@/lib/api-service";
+} from "@/lib/api-service";
+import { useSortableTable } from "@/hooks/use-sort-table";
+import { useSearchFilter } from "@/hooks/use-search-filter";
 import { toast } from "sonner";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts";
+import RackVisualizationDialog from "@/components/rack-visualization-dialog";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+const ITEMS_PER_PAGE = 10;
 
-export default function CapacityManagementPage() {
+interface RackManagementPageProps {
+  containmentId?: number;
+}
+
+export default function RackManagementPage({
+  containmentId: propContainmentId,
+}: RackManagementPageProps = {}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const urlContainmentId = searchParams.get("containmentId");
+  const containmentName = searchParams.get("containmentName") || "";
+  const containmentId =
+    propContainmentId ||
+    (urlContainmentId ? parseInt(urlContainmentId) : undefined);
+
+  const [racks, setRacks] = useState<Rack[]>([]);
+  const [containments, setContainments] = useState<Containment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rackCapacities, setRackCapacities] = useState<RackCapacity[]>([]);
-  const [deviceCapacities, setDeviceCapacities] = useState<DeviceCapacity[]>([]);
-  const [capacitySummary, setCapacitySummary] = useState<CapacitySummary | null>(null);
-  const [capacityAlerts, setCapacityAlerts] = useState<CapacityAlert[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [showPlanningDialog, setShowPlanningDialog] = useState(false);
-  const [planningRequest, setPlanningRequest] = useState<CapacityPlanningRequest>({
-    deviceType: "",
-    uCapacity: 1,
-    quantity: 1,
-  });
-  const [planningResponse, setPlanningResponse] = useState<CapacityPlanningResponse | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedContainmentFilter, setSelectedContainmentFilter] =
+    useState<string>("all");
+  const [deviceCounts, setDeviceCounts] = useState<Record<number, number>>({});
+  const [capacityData, setCapacityData] = useState<
+    Record<number, { usedU: number; remainingU: number }>
+  >({});
 
-  // Load capacity data
-  const loadCapacityData = async () => {
+  const { sorted, sortField, sortDirection, handleSort } =
+    useSortableTable(racks);
+  const {
+    searchQuery,
+    setSearchQuery,
+    filteredData: searchFiltered,
+  } = useSearchFilter(sorted, ["name", "description"]);
+
+  const filteredData = containmentId
+    ? searchFiltered
+    : selectedContainmentFilter === "all"
+    ? searchFiltered
+    : searchFiltered.filter(
+        (rack) =>
+          rack.containmentId &&
+          rack.containmentId.toString() === selectedContainmentFilter
+      );
+
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const paginatedRacks = filteredData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const totalRacks = racks.length;
+  const activeRacks = racks.filter((rack) => rack.isActive).length;
+  const inactiveRacks = totalRacks - activeRacks;
+  const totalUsedU = Object.values(capacityData).reduce(
+    (sum, item) => sum + item.usedU,
+    0
+  );
+  const totalRemainingU = Object.values(capacityData).reduce(
+    (sum, item) => sum + item.remainingU,
+    0
+  );
+
+  const loadDeviceAndCapacityData = async (racks: Rack[]) => {
+    try {
+      const rackCapacityPromises = racks.map(async (rack) => {
+        const result = await devicesApi.getDevicesByRack(rack.id);
+        const devicesInRack = result.success && result.data ? result.data : [];
+        const usedU = devicesInRack.reduce(
+          (total, device) => total + (device.uCapacity || 0),
+          0
+        );
+        const remainingU = (rack.capacityU || 0) - usedU;
+        return {
+          rackId: rack.id,
+          deviceCount: devicesInRack.length,
+          usedU,
+          remainingU,
+        };
+      });
+
+      const counts = await Promise.all(rackCapacityPromises);
+      const deviceCountMap: Record<number, number> = {};
+      const capacityMap: Record<
+        number,
+        { usedU: number; remainingU: number }
+      > = {};
+      counts.forEach(({ rackId, deviceCount, usedU, remainingU }) => {
+        deviceCountMap[rackId] = deviceCount;
+        capacityMap[rackId] = { usedU, remainingU };
+      });
+
+      setDeviceCounts(deviceCountMap);
+      setCapacityData(capacityMap);
+    } catch (error: any) {
+      console.error("Failed to load device and capacity data:", error);
+    }
+  };
+
+  const loadRacksByContainment = async (containmentId: number) => {
     setLoading(true);
     try {
-      // Load rack capacities
-      const rackCapacitiesResult = await capacityApi.getAllRackCapacities();
-      if (rackCapacitiesResult.success && rackCapacitiesResult.data) {
-        // Ensure data is an array
-        const capacityData = Array.isArray(rackCapacitiesResult.data) 
-          ? rackCapacitiesResult.data 
-          : [];
-        setRackCapacities(capacityData);
+      const [racksResult, containmentsResult] = await Promise.all([
+        racksApi.getRacksByContainment(containmentId),
+        containmentsApi.getContainments(),
+      ]);
+
+      if (racksResult.success && racksResult.data) {
+        setRacks(racksResult.data);
+        await loadDeviceAndCapacityData(racksResult.data);
       } else {
-        setRackCapacities([]);
-        toast.error(rackCapacitiesResult.message || "Failed to load rack capacities");
+        toast.error(racksResult.message || "Failed to load racks");
       }
 
-      // Load capacity summary
-      const summaryResult = await capacityApi.getCapacitySummary();
-      if (summaryResult.success && summaryResult.data) {
-        setCapacitySummary(summaryResult.data);
+      if (containmentsResult.success && containmentsResult.data) {
+        setContainments(containmentsResult.data);
       } else {
-        toast.error(summaryResult.message || "Failed to load capacity summary");
-      }
-
-      // Load capacity alerts
-      const alertsResult = await capacityApi.getCapacityAlerts();
-      if (alertsResult.success && alertsResult.data) {
-        // Ensure data is an array
-        const alertsData = Array.isArray(alertsResult.data) 
-          ? alertsResult.data 
-          : [];
-        setCapacityAlerts(alertsData);
-      } else {
-        setCapacityAlerts([]);
-        toast.error(alertsResult.message || "Failed to load capacity alerts");
+        toast.error(
+          containmentsResult.message || "Failed to load containments"
+        );
       }
     } catch (error: any) {
-      // Ensure arrays are set to empty on error
-      setRackCapacities([]);
-      setCapacityAlerts([]);
-      toast.error("Error loading capacity data: " + error.message);
+      toast.error(error.message || "Error loading data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRacks = async () => {
+    setLoading(true);
+    try {
+      const [racksResult, containmentsResult] = await Promise.all([
+        racksApi.getRacks(),
+        containmentsApi.getContainments(),
+      ]);
+
+      if (racksResult.success && racksResult.data) {
+        setRacks(racksResult.data);
+        await loadDeviceAndCapacityData(racksResult.data);
+      } else {
+        toast.error(racksResult.message || "Failed to load racks");
+      }
+
+      if (containmentsResult.success && containmentsResult.data) {
+        setContainments(containmentsResult.data);
+      } else {
+        toast.error(
+          containmentsResult.message || "Failed to load containments"
+        );
+      }
+    } catch (error: any) {
+      console.error("Error loading data:", error);
+      toast.error(error.message || "Error loading data");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadCapacityData();
-  }, []);
-
-  // Handle capacity planning
-  const handleCapacityPlanning = async () => {
-    try {
-      const result = await capacityApi.planCapacity(planningRequest);
-      if (result.success && result.data) {
-        setPlanningResponse(result.data);
-      } else {
-        toast.error(result.message || "Failed to calculate capacity planning");
-      }
-    } catch (error: any) {
-      toast.error("Error calculating capacity planning: " + error.message);
+    if (containmentId) {
+      setSelectedContainmentFilter(containmentId.toString());
+    } else {
+      setSelectedContainmentFilter("all");
     }
+  }, [containmentId]);
+
+  useEffect(() => {
+    if (containmentId) {
+      loadRacksByContainment(containmentId);
+    } else {
+      loadRacks();
+    }
+  }, [containmentId]);
+
+  const getContainmentName = (
+    containmentId: number | null | undefined
+  ): string => {
+    if (!containmentId || containmentId <= 0 || !containments.length)
+      return "Unknown Containment";
+    const containment = containments.find((c) => c.id === containmentId);
+    return containment ? containment.name : "Unknown Containment";
   };
 
-  // Filter rack capacities based on search and filter
-  const filteredRackCapacities = Array.isArray(rackCapacities) 
-    ? rackCapacities.filter((rack) => {
-        const matchesSearch = searchQuery === "" || 
-          rack.rackId.toString().includes(searchQuery.toLowerCase());
-        
-        const utilization = rack.utilizationPercentage || 0;
-        const matchesFilter = filterType === "all" || 
-          (filterType === "high" && utilization >= 80) ||
-          (filterType === "medium" && utilization >= 60 && utilization < 80) ||
-          (filterType === "low" && utilization < 60);
+  const getContainment = (
+    containmentId: number | null | undefined
+  ): Containment | undefined => {
+    if (!containmentId || containmentId <= 0 || !containments.length)
+      return undefined;
+    return containments.find((c) => c.id === containmentId);
+  };
 
-        return matchesSearch && matchesFilter;
-      })
-    : [];
-
-  const getUtilizationColor = (percentage: number) => {
+  const getCapacityUtilizationColor = (usedU: number, totalU: number) => {
+    if (totalU === 0) return "text-gray-500";
+    const percentage = (usedU / totalU) * 100;
     if (percentage >= 90) return "text-red-600";
-    if (percentage >= 80) return "text-orange-600";
-    if (percentage >= 60) return "text-yellow-600";
+    if (percentage >= 75) return "text-orange-600";
+    if (percentage >= 50) return "text-yellow-600";
     return "text-green-600";
   };
 
-  const getUtilizationBadgeVariant = (percentage: number) => {
-    if (percentage >= 90) return "destructive";
-    if (percentage >= 80) return "secondary";
-    if (percentage >= 60) return "outline";
-    return "default";
-  };
-
-  const getAlertSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical": return "text-red-600 bg-red-100";
-      case "high": return "text-orange-600 bg-orange-100";
-      case "medium": return "text-yellow-600 bg-yellow-100";
-      case "low": return "text-blue-600 bg-blue-100";
-      default: return "text-gray-600 bg-gray-100";
-    }
+  const getCapacityUtilizationBadge = (usedU: number, totalU: number) => {
+    if (totalU === 0) return <Badge variant="secondary">No Capacity</Badge>;
+    const percentage = (usedU / totalU) * 100;
+    if (percentage >= 90) return <Badge variant="destructive">Critical</Badge>;
+    if (percentage >= 75) return <Badge className="bg-orange-500">High</Badge>;
+    if (percentage >= 50) return <Badge className="bg-yellow-500">Medium</Badge>;
+    return <Badge className="bg-green-500">Low</Badge>;
   };
 
   return (
@@ -204,440 +276,364 @@ export default function CapacityManagementPage() {
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <BarChart3 className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Capacity Management</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={loadCapacityData} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Dialog open={showPlanningDialog} onOpenChange={setShowPlanningDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Calculator className="h-4 w-4 mr-2" />
-                Capacity Planning
+          {containmentId && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/management/containments")}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Capacity Planning Calculator</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label htmlFor="deviceType">Device Type</Label>
-                  <Input
-                    id="deviceType"
-                    value={planningRequest.deviceType}
-                    onChange={(e) =>
-                      setPlanningRequest({ ...planningRequest, deviceType: e.target.value })
-                    }
-                    placeholder="e.g. Server, Switch, Storage"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="uCapacity">U Capacity</Label>
-                    <Input
-                      id="uCapacity"
-                      type="number"
-                      min="1"
-                      value={planningRequest.uCapacity}
-                      onChange={(e) =>
-                        setPlanningRequest({ ...planningRequest, uCapacity: parseInt(e.target.value) })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={planningRequest.quantity}
-                      onChange={(e) =>
-                        setPlanningRequest({ ...planningRequest, quantity: parseInt(e.target.value) })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {planningResponse && (
-                <div className="space-y-4">
-                  <Separator />
-                  <div>
-                    <h4 className="font-medium mb-2">Planning Result</h4>
-                    <Badge variant={planningResponse.canAccommodate ? "default" : "destructive"}>
-                      {planningResponse.canAccommodate ? "Can Accommodate" : "Cannot Accommodate"}
-                    </Badge>
-                    
-                    {planningResponse.suggestedRacks.length > 0 && (
-                      <div className="mt-2">
-                        <h5 className="text-sm font-medium">Suggested Racks:</h5>
-                        <ul className="text-sm text-muted-foreground">
-                          {planningResponse.suggestedRacks.map((rack) => (
-                            <li key={rack.rackId}>
-                              {rack.rackName} - Available: {rack.availableCapacityU}U
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {planningResponse.constraints.length > 0 && (
-                      <div className="mt-2">
-                        <h5 className="text-sm font-medium text-red-600">Constraints:</h5>
-                        <ul className="text-sm text-red-600">
-                          {planningResponse.constraints.map((constraint, index) => (
-                            <li key={index}>• {constraint}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setShowPlanningDialog(false);
-                  setPlanningResponse(null);
-                }}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCapacityPlanning}>
-                  Calculate
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <Separator orientation="vertical" className="mr-2 h-4" />
+            </>
+          )}
+          <HardDriveUpload className="h-5 w-5" />
+          <h1 className="text-lg font-semibold">
+            Rack Capacity Management
+            {containmentId && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - {containmentName || getContainmentName(containmentId)}
+              </span>
+            )}
+          </h1>
         </div>
       </header>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        <div className="p-4 space-y-6">
-          {/* Summary Cards */}
-          {capacitySummary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Racks</CardTitle>
-                  <Server className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{capacitySummary.totalRacks}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {capacitySummary.totalDevices} devices total
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{capacitySummary.totalCapacityU}U</div>
-                  <p className="text-xs text-muted-foreground">
-                    {capacitySummary.totalUsedU}U used, {capacitySummary.totalAvailableU}U available
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Average Utilization</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${getUtilizationColor(capacitySummary.averageUtilization || 0)}`}>
-                    {(capacitySummary.averageUtilization || 0).toFixed(1)}%
-                  </div>
-                  <Progress value={capacitySummary.averageUtilization || 0} className="mt-2" />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Alerts</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {(capacityAlerts || []).filter(a => a.isActive).length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Require attention
-                  </p>
-                </CardContent>
-              </Card>
+      {/* Enhanced Stats Cards with Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 m-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Racks</CardTitle>
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <HardDriveUpload className="h-4 w-4 text-gray-600" />
             </div>
-          )}
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalRacks}</div>
+            <p className="text-xs text-muted-foreground">
+              Active: {activeRacks} | Inactive: {inactiveRacks}
+            </p>
+          </CardContent>
+        </Card>
 
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="racks">Rack Details</TabsTrigger>
-              <TabsTrigger value="alerts">Alerts</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            </TabsList>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Racks</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Activity className="h-4 w-4 text-green-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {activeRacks}
+            </div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
+          </CardContent>
+        </Card>
 
-            <TabsContent value="overview" className="space-y-4">
-              {/* Capacity Distribution Chart */}
-              {capacitySummary && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Capacity by Device Type</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={capacitySummary.capacityByType || []}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({type, usedCapacityU}) => `${type} (${usedCapacityU}U)`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="usedCapacityU"
-                          >
-                            {(capacitySummary.capacityByType || []).map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Rack Utilization Overview</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={Array.isArray(rackCapacities) ? rackCapacities.map(rack => ({
-                          name: rack.rackName,
-                          utilization: rack.utilizationPercentage || 0,
-                        })) : []}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis domain={[0, 100]} />
-                          <Tooltip />
-                          <Bar 
-                            dataKey="utilization" 
-                            fill="#8884d8"
-                            name="Utilization %"
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Used Capacity</CardTitle>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <HardDrive className="h-4 w-4 text-blue-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalUsedU} U</div>
+            <p className="text-xs text-muted-foreground">Total units used</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Capacity</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Building className="h-4 w-4 text-green-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalRemainingU} U</div>
+            <p className="text-xs text-muted-foreground">Total units remaining</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Utilization</CardTitle>
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Activity className="h-4 w-4 text-purple-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {totalUsedU + totalRemainingU > 0
+                ? Math.round((totalUsedU / (totalUsedU + totalRemainingU)) * 100)
+                : 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">Capacity usage</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Rack List Table */}
+      <Card className="m-4">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>
+              {containmentId
+                ? `Racks in ${
+                    containmentName || getContainmentName(containmentId)
+                  }`
+                : "All Racks"}{" "}
+              ({filteredData.length})
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {!containmentId && (
+                <Select
+                  value={selectedContainmentFilter}
+                  onValueChange={setSelectedContainmentFilter}
+                >
+                  <SelectTrigger className="w-48 h-8">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter by containment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Containments</SelectItem>
+                    {containments.map((containment) => (
+                      <SelectItem
+                        key={containment.id}
+                        value={containment.id.toString()}
+                      >
+                        {containment.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-            </TabsContent>
-
-            <TabsContent value="racks" className="space-y-4">
-              {/* Filters */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Filters</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-2 top-1/2 h-4 w-4 transform -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Search racks..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8"
-                      />
-                    </div>
-                    <Select value={filterType} onValueChange={setFilterType}>
-                      <SelectTrigger className="w-48">
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="Filter by utilization" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Racks</SelectItem>
-                        <SelectItem value="high">High (80%+)</SelectItem>
-                        <SelectItem value="medium">Medium (60-80%)</SelectItem>
-                        <SelectItem value="low">Low (&lt;60%)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Rack Capacity Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rack Capacity Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Rack Name</TableHead>
-                        <TableHead>Capacity Utilization</TableHead>
-                        <TableHead>Available Space</TableHead>
-                        <TableHead>Devices</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRackCapacities.map((rack) => (
-                        <TableRow key={rack.rackId}>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 transform -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search racks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 h-8 w-64"
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("name")}
+                    >
+                      Rack Name <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                    </TableHead>
+                    {!containmentId && (
+                      <TableHead
+                        className="cursor-pointer"
+                        onClick={() => handleSort("containmentId")}
+                      >
+                        Containment{" "}
+                        <ArrowUpDown className="inline ml-1 h-4 w-4" />
+                      </TableHead>
+                    )}
+                    <TableHead>Capacity (U)</TableHead>
+                    <TableHead>Utilization</TableHead>
+                    <TableHead>Devices</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedRacks.length > 0 ? (
+                    paginatedRacks.map((rack, index) => {
+                      const containment = getContainment(rack.containmentId);
+                      const { usedU = 0, remainingU = 0 } = capacityData[rack.id] || {};
+                      const totalCapacity = rack.capacityU || 0;
+                      return (
+                        <TableRow key={rack.id}>
+                          <TableCell>
+                            {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                          </TableCell>
                           <TableCell className="font-medium">
-                            {rack.rackName}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>{rack.usedCapacityU}U / {rack.totalCapacityU}U</span>
-                                <span className={getUtilizationColor(rack.utilizationPercentage || 0)}>
-                                  {(rack.utilizationPercentage || 0).toFixed(1)}%
+                            <div className="flex flex-col">
+                              <span>{rack.name}</span>
+                              {rack.description && (
+                                <span className="text-xs text-muted-foreground">
+                                  {rack.description}
                                 </span>
-                              </div>
-                              <Progress value={rack.utilizationPercentage || 0} />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {rack.availableCapacityU}U available
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {rack.devices.length} devices
-                              {rack.devices.length > 0 && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {rack.devices.map(d => d.deviceType).join(", ")}
-                                </div>
                               )}
                             </div>
                           </TableCell>
+                          {!containmentId && (
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {getContainmentName(rack.containmentId)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {containment?.location || "No location"}
+                                </span>
+                              </div>
+                            </TableCell>
+                          )}
+                          <TableCell className="max-w-[150px]">
+                            <div className="flex flex-col">
+                              <span className={`font-bold ${getCapacityUtilizationColor(usedU, totalCapacity)}`}>
+                                {usedU} / {totalCapacity} U
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                Remaining: {remainingU} U
+                              </span>
+                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div 
+                                  className={`h-2 rounded-full ${
+                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.9 ? 'bg-red-500' :
+                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.75 ? 'bg-orange-500' :
+                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.5 ? 'bg-yellow-500' : 'bg-green-500'
+                                  }`}
+                                  style={{
+                                    width: `${totalCapacity > 0 ? (usedU / totalCapacity) * 100 : 0}%`
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
                           <TableCell>
-                            <Badge variant={getUtilizationBadgeVariant(rack.utilizationPercentage || 0)}>
-                              {(rack.utilizationPercentage || 0) >= 90 ? "Critical" :
-                               (rack.utilizationPercentage || 0) >= 80 ? "High" :
-                               (rack.utilizationPercentage || 0) >= 60 ? "Medium" : "Normal"}
-                            </Badge>
+                            {getCapacityUtilizationBadge(usedU, totalCapacity)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-800 p-1 h-auto font-medium"
+                                title="View devices in this rack"
+                                onClick={() =>
+                                  router.push(
+                                    `/management/devices/rack?rackId=${
+                                      rack.id
+                                    }&rackName=${encodeURIComponent(rack.name)}`
+                                  )
+                                }
+                              >
+                                {deviceCounts[rack.id] || 0} devices
+                              </Button>
+                              {(deviceCounts[rack.id] || 0) > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    router.push(
+                                      `/management/devices/rack?rackId=${
+                                        rack.id
+                                      }&rackName=${encodeURIComponent(
+                                        rack.name
+                                      )}`
+                                    )
+                                  }
+                                  className="text-gray-500 hover:text-gray-700 p-1 h-auto"
+                                  title="Manage devices"
+                                >
+                                  <HardDrive className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center gap-2 justify-end">
+                              <RackVisualizationDialog rack={rack} />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  router.push(
+                                    `/management/devices/rack?rackId=${
+                                      rack.id
+                                    }&rackName=${encodeURIComponent(rack.name)}`
+                                  )
+                                }
+                                title="Manage Devices"
+                              >
+                                <HardDrive className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell className="text-center py-8 text-muted-foreground" colSpan={7}>
+                        {searchQuery || selectedContainmentFilter !== "all"
+                          ? "No racks found matching your criteria."
+                          : "No racks found."}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() =>
+                            setCurrentPage((p) => Math.max(p - 1, 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            isActive={currentPage === i + 1}
+                            onClick={() => setCurrentPage(i + 1)}
+                            className="cursor-pointer"
+                          >
+                            {i + 1}
+                          </PaginationLink>
+                        </PaginationItem>
                       ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="alerts" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Capacity Alerts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {(capacityAlerts || []).map((alert) => (
-                      <div
-                        key={alert.id}
-                        className={`p-4 rounded-lg border ${getAlertSeverityColor(alert.severity)}`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="capitalize">
-                                {alert.type}
-                              </Badge>
-                              <Badge variant="destructive" className="capitalize">
-                                {alert.severity}
-                              </Badge>
-                            </div>
-                            <p className="font-medium mt-2">{alert.message}</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Current: {alert.currentValue}% | Threshold: {alert.threshold}%
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(alert.createdAt).toLocaleString()}
-                            </p>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            Resolve
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="analytics" className="space-y-4">
-              {/* Analytics Charts */}
-              {capacitySummary && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Capacity Distribution</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={(filteredRackCapacities || []).map(rack => ({
-                          name: rack.rackName,
-                          used: rack.usedCapacityU,
-                          available: rack.availableCapacityU,
-                        }))}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="used" stackId="a" fill="#8884d8" name="Used" />
-                          <Bar dataKey="available" stackId="a" fill="#82ca9d" name="Available" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Device Distribution</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={(filteredRackCapacities || []).map(rack => ({
-                          name: rack.rackName,
-                          devices: rack.devices.length,
-                          utilization: rack.utilizationPercentage || 0,
-                        }))}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="devices" fill="#8884d8" name="Device Count" />
-                          <Bar dataKey="utilization" fill="#82ca9d" name="Utilization %" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            setCurrentPage((p) => Math.min(p + 1, totalPages))
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </SidebarInset>
   );
 }

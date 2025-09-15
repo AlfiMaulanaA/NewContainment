@@ -11,11 +11,15 @@ namespace Backend.Controllers
     public class MqttController : ControllerBase
     {
         private readonly IMqttService _mqttService;
+        private readonly IMqttConfigurationService _mqttConfigService;
+        private readonly IMqttConfigurationChangeNotificationService _configChangeNotificationService;
         private readonly ILogger<MqttController> _logger;
 
-        public MqttController(IMqttService mqttService, ILogger<MqttController> logger)
+        public MqttController(IMqttService mqttService, IMqttConfigurationService mqttConfigService, IMqttConfigurationChangeNotificationService configChangeNotificationService, ILogger<MqttController> logger)
         {
             _mqttService = mqttService;
+            _mqttConfigService = mqttConfigService;
+            _configChangeNotificationService = configChangeNotificationService;
             _logger = logger;
         }
 
@@ -163,6 +167,76 @@ namespace Backend.Controllers
             {
                 _logger.LogError(ex, "MQTT test failed");
                 return BadRequest(new { message = "MQTT test failed", error = ex.Message });
+            }
+        }
+
+        [HttpGet("detailed-status")]
+        public async Task<IActionResult> GetDetailedStatus()
+        {
+            try
+            {
+                // Log user info for debugging
+                var userId = User.FindFirst("UserId")?.Value;
+                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                _logger.LogInformation("Detailed MQTT Status requested by user: {UserId} - {UserName}", userId, userName);
+
+                var detailedStatus = await _mqttConfigService.GetDetailedMqttStatusAsync();
+
+                // Add current connection status
+                detailedStatus["CurrentConnectionStatus"] = _mqttService.IsConnected ? "Connected" : "Disconnected";
+                detailedStatus["RequestedBy"] = new
+                {
+                    UserId = userId,
+                    UserName = userName
+                };
+
+                return Ok(detailedStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting detailed MQTT status");
+                return BadRequest(new
+                {
+                    message = "Error getting detailed MQTT status",
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        [HttpPost("reload")]
+        public async Task<IActionResult> ReloadConfiguration()
+        {
+            try
+            {
+                var userId = User.FindFirst("UserId")?.Value;
+                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+                _logger.LogInformation("MQTT configuration reload requested by user: {UserId} - {UserName}", userId, userName);
+
+                await _configChangeNotificationService.ReloadAllMqttServicesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "MQTT configuration reloaded successfully",
+                    reloadedAt = DateTime.UtcNow,
+                    reloadedBy = new
+                    {
+                        UserId = userId,
+                        UserName = userName
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reloading MQTT configuration");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Error reloading MQTT configuration",
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
             }
         }
     }

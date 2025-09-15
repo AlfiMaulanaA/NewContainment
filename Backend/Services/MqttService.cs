@@ -66,9 +66,22 @@ namespace Backend.Services
                 var useTls = (bool)effectiveConfig["UseSsl"];
                 var useWebSocket = (bool)effectiveConfig["UseWebSocket"];
                 var webSocketUri = (string)effectiveConfig["WebSocketUri"];
+                var source = (string)effectiveConfig["Source"];
 
                 // WebSocket path for backward compatibility
-                var webSocketPath = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_PATH") ?? _configuration["Mqtt:WebSocketPath"] ?? "/mqtt";
+                var webSocketPath = Environment.GetEnvironmentVariable("MQTT_WEBSOCKET_PATH") ?? "/mqtt";
+
+                // Log MQTT connection attempt details
+                _logger.LogInformation("=== MQTT CONNECTION ATTEMPT ===");
+                _logger.LogInformation("Configuration Source: {Source}", source);
+                _logger.LogInformation("Broker Host: {Host}", host);
+                _logger.LogInformation("Broker Port: {Port}", port);
+                _logger.LogInformation("Client ID: {ClientId}", clientId);
+                _logger.LogInformation("Use TLS: {UseTls}", useTls);
+                _logger.LogInformation("Use WebSocket: {UseWebSocket}", useWebSocket);
+                _logger.LogInformation("WebSocket URI: {WebSocketUri}", webSocketUri ?? "N/A");
+                _logger.LogInformation("Has Credentials: {HasCredentials}", !string.IsNullOrEmpty(username));
+                _logger.LogInformation("================================");
 
                 var clientOptionsBuilder = new MqttClientOptionsBuilder()
                     .WithClientId(clientId);
@@ -132,20 +145,47 @@ namespace Backend.Services
                 _mqttClient.ConnectedAsync += OnConnected;
                 _mqttClient.DisconnectedAsync += OnDisconnected;
 
-                await _mqttClient.ConnectAsync(clientOptions);
+                // Attempt connection with detailed logging
+                _logger.LogInformation("Attempting to connect to MQTT broker...");
+                var connectResult = await _mqttClient.ConnectAsync(clientOptions);
 
-                if (useWebSocket && !string.IsNullOrEmpty(webSocketUri))
+                if (connectResult.ResultCode == MqttClientConnectResultCode.Success)
                 {
-                    _logger.LogInformation("Successfully connected to MQTT broker via WebSocket: {Uri}", webSocketUri);
+                    if (useWebSocket && !string.IsNullOrEmpty(webSocketUri))
+                    {
+                        _logger.LogInformation("✅ SUCCESSFULLY CONNECTED to MQTT broker via WebSocket: {Uri}", webSocketUri);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("✅ SUCCESSFULLY CONNECTED to MQTT broker via TCP: {Host}:{Port}", host, port);
+                    }
+
+                    // Log connection status
+                    _logger.LogInformation("=== MQTT CONNECTION STATUS ===");
+                    _logger.LogInformation("Connected: {Connected}", _mqttClient.IsConnected);
+                    _logger.LogInformation("Broker: {Host}:{Port}", host, port);
+                    _logger.LogInformation("Client ID: {ClientId}", clientId);
+                    _logger.LogInformation("Configuration Source: {Source}", source);
+                    _logger.LogInformation("============================");
                 }
                 else
                 {
-                    _logger.LogInformation("Successfully connected to MQTT broker via TCP: {Host}:{Port}", host, port);
+                    _logger.LogError("❌ FAILED to connect to MQTT broker. Result: {ResultCode}", connectResult.ResultCode);
+                    if (connectResult.ReasonString != null)
+                    {
+                        _logger.LogError("Connection failed reason: {Reason}", connectResult.ReasonString);
+                    }
+                    throw new Exception($"MQTT connection failed with result: {connectResult.ResultCode}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to connect to MQTT broker");
+                _logger.LogError(ex, "❌ CRITICAL: Failed to connect to MQTT broker");
+                _logger.LogError("Error Details: {Message}", ex.Message);
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError("Inner Exception: {InnerMessage}", ex.InnerException.Message);
+                }
                 throw;
             }
         }
@@ -287,7 +327,8 @@ namespace Backend.Services
                 var topic = e.ApplicationMessage.Topic;
                 var payload = e.ApplicationMessage.ConvertPayloadToString();
 
-                _logger.LogInformation("Received message from topic {Topic}: {Payload}", topic, payload);
+                // Reduce verbosity - only log at Debug level for regular messages
+                _logger.LogDebug("Received message from topic {Topic}: {Payload}", topic, payload);
 
                 // Track device activity based on topic
                 await TrackDeviceActivityFromTopicAsync(topic, payload);

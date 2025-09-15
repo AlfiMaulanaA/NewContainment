@@ -10,6 +10,7 @@ const nextConfig = {
   // Performance optimizations
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    webpackBuildWorker: true,
     // Remove turbo as it might conflict with other optimizations
   },
   // Enable SWC minification for better performance

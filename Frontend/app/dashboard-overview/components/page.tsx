@@ -6,11 +6,11 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Layout, RefreshCcw, CalendarClock } from "lucide-react";
 
-import Status from "./components/containment-status-tabs";
-import Sensor from "./components/containment-average-sensor-tabs";
-import Control from "./components/containment-control-tabs";
-import Racks from "./components/containment-racks-tabs";
-import CCTV from "./components/containment-cctv-tabs";
+import Status from "./containment-status-tabs";
+import Sensor from "./containment-average-sensor-tabs";
+import Control from "./containment-control-tabs";
+import Racks from "./containment-racks-tabs";
+import CCTV from "./containment-cctv-tabs";
 
 export default function DashboardOverview() {
   const [currentDateTime, setCurrentDateTime] = useState<string>("");

@@ -95,7 +95,7 @@ namespace Backend.Services
             }
         }
 
-        public async Task<bool> DeleteOldBackupsAsync(int keepLastN = 4)
+        public Task<bool> DeleteOldBackupsAsync(int keepLastN = 4)
         {
             try
             {
@@ -111,12 +111,12 @@ namespace Backend.Services
                 }
 
 
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to delete old backups");
-                return false;
+                return Task.FromResult(false);
             }
         }
 

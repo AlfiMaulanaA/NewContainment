@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "build": "cross-env NODE_ENV=production next build",
+    "build": "next build",
     "build:dev": "next build",
     "build:static": "cross-env NODE_ENV=production next build",
     "start": "next start -H 0.0.0.0",

@@ -1,7 +1,7 @@
 // app/layout.tsx
 import type React from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// Removed Google Fonts import to avoid network issues during build
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
@@ -9,7 +9,7 @@ import { ThemeProvider } from "next-themes";
 // Mengambil nama aplikasi dan ikon dari environment variables atau menggunakan nilai default
 const AppName = process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment System";
 
-const inter = Inter({ subsets: ["latin"] });
+// Using system fonts instead of Google Fonts
 
 export const metadata: Metadata = {
   title: `${AppName} | GSPE`,
@@ -34,7 +34,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className="font-sans">
         <ThemeProvider
           attribute="class" // Menggunakan class HTML untuk theme (misal: "dark")
           defaultTheme="light" // Theme default

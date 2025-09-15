@@ -733,17 +733,12 @@ create_systemd_service() {
 Description=Containment service
 After=network.target
 StartLimitIntervalSec=0
-
 [Service]
 Type=simple
 Restart=always
 RestartSec=1
-ExecStart=$dotnet_path $BACKEND_DIR/publish/Backend.dll
-WorkingDirectory=$BACKEND_DIR/publish
-User=containment
-Group=containment
-Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=DOTNET_ROOT=$HOME/.dotnet
+ExecStart=/usr/local/bin/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
+WorkingDirectory=/home/containment/NewContainment/Backend/publish
 
 [Install]
 WantedBy=multi-user.target

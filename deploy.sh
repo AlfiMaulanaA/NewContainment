@@ -8,6 +8,7 @@
 #   sudo ./deploy.sh           - Standard deployment (ports 3000, 5000)
 #   sudo ./deploy.sh -p        - Production deployment with port 80 access
 #   sudo ./deploy.sh --production - Production deployment with port 80 access
+#   sudo ./deploy.sh update-prod  - Pull latest changes and redeploy in production mode
 
 set -e # Exit on any error
 
@@ -647,9 +648,21 @@ setup_database() {
     if ! dotnet tool list -g | grep -q "dotnet-ef"; then
         log "Installing Entity Framework tools..."
         dotnet tool install --global dotnet-ef
+    fi
 
-        # Fix: Add the new tool path to the current session's PATH
-        export PATH="$PATH:$HOME/.dotnet/tools"
+    # Ensure dotnet-ef is in PATH for current session
+    export PATH="$PATH:$HOME/.dotnet/tools"
+
+    # Verify dotnet-ef is accessible
+    if ! command -v dotnet-ef >/dev/null 2>&1; then
+        log_warning "dotnet-ef not found in PATH, trying alternative method..."
+        # Try to run it directly
+        if [ -f "$HOME/.dotnet/tools/dotnet-ef" ]; then
+            export PATH="$HOME/.dotnet/tools:$PATH"
+        else
+            log_error "Entity Framework tools installation failed"
+            return 1
+        fi
     fi
 
     # Run migrations
@@ -1514,7 +1527,60 @@ main() {
     fi
 }
 
+# Function to update production (pull and redeploy)
+update_prod() {
+    log "=== Production Update (Pull & Redeploy) ==="
+
+    # Check if we're in a git repository
+    if [ ! -d ".git" ]; then
+        log_error "Not a git repository. Please run this script from the project root."
+        exit 1
+    fi
+
+    # Stash any local changes to prevent conflicts
+    log "Stashing local changes..."
+    git stash push -m "Auto-stash before update: $(date)" 2>/dev/null || true
+
+    # Pull latest changes
+    log "Pulling latest changes from remote repository..."
+    if ! git pull origin main; then
+        log_error "Git pull failed. Please resolve conflicts manually."
+        log "You can recover stashed changes with: git stash pop"
+        exit 1
+    fi
+
+    # Check if there are any changes
+    local changes_pulled=$(git diff HEAD@{1} --name-only 2>/dev/null | wc -l || echo "0")
+    if [ "$changes_pulled" -eq "0" ]; then
+        log "No changes detected. Repository is already up to date."
+        log "Current deployment should still be running."
+        return 0
+    fi
+
+    log_success "Successfully pulled $changes_pulled changed files"
+
+    # Show what changed
+    log "Recent changes:"
+    git log --oneline -5 | sed 's/^/  /' || true
+
+    # Stop services before rebuilding
+    log "Stopping services before rebuild..."
+    pm2 delete newcontainment-frontend 2>/dev/null || true
+    sudo systemctl stop NewContainmentWeb.service 2>/dev/null || true
+
+    # Redeploy with production settings
+    log "Redeploying with production settings..."
+    main --production
+
+    log_success "Production update completed successfully!"
+}
+
 # Script execution
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
+    # Check for update-prod command
+    if [[ "$1" == "update-prod" ]]; then
+        update_prod
+    else
+        main "$@"
+    fi
 fi

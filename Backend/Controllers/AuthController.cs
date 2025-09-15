@@ -29,7 +29,7 @@ namespace Backend.Controllers
             if (user == null)
                 return Unauthorized(new { message = "Invalid email or password" });
 
-            var token = _jwtService.GenerateToken(user);
+            var token = _jwtService.GenerateToken(user, request.RememberMe);
 
             return Ok(new LoginResponse
             {
@@ -153,6 +153,8 @@ namespace Backend.Controllers
         [Required]
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; } = false;
     }
 
     public class RegisterRequest

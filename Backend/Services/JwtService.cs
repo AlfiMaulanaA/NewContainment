@@ -21,7 +21,7 @@ namespace Backend.Services
             _audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? _configuration["Jwt:Audience"] ?? "BackendUsers";
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, bool rememberMe = false)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_secretKey);
@@ -33,7 +33,8 @@ namespace Backend.Services
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.RoleName), // Use RoleName property for compatibility
                 new Claim("UserId", user.Id.ToString()),
-                new Claim("RoleLevel", user.RoleLevel.ToString()) // Add role level for frontend
+                new Claim("RoleLevel", user.RoleLevel.ToString()), // Add role level for frontend
+                new Claim("RememberMe", rememberMe.ToString()) // Add remember me claim for tracking
             };
 
             // Add database role information if available
@@ -45,10 +46,15 @@ namespace Backend.Services
                 claims.Add(new Claim("RoleColor", user.DatabaseRole.Color));
             }
 
+            // Set token expiration based on rememberMe flag
+            var expiry = rememberMe
+                ? DateTime.UtcNow.AddDays(365) // 1 year for remember me
+                : DateTime.UtcNow.AddHours(24); // 24 hours for normal login
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(24),
+                Expires = expiry,
                 Issuer = _issuer,
                 Audience = _audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

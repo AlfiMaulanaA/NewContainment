@@ -34,7 +34,23 @@ main() {
     # Pull latest changes
     log "Pulling latest changes..."
     git stash push -m "Auto-stash $(date)" 2>/dev/null || true
-    git pull --rebase origin main
+
+    # Handle untracked files that might conflict
+    log "Handling potential file conflicts..."
+    if [ -f "quick-update.sh" ] && ! git ls-files --error-unmatch quick-update.sh >/dev/null 2>&1; then
+        log "Moving untracked quick-update.sh to backup..."
+        mv quick-update.sh quick-update.sh.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+    fi
+
+    # Pull with proper conflict resolution
+    if ! git pull --rebase origin main; then
+        log_error "Git pull failed. Trying with merge strategy..."
+        git rebase --abort 2>/dev/null || true
+        git pull --no-rebase origin main
+    fi
+
+    # Restore execution permissions if needed
+    chmod +x quick-update.sh 2>/dev/null || true
 
     # Stop services
     log "Stopping services..."
@@ -89,43 +105,78 @@ EOF
     mkdir -p "$NUGET_PACKAGES"
     mkdir -p "$HOME/.local/share/NuGet/v3-cache"
 
-    # Clear NuGet caches to remove Windows paths
-    log "Clearing NuGet caches..."
-    dotnet nuget locals global-packages --clear 2>/dev/null || true
-    dotnet nuget locals temp --clear 2>/dev/null || true
-    dotnet nuget locals plugins-cache --clear 2>/dev/null || true
+    # Clear ALL NuGet caches and remove Windows-specific configs
+    log "Clearing NuGet caches and Windows configs..."
+    dotnet nuget locals all --clear 2>/dev/null || true
 
-    # Create temporary NuGet.Config to override Windows paths
-    cat > nuget.config << 'EOF'
+    # Remove any existing NuGet.Config files that might have Windows paths
+    rm -f nuget.config NuGet.Config 2>/dev/null || true
+    rm -f "$HOME/.nuget/NuGet/NuGet.Config" 2>/dev/null || true
+
+    # Create clean NuGet.Config with Linux-only paths
+    cat > NuGet.Config << 'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
     <packageSources>
+        <clear />
         <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
     </packageSources>
+    <packageRestore>
+        <add key="enabled" value="True" />
+        <add key="automatic" value="True" />
+    </packageRestore>
     <config>
-        <add key="globalPackagesFolder" value="~/.nuget/packages" />
+        <add key="globalPackagesFolder" value="/root/.nuget/packages" />
+        <add key="repositoryPath" value="./packages" />
     </config>
     <fallbackPackageFolders>
         <clear />
     </fallbackPackageFolders>
+    <packageManagement>
+        <add key="format" value="1" />
+        <add key="disabled" value="False" />
+    </packageManagement>
 </configuration>
 EOF
+
+    # Also create global NuGet config
+    mkdir -p "$HOME/.nuget/NuGet"
+    cp NuGet.Config "$HOME/.nuget/NuGet/NuGet.Config"
+
+    # Remove any existing obj/bin directories that might have cached Windows paths
+    log "Cleaning build artifacts..."
+    rm -rf obj bin 2>/dev/null || true
+    find . -name "obj" -type d -exec rm -rf {} + 2>/dev/null || true
+    find . -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
 
     # Clean and build
     dotnet clean -c Release || true
 
     log "Restoring packages for $target_arch..."
-    if ! dotnet restore -r $target_arch --no-cache --force; then
-        log_error "Package restore failed"
-        log "Frontend is still running, but backend update failed"
-        return 1
+    if ! dotnet restore -r $target_arch --no-cache --force --configfile NuGet.Config; then
+        log_error "Package restore failed, trying alternative method..."
+
+        # Alternative method: use global tools
+        export DOTNET_CLI_TELEMETRY_OPTOUT=1
+        export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+
+        if ! dotnet restore -r $target_arch --no-cache --force --ignore-failed-sources; then
+            log_error "Package restore failed completely"
+            log "Frontend is still running, but backend update failed"
+            return 1
+        fi
     fi
 
     log "Publishing backend..."
-    if ! dotnet publish -c Release -r $target_arch --self-contained false --no-restore -o publish; then
-        log_error "Backend publish failed"
-        log "Frontend is still running, but backend update failed"
-        return 1
+    if ! dotnet publish -c Release -r $target_arch --self-contained false --no-restore -o publish --configfile NuGet.Config; then
+        log_error "Backend publish failed, trying alternative method..."
+
+        # Try with restore during publish
+        if ! dotnet publish -c Release -r $target_arch --self-contained false -o publish --configfile NuGet.Config; then
+            log_error "Backend publish failed completely"
+            log "Frontend is still running, but backend update failed"
+            return 1
+        fi
     fi
 
     chmod +x publish/Backend 2>/dev/null || true
@@ -135,13 +186,37 @@ EOF
         # Setup database with EF tools
         log "Setting up database..."
         export PATH="$PATH:$HOME/.dotnet/tools"
+        export DOTNET_ROOT="/usr/share/dotnet"
 
+        # Install EF tools if needed with proper runtime
         if ! command -v dotnet-ef >/dev/null 2>&1; then
-            dotnet tool install --global dotnet-ef
+            log "Installing Entity Framework tools..."
+            dotnet tool install --global dotnet-ef --no-cache
             export PATH="$HOME/.dotnet/tools:$PATH"
         fi
 
-        dotnet ef database update --no-build || log "Migration warning - continuing..."
+        # Try different approaches for database migration
+        log "Running database migrations..."
+
+        # Method 1: Use dotnet ef from the built project
+        if dotnet ef database update --no-build 2>/dev/null; then
+            log_success "Database migration completed using EF tools"
+        # Method 2: Use the built project with restore
+        elif dotnet ef database update 2>/dev/null; then
+            log_success "Database migration completed with restore"
+        # Method 3: Run from published directory
+        elif cd publish && dotnet Backend.dll --migrate 2>/dev/null && cd ..; then
+            log_success "Database migration completed from published app"
+        # Method 4: Check if database exists and skip if migrations not critical
+        else
+            log_error "Database migration failed, checking database status..."
+            if [ -f "ContainmentDb.db" ] || [ -f "../ContainmentDb.db" ] || [ -f "publish/ContainmentDb.db" ]; then
+                log "Database file exists, skipping migrations"
+            else
+                log "Warning: No database found and migration failed"
+                log "Backend may not work properly until database is set up"
+            fi
+        fi
 
         # Start backend
         log "Starting backend..."

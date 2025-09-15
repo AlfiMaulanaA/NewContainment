@@ -68,7 +68,7 @@ const LoginPage = () => {
 
   // Fungsi untuk menyimpan token di cookie (backup untuk compatibility)
   const saveCookieToken = (token: string, remember: boolean = false) => {
-    const maxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7; // 30 hari jika remember me, 7 hari jika tidak
+    const maxAge = remember ? 60 * 60 * 24 * 365 : 60 * 60 * 24 * 1; // 1 tahun jika remember me, 1 hari jika tidak
     setCookie("authToken", token, { path: "/", maxAge });
   };
 
@@ -99,7 +99,7 @@ const LoginPage = () => {
     }
 
     try {
-      const result = await authApi.login({ email, password });
+      const result = await authApi.login({ email, password, rememberMe });
 
       if (result.success && result.data) {
         // Handle remember me functionality

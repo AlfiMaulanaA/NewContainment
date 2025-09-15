@@ -17,23 +17,39 @@ export interface EnhancedMQTTConfig {
   brokerSource?: "env" | "database";
 }
 
-// Get configuration from environment variables (simplified)
+// Get configuration from environment variables with NODE_ENV detection
 function getEnvConfig(): EnhancedMQTTConfig {
-  // Safe hostname detection for both client and server
+  // Safe hostname detection based on environment
   const getBrokerHostname = () => {
     if (typeof window !== "undefined") {
-      // Client-side: use window.location.hostname
-      return window.location.hostname;
+      // Client-side: check NODE_ENV for hostname strategy
+      const isProduction = process.env.NODE_ENV === "production";
+
+      if (isProduction) {
+        // Production: use current domain hostname
+        return window.location.hostname;
+      } else {
+        // Development: use environment variable or fallback to localhost
+        return process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
+      }
     } else {
-      // Server-side: use localhost as fallback for build time
-      return "localhost";
+      // Server-side: use environment variable or localhost as fallback for build time
+      return process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
     }
   };
 
   const brokerHostname = getBrokerHostname();
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Debug logging for hostname detection
+  if (typeof window !== "undefined") {
+    console.log(`🌐 MQTT Config - Environment: ${process.env.NODE_ENV}`);
+    console.log(`🏠 MQTT Host Strategy: ${isProduction ? 'Production (window.location.hostname)' : 'Development (env variable)'}`);
+    console.log(`📡 MQTT Broker Host: ${brokerHostname}`);
+  }
 
   const useWebSocket = process.env.NEXT_PUBLIC_MQTT_USE_WEBSOCKET === "true";
-  const host = process.env.NEXT_PUBLIC_MQTT_HOST || brokerHostname;
+  const host = brokerHostname;
   const port = parseInt(
     process.env.NEXT_PUBLIC_MQTT_PORT || (useWebSocket ? "9000" : "1883")
   );

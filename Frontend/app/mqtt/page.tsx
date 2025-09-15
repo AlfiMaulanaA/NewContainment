@@ -134,6 +134,34 @@ export default function UnifiedMqttPage() {
     }
   }, []);
 
+  // Enhanced reload config function for all MQTT operations
+  const reloadMqttConfig = useCallback(async (showToast = true) => {
+    try {
+      const response = await mqttConfigurationApi.reloadConfiguration();
+      if (response.success) {
+        if (showToast) {
+          toast.success("MQTT configuration reloaded successfully");
+        }
+        // Refresh data after successful reload
+        setTimeout(() => {
+          loadData();
+        }, 500);
+        return true;
+      } else {
+        if (showToast) {
+          toast.error(response.message || "Failed to reload MQTT configuration");
+        }
+        return false;
+      }
+    } catch (error) {
+      if (showToast) {
+        toast.error("Error reloading MQTT configuration");
+      }
+      console.warn("Failed to reload MQTT configuration:", error);
+      return false;
+    }
+  }, [loadData]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -173,13 +201,8 @@ export default function UnifiedMqttPage() {
         loadData();
         
         // Auto-reload MQTT configuration after successful creation
-        setTimeout(async () => {
-          try {
-            await mqttConfigurationApi.reloadConfiguration();
-            toast.success("MQTT configuration automatically reloaded");
-          } catch (error) {
-            console.warn("Failed to auto-reload MQTT configuration after creation");
-          }
+        setTimeout(() => {
+          reloadMqttConfig(false); // Don't show toast, already showed success
         }, 500);
       } else {
         toast.error(response.message || "Failed to create MQTT configuration");
@@ -217,13 +240,8 @@ export default function UnifiedMqttPage() {
         loadData();
         
         // Auto-reload MQTT configuration after successful update
-        setTimeout(async () => {
-          try {
-            await mqttConfigurationApi.reloadConfiguration();
-            toast.success("MQTT configuration automatically reloaded");
-          } catch (error) {
-            console.warn("Failed to auto-reload MQTT configuration after update");
-          }
+        setTimeout(() => {
+          reloadMqttConfig(false); // Don't show toast, already showed success
         }, 500);
       } else {
         toast.error(response.message || "Failed to update MQTT configuration");
@@ -348,29 +366,24 @@ export default function UnifiedMqttPage() {
       });
 
       if (result.isConfirmed) {
-        const response = await mqttConfigurationApi.reloadConfiguration();
-        
-        if (response.success) {
+        const success = await reloadMqttConfig(false);
+
+        if (success) {
           Swal.fire({
             icon: 'success',
             title: 'Configuration Reloaded!',
-            text: response.message || 'MQTT configuration has been reloaded successfully.',
+            text: 'MQTT configuration has been reloaded successfully.',
             position: 'top-end',
             timer: 3000,
             timerProgressBar: true,
             toast: true,
             showConfirmButton: false,
           });
-          
-          // Refresh data to show updated status
-          setTimeout(() => {
-            loadData();
-          }, 1000);
         } else {
           Swal.fire({
             icon: 'error',
             title: 'Reload Failed',
-            text: response.message || 'Failed to reload MQTT configuration.',
+            text: 'Failed to reload MQTT configuration.',
             position: 'top-end',
             timer: 5000,
             timerProgressBar: true,
@@ -790,6 +803,7 @@ export default function UnifiedMqttPage() {
                 }}
                 testingConnection={testingConnection}
                 onRefresh={loadData}
+                onReloadConfig={reloadMqttConfig}
               />
             </Suspense>
           </TabsContent>

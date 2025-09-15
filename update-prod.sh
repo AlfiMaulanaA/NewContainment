@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# NewContainment Production Update Script
-# Author: Claude Code Assistant  
-# Description: Pull updates, rebuild, and restart production server
+# Quick Production Update Script
+# Description: Pull updates and build directly without extensive checks
 
 set -e  # Exit on any error
 

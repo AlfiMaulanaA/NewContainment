@@ -41,6 +41,7 @@ interface MQTTManagementProps {
   onCreate?: () => void;
   testingConnection?: boolean;
   onRefresh?: () => void;
+  onReloadConfig?: (showToast?: boolean) => Promise<boolean>;
 }
 
 const MQTTManagement: React.FC<MQTTManagementProps> = ({
@@ -54,7 +55,8 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
   onTest,
   onCreate,
   testingConnection = false,
-  onRefresh
+  onRefresh,
+  onReloadConfig
 }) => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showHelperDialog, setShowHelperDialog] = useState(false);
@@ -67,6 +69,13 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
       if (response.success) {
         toast.success("MQTT configuration deleted successfully");
         onRefresh?.();
+
+        // Auto-reload MQTT configuration after delete
+        if (onReloadConfig) {
+          setTimeout(() => {
+            onReloadConfig(false); // Don't show toast, already showed success
+          }, 500);
+        }
       } else {
         toast.error(response.message || "Failed to delete MQTT configuration");
       }
@@ -83,6 +92,13 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
       if (response.success) {
         toast.success("Configuration activated successfully");
         onRefresh?.();
+
+        // Auto-reload MQTT configuration after activating
+        if (onReloadConfig) {
+          setTimeout(() => {
+            onReloadConfig(false); // Don't show toast, already showed success
+          }, 500);
+        }
       } else {
         toast.error(response.message || "Failed to activate configuration");
       }
@@ -152,6 +168,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
         activeConfiguration={activeConfiguration}
         effectiveConfiguration={effectiveConfiguration}
         onConfigurationChange={onRefresh}
+        onReloadConfig={onReloadConfig}
       />
 
       {/* Overview Cards */}

@@ -24,6 +24,7 @@ interface MQTTConfigSourceToggleProps {
   activeConfiguration: MqttConfiguration | null;
   effectiveConfiguration: any;
   onConfigurationChange?: () => void;
+  onReloadConfig?: (showToast?: boolean) => Promise<boolean>;
   className?: string;
 }
 
@@ -31,6 +32,7 @@ export function MQTTConfigSourceToggle({
   activeConfiguration,
   effectiveConfiguration,
   onConfigurationChange,
+  onReloadConfig,
   className = ""
 }: MQTTConfigSourceToggleProps) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -60,6 +62,13 @@ export function MQTTConfigSourceToggle({
         if (response.success) {
           toast.success("Switched to database configuration");
           onConfigurationChange?.();
+
+          // Auto-reload MQTT configuration after switch
+          if (onReloadConfig) {
+            setTimeout(() => {
+              onReloadConfig(false); // Don't show toast, already showed success
+            }, 500);
+          }
         } else {
           toast.error(response.message || "Failed to switch to database configuration");
         }
@@ -76,6 +85,13 @@ export function MQTTConfigSourceToggle({
           if (response.success) {
             toast.success("Switched to environment configuration");
             onConfigurationChange?.();
+
+            // Auto-reload MQTT configuration after switch
+            if (onReloadConfig) {
+              setTimeout(() => {
+                onReloadConfig(false); // Don't show toast, already showed success
+              }, 500);
+            }
           } else {
             toast.error(response.message || "Failed to switch to environment configuration");
           }

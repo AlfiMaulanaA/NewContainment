@@ -246,7 +246,7 @@ namespace Backend.Services
             }
             else
             {
-                // Use environment variables or defaults
+                // Use environment variables or defaults (localhost for production environment config)
                 _logger.LogInformation("Using ENVIRONMENT variables or defaults");
                 effectiveConfig["IsEnabled"] = GetFallbackValue("IsEnabled", true);
                 effectiveConfig["BrokerHost"] = GetFallbackValue("BrokerHost", "localhost");
@@ -292,7 +292,7 @@ namespace Backend.Services
                     return (T)Convert.ChangeType(envValue, typeof(T));
                 }
 
-                // Special logic for BrokerHost: use hostname in production if using environment config
+                // Special logic for BrokerHost: use localhost for environment config
                 if (key == "BrokerHost")
                 {
                     return (T)(object)GetProductionBrokerHost(defaultValue?.ToString() ?? "localhost");
@@ -318,10 +318,12 @@ namespace Backend.Services
 
                 if (isProduction)
                 {
-                    // In production, use server's hostname as MQTT broker
-                    var serverHostname = Environment.MachineName;
-                    _logger.LogInformation("PRODUCTION environment detected. Using server hostname '{ServerHostname}' as MQTT broker", serverHostname);
-                    return serverHostname;
+                    // In production with environment config, use localhost as MQTT broker
+                    // This ensures the backend connects to local MQTT broker running on the same server
+                    // instead of trying to use the server's hostname which might not resolve correctly
+                    var brokerHost = "localhost";
+                    _logger.LogInformation("PRODUCTION environment detected. Using localhost as MQTT broker for environment configuration (local broker assumed)");
+                    return brokerHost;
                 }
                 else if (isDevelopment)
                 {

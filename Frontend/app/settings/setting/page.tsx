@@ -27,6 +27,12 @@ import {
   Monitor,
   Save,
   Loader2,
+  Layout,
+  Grid3X3,
+  Eye,
+  EyeOff,
+  MonitorPlay,
+  Grid2X2
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -42,6 +48,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AutoRefresh } from "@/components/AutoRefresh";
+import { VirtualKeyboardSettings } from "@/components/virtual-keyboard-settings";
 
 import Swal from "sweetalert2";
 
@@ -49,14 +57,14 @@ import Swal from "sweetalert2";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 
 // Import API service
-import { systemInfoApi, type SystemInfo } from "@/lib/api-service";
+import { systemInfoApi, type SystemStatusInfo } from "@/lib/api-service";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") || "system"
   );
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [systemInfo, setSystemInfo] = useState<SystemStatusInfo | null>(null);
   const [isLoadingSystemInfo, setIsLoadingSystemInfo] = useState(false);
   const [systemInfoError, setSystemInfoError] = useState<string | null>(null);
 
@@ -69,7 +77,15 @@ export default function SettingsPage() {
     toggleCarouselMode,
     toggleAutoPlay,
     setAutoPlayInterval,
-    resetPreferences, // Re-added the resetPreferences function
+    resetPreferences,
+    setDashboardLayout,
+    setDisplayType,
+    setCarouselMode,
+    setCarouselInterval,
+    updateCctvSettings,
+    toggleCctvEnabled,
+    toggleCctvAutoRefresh,
+    toggleCctvAutoSwitch
   } = useDashboardPreferences();
 
   // Function to fetch system info
@@ -77,7 +93,7 @@ export default function SettingsPage() {
     setIsLoadingSystemInfo(true);
     setSystemInfoError(null);
     try {
-      const response = await systemInfoApi.getSystemInfo();
+      const response = await systemInfoApi.getSystemStatusInfo();
       if (response.success && response.data) {
         setSystemInfo(response.data);
       } else {
@@ -99,7 +115,7 @@ export default function SettingsPage() {
     setIsLoadingSystemInfo(true);
     setSystemInfoError(null);
     try {
-      const response = await systemInfoApi.refreshSystemInfo();
+      const response = await systemInfoApi.refreshSystemStatusInfo();
       if (response.success && response.data) {
         setSystemInfo(response.data);
         toast.success("System info refreshed successfully");
@@ -200,9 +216,12 @@ export default function SettingsPage() {
       </header>
       <div className="p-6 space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="system">System Settings</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard Settings</TabsTrigger>
+            <TabsTrigger value="cctv">CCTV Settings</TabsTrigger>
+            <TabsTrigger value="keyboard">Virtual Keyboard</TabsTrigger>
+            <TabsTrigger value="autorefresh">Auto Refresh</TabsTrigger>
           </TabsList>
 
           <TabsContent value="system" className="space-y-6">
@@ -424,128 +443,227 @@ export default function SettingsPage() {
               </div>
             ) : (
               <>
-                {/* Display Mode Settings */}
+                {/* Dashboard Layout Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Layout className="h-5 w-5" />
+                      Dashboard Layout
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-base font-medium">Select Dashboard Theme</Label>
+                        <Badge variant="secondary" className="text-xs">
+                          {preferences.selectedDashboardLayout}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div
+                          className={`relative cursor-pointer rounded-lg border-2 p-4 ${
+                            preferences.selectedDashboardLayout === 'dashboard-1'
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => setDashboardLayout('dashboard-1')}
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <Layout className="h-8 w-8 text-primary" />
+                            <h4 className="font-medium">Dashboard 1</h4>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Classic layout with sidebar navigation
+                            </p>
+                          </div>
+                          {preferences.selectedDashboardLayout === 'dashboard-1' && (
+                            <div className="absolute top-2 right-2">
+                              <Badge variant="default" className="text-xs">Active</Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        <div
+                          className={`relative cursor-pointer rounded-lg border-2 p-4 ${
+                            preferences.selectedDashboardLayout === 'dashboard-2'
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => setDashboardLayout('dashboard-2')}
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <Grid3X3 className="h-8 w-8 text-primary" />
+                            <h4 className="font-medium">Dashboard 2</h4>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Grid layout with balanced sections
+                            </p>
+                          </div>
+                          {preferences.selectedDashboardLayout === 'dashboard-2' && (
+                            <div className="absolute top-2 right-2">
+                              <Badge variant="default" className="text-xs">Active</Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        <div
+                          className={`relative cursor-pointer rounded-lg border-2 p-4 ${
+                            preferences.selectedDashboardLayout === 'dashboard-3'
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => setDashboardLayout('dashboard-3')}
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <Monitor className="h-8 w-8 text-primary" />
+                            <h4 className="font-medium">Dashboard 3</h4>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Compact layout for maximum density
+                            </p>
+                          </div>
+                          {preferences.selectedDashboardLayout === 'dashboard-3' && (
+                            <div className="absolute top-2 right-2">
+                              <Badge variant="default" className="text-xs">Active</Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Display Type Settings */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Monitor className="h-5 w-5" />
-                      Display Mode
+                      Display Type
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          {preferences.isCarouselMode ? (
-                            <Grid className="h-4 w-4 text-primary" />
-                          ) : (
+                          {preferences.displayType === 'scroll' ? (
                             <List className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Grid className="h-4 w-4 text-primary" />
                           )}
-                          <Label
-                            htmlFor="display-mode"
-                            className="text-base font-medium"
-                          >
-                            Display Mode
+                          <Label className="text-base font-medium">
+                            View Mode
                           </Label>
                           <Badge variant="secondary" className="text-xs">
-                            {preferences.isCarouselMode ? "Carousel" : "Scroll"}
+                            {preferences.displayType === 'scroll' ? 'Scroll' : 'Carousel'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {preferences.isCarouselMode
-                            ? "Show one component at a time with navigation controls"
-                            : "Show all components in a scrollable list"}
+                          {preferences.displayType === 'scroll'
+                            ? "Show all dashboards in a scrollable list"
+                            : "Show one dashboard at a time with navigation controls"}
                         </p>
                       </div>
-                      <Switch
-                        id="display-mode"
-                        checked={preferences.isCarouselMode}
-                        onCheckedChange={toggleCarouselMode}
-                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant={preferences.displayType === 'scroll' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDisplayType('scroll')}
+                          className="gap-2"
+                        >
+                          <List className="h-4 w-4" />
+                          Scroll
+                        </Button>
+                        <Button
+                          variant={preferences.displayType === 'carousel' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDisplayType('carousel')}
+                          className="gap-2"
+                        >
+                          <Grid className="h-4 w-4" />
+                          Carousel
+                        </Button>
+                      </div>
                     </div>
 
-                    {preferences.isCarouselMode && (
+                    {preferences.displayType === 'carousel' && (
                       <>
                         <Separator />
                         <div className="space-y-4">
-                          <h4 className="text-sm font-medium">
-                            Carousel Settings
-                          </h4>
+                          <h4 className="text-sm font-medium">Carousel Settings</h4>
 
-                          {/* Auto-play Toggle */}
+                          {/* Carousel Mode */}
                           <div className="flex items-center justify-between">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                {preferences.autoPlayEnabled ? (
+                                {preferences.carouselMode === 'automatic' ? (
                                   <Play className="h-4 w-4 text-green-600" />
                                 ) : (
                                   <Pause className="h-4 w-4 text-muted-foreground" />
                                 )}
-                                <Label
-                                  htmlFor="auto-play"
-                                  className="text-sm font-medium"
-                                >
-                                  Auto-play
+                                <Label className="text-sm font-medium">
+                                  Carousel Mode
                                 </Label>
-                                {preferences.autoPlayEnabled && (
-                                  <Badge variant="default" className="text-xs">
-                                    Active
-                                  </Badge>
-                                )}
+                                <Badge variant="secondary" className="text-xs">
+                                  {preferences.carouselMode === 'automatic' ? 'Automatic' : 'Manual'}
+                                </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                Automatically advance to the next component
+                                {preferences.carouselMode === 'automatic'
+                                  ? "Automatically advance to the next dashboard"
+                                  : "Manual navigation only"}
                               </p>
                             </div>
-                            <Switch
-                              id="auto-play"
-                              checked={preferences.autoPlayEnabled}
-                              onCheckedChange={toggleAutoPlay}
-                            />
+                            <div className="flex gap-2">
+                              <Button
+                                variant={preferences.carouselMode === 'manual' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setCarouselMode('manual')}
+                                className="gap-2"
+                              >
+                                <Pause className="h-4 w-4" />
+                                Manual
+                              </Button>
+                              <Button
+                                variant={preferences.carouselMode === 'automatic' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setCarouselMode('automatic')}
+                                className="gap-2"
+                              >
+                                <Play className="h-4 w-4" />
+                                Auto
+                              </Button>
+                            </div>
                           </div>
 
-                          {/* Auto-play Interval */}
-                          {preferences.autoPlayEnabled && (
+                          {/* Carousel Interval Setting */}
+                          {preferences.carouselMode === 'automatic' && (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <Label
-                                  htmlFor="interval"
-                                  className="text-sm font-medium"
-                                >
-                                  Auto-play Interval
-                                </Label>
-                              </div>
+                              <Label className="text-sm font-medium">
+                                Section Switch Interval
+                              </Label>
                               <Select
-                                value={preferences.autoPlayInterval.toString()}
-                                onValueChange={handleIntervalChange}
+                                value={preferences.carouselInterval.toString()}
+                                onValueChange={(value) => {
+                                  setCarouselInterval(parseInt(value));
+                                  toast.success("Carousel interval updated");
+                                }}
                               >
                                 <SelectTrigger className="w-full">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="5000">
-                                    5 seconds
-                                  </SelectItem>
-                                  <SelectItem value="10000">
-                                    10 seconds
-                                  </SelectItem>
-                                  <SelectItem value="15000">
-                                    15 seconds
-                                  </SelectItem>
-                                  <SelectItem value="20000">
-                                    20 seconds
-                                  </SelectItem>
-                                  <SelectItem value="30000">
-                                    30 seconds
-                                  </SelectItem>
-                                  <SelectItem value="60000">
-                                    1 minute
-                                  </SelectItem>
+                                  <SelectItem value="3">3 seconds</SelectItem>
+                                  <SelectItem value="5">5 seconds</SelectItem>
+                                  <SelectItem value="8">8 seconds</SelectItem>
+                                  <SelectItem value="10">10 seconds</SelectItem>
+                                  <SelectItem value="15">15 seconds</SelectItem>
+                                  <SelectItem value="30">30 seconds</SelectItem>
+                                  <SelectItem value="60">1 minute</SelectItem>
+                                  <SelectItem value="300">5 minutes</SelectItem>
+                                  <SelectItem value="600">10 minutes</SelectItem>
+                                  <SelectItem value="900">15 minutes</SelectItem>
                                 </SelectContent>
                               </Select>
                               <p className="text-xs text-muted-foreground">
-                                Time between automatic component transitions
+                                Time between automatic section transitions
                               </p>
                             </div>
                           )}
@@ -582,12 +700,14 @@ export default function SettingsPage() {
 
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
                         <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.autoPlayEnabled
-                            ? `${preferences.autoPlayInterval / 1000}s`
-                            : "N/A"}
+                          {preferences.carouselMode === 'automatic'
+                            ? preferences.carouselInterval >= 60
+                              ? `${Math.floor(preferences.carouselInterval / 60)}m`
+                              : `${preferences.carouselInterval}s`
+                            : "Manual"}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Interval
+                          Section Interval
                         </div>
                       </div>
                     </div>
@@ -621,6 +741,383 @@ export default function SettingsPage() {
                 </Card>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="cctv" className="space-y-6">
+            {!isLoaded ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                <div className="space-y-4">
+                  <div className="h-32 bg-gray-200 rounded"></div>
+                  <div className="h-32 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* CCTV Basic Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MonitorPlay className="h-5 w-5" />
+                      CCTV Basic Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {preferences.cctvSettings.enabled ? (
+                            <Eye className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <Label className="text-base font-medium">
+                            Enable CCTV Monitoring
+                          </Label>
+                          <Badge variant={preferences.cctvSettings.enabled ? "default" : "secondary"} className="text-xs">
+                            {preferences.cctvSettings.enabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Show CCTV monitoring component in dashboard
+                        </p>
+                      </div>
+                      <Switch
+                        checked={preferences.cctvSettings.enabled}
+                        onCheckedChange={toggleCctvEnabled}
+                      />
+                    </div>
+
+                    {preferences.cctvSettings.enabled && (
+                      <>
+                        <Separator />
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <RotateCw className="h-4 w-4 text-muted-foreground" />
+                                <Label className="text-sm font-medium">
+                                  Auto Refresh
+                                </Label>
+                                {preferences.cctvSettings.autoRefresh && (
+                                  <Badge variant="default" className="text-xs">
+                                    Active
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Automatically refresh CCTV feeds
+                              </p>
+                            </div>
+                            <Switch
+                              checked={preferences.cctvSettings.autoRefresh}
+                              onCheckedChange={toggleCctvAutoRefresh}
+                            />
+                          </div>
+
+                          {preferences.cctvSettings.autoRefresh && (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">
+                                Refresh Interval (seconds)
+                              </Label>
+                              <Select
+                                value={preferences.cctvSettings.refreshInterval.toString()}
+                                onValueChange={(value) => updateCctvSettings({ refreshInterval: parseInt(value) })}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="10">10 seconds</SelectItem>
+                                  <SelectItem value="30">30 seconds</SelectItem>
+                                  <SelectItem value="60">1 minute</SelectItem>
+                                  <SelectItem value="300">5 minutes</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {preferences.cctvSettings.enabled && (
+                  <>
+                    {/* CCTV Layout Settings */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Grid2X2 className="h-5 w-5" />
+                          CCTV Layout Settings
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Label className="text-base font-medium">Grid Layout</Label>
+                            <Badge variant="secondary" className="text-xs">
+                              {preferences.cctvSettings.gridLayout}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div
+                              className={`cursor-pointer rounded-lg border-2 p-4 ${
+                                preferences.cctvSettings.gridLayout === '2x2'
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              onClick={() => updateCctvSettings({ gridLayout: '2x2' })}
+                            >
+                              <div className="flex flex-col items-center gap-2">
+                                <Grid2X2 className="h-8 w-8 text-primary" />
+                                <h4 className="font-medium">2x2 Grid</h4>
+                                <p className="text-xs text-muted-foreground text-center">
+                                  4 cameras in a 2x2 layout
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              className={`cursor-pointer rounded-lg border-2 p-4 ${
+                                preferences.cctvSettings.gridLayout === '3x3'
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              onClick={() => updateCctvSettings({ gridLayout: '3x3' })}
+                            >
+                              <div className="flex flex-col items-center gap-2">
+                                <Grid3X3 className="h-8 w-8 text-primary" />
+                                <h4 className="font-medium">3x3 Grid</h4>
+                                <p className="text-xs text-muted-foreground text-center">
+                                  9 cameras in a 3x3 layout
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              className={`cursor-pointer rounded-lg border-2 p-4 ${
+                                preferences.cctvSettings.gridLayout === '4x4'
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              onClick={() => updateCctvSettings({ gridLayout: '4x4' })}
+                            >
+                              <div className="flex flex-col items-center gap-2">
+                                <Grid className="h-8 w-8 text-primary" />
+                                <h4 className="font-medium">4x4 Grid</h4>
+                                <p className="text-xs text-muted-foreground text-center">
+                                  16 cameras in a 4x4 layout
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Monitor className="h-4 w-4 text-muted-foreground" />
+                                <Label className="text-sm font-medium">
+                                  Show Camera Titles
+                                </Label>
+                                {preferences.cctvSettings.showTitles && (
+                                  <Badge variant="default" className="text-xs">
+                                    Active
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Display camera names on feeds
+                              </p>
+                            </div>
+                            <Switch
+                              checked={preferences.cctvSettings.showTitles}
+                              onCheckedChange={(checked) => updateCctvSettings({ showTitles: checked })}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <RotateCw className="h-4 w-4 text-muted-foreground" />
+                                <Label className="text-sm font-medium">
+                                  Auto Switch Channels
+                                </Label>
+                                {preferences.cctvSettings.autoSwitchChannels && (
+                                  <Badge variant="default" className="text-xs">
+                                    Active
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Automatically cycle through camera channels
+                              </p>
+                            </div>
+                            <Switch
+                              checked={preferences.cctvSettings.autoSwitchChannels}
+                              onCheckedChange={toggleCctvAutoSwitch}
+                            />
+                          </div>
+
+                          {preferences.cctvSettings.autoSwitchChannels && (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">
+                                Channel Switch Interval (seconds)
+                              </Label>
+                              <Select
+                                value={preferences.cctvSettings.channelSwitchInterval.toString()}
+                                onValueChange={(value) => updateCctvSettings({ channelSwitchInterval: parseInt(value) })}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="5">5 seconds</SelectItem>
+                                  <SelectItem value="10">10 seconds</SelectItem>
+                                  <SelectItem value="15">15 seconds</SelectItem>
+                                  <SelectItem value="30">30 seconds</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* CCTV Status Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>CCTV Status</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div className="text-center p-4 bg-muted/30 rounded-lg">
+                            <div className="text-2xl font-bold text-primary mb-1">
+                              {preferences.cctvSettings.enabled ? "ON" : "OFF"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              CCTV Status
+                            </div>
+                          </div>
+
+                          <div className="text-center p-4 bg-muted/30 rounded-lg">
+                            <div className="text-2xl font-bold text-primary mb-1">
+                              {preferences.cctvSettings.gridLayout}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Grid Layout
+                            </div>
+                          </div>
+
+                          <div className="text-center p-4 bg-muted/30 rounded-lg">
+                            <div className="text-2xl font-bold text-primary mb-1">
+                              {preferences.cctvSettings.autoRefresh ? `${preferences.cctvSettings.refreshInterval}s` : "OFF"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Auto Refresh
+                            </div>
+                          </div>
+
+                          <div className="text-center p-4 bg-muted/30 rounded-lg">
+                            <div className="text-2xl font-bold text-primary mb-1">
+                              {preferences.cctvSettings.autoSwitchChannels ? `${preferences.cctvSettings.channelSwitchInterval}s` : "OFF"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Auto Switch
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="keyboard" className="space-y-6">
+            <VirtualKeyboardSettings />
+          </TabsContent>
+
+          <TabsContent value="autorefresh" className="space-y-6">
+            {/* Auto Refresh Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RotateCw className="h-5 w-5 text-primary" />
+                  Auto Refresh Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Page Auto Refresh</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Automatically refresh the current page at specified intervals to keep data up-to-date.
+                    </p>
+                  </div>
+
+                  {/* Auto Refresh Component */}
+                  <div className="p-4 border rounded-lg bg-muted/30">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h5 className="font-medium">Auto Refresh Control</h5>
+                        <p className="text-xs text-muted-foreground">
+                          Toggle auto refresh and configure refresh intervals
+                        </p>
+                      </div>
+                    </div>
+                    <AutoRefresh
+                      defaultEnabled={false}
+                      className="justify-start"
+                    />
+                  </div>
+
+                  {/* Information Card */}
+                  <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100">
+                          How Auto Refresh Works
+                        </h5>
+                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                          <p>• Toggle the switch to enable/disable auto refresh</p>
+                          <p>• Choose refresh intervals from 1 minute to 30 minutes</p>
+                          <p>• See countdown timer showing time until next refresh</p>
+                          <p>• Use manual refresh button to refresh immediately</p>
+                          <p>• Settings are saved automatically and persist across sessions</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Benefits Card */}
+                  <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                    <div className="flex items-start gap-3">
+                      <BatteryCharging className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-green-900 dark:text-green-100">
+                          Benefits
+                        </h5>
+                        <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                          <p>• Always see the latest data without manual refresh</p>
+                          <p>• Configurable intervals to match your monitoring needs</p>
+                          <p>• Reduces the need to manually refresh pages</p>
+                          <p>• Helps maintain awareness of system status changes</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

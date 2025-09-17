@@ -278,6 +278,7 @@ export enum AccessMethod {
   Card = 4,
   BMS = 5,
   Software = 6,
+  Palm = 7,
 }
 
 export interface AccessLog {

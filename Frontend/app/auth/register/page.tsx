@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api-service";
 import { AuthNotifications } from "@/lib/auth-notifications";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Container } from "lucide-react";
 import { setCookie } from 'cookies-next';
 import { getCurrentUserFromToken } from '@/lib/auth-utils';
 
@@ -113,10 +113,12 @@ const RegisterPage = () => {
           style={{ clipPath: "polygon(0 0, 80% 0, 100% 100%, 0% 100%)" }}
         >
           <div className="flex items-center gap-2 text-white animate-fadeInUp">
-            <img src="/images/gspe.jpg" alt="GSPE" width={40} height={40} className="rounded-full" />
+            <div className="w-10 h-10 rounded-full border-2 border-white/20 backdrop-blur-sm flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700">
+              <Container className="h-6 w-6 text-white" />
+            </div>
             <div>
-              <p className="font-bold leading-tight">PT Graha Sumber Prima Elektronik</p>
-              <p className="text-white/70 text-sm leading-tight">Manufactur Electrical Panel & Internet Of Things</p>
+              <p className="font-bold leading-tight">IoT Containment Monitoring</p>
+              <p className="text-white/70 text-sm leading-tight">Advanced Containment & Sensor Monitoring System</p>
             </div>
           </div>
         </div>

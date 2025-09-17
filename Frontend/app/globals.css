@@ -263,17 +263,15 @@
   /* Light mode: solid black background with white text */
   background-color: hsl(0 0% 9%) !important;
   color: hsl(0 0% 98%) !important;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   transform: scale(1.02);
-  border-left: 4px solid hsl(217.2 91.2% 59.8%);
 }
 
 /* Dark mode: adjust for better contrast */
 .dark .sidebar-menu-active {
   background-color: hsl(0 0% 98%) !important;
   color: hsl(240 5.9% 10%) !important;
-  border-left: 4px solid hsl(217.2 91.2% 59.8%);
 }
 
 /* Icon styling for active state */
@@ -286,4 +284,57 @@
 .sidebar-menu-active .sidebar-text {
   font-weight: 600 !important;
   color: inherit !important;
+}
+
+/* Error and NotFound page animations */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes pulse-error {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-error {
+  animation: pulse-error 2s ease-in-out infinite;
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(-100px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(0);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
 }

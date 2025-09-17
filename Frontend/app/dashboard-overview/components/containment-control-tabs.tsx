@@ -13,6 +13,8 @@ import {
   DoorClosed,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
   Settings,
   Upload,
   Wifi,
@@ -25,6 +27,7 @@ import {
   User,
   Clock,
   Monitor,
+  Split,
 } from "lucide-react";
 import { useMQTTPublish } from "@/hooks/useMQTTPublish";
 import { useMQTTStatus } from "@/hooks/useMQTTStatus";
@@ -46,6 +49,7 @@ interface ControlState {
   frontDoorAlwaysOpen: boolean;
   backDoorAlwaysOpen: boolean;
   ceilingState: boolean; // true = open (down), false = closed (up)
+  partitionState: boolean; // true = extended/closed, false = retracted/open
 }
 
 interface ContainmentData {
@@ -71,6 +75,7 @@ export default function ContainmentControlPage() {
     frontDoorAlwaysOpen: false,
     backDoorAlwaysOpen: false,
     ceilingState: false,
+    partitionState: false,
   });
 
   const [publishHistory, setPublishHistory] = useState<PublishHistory[]>([]);
@@ -291,7 +296,7 @@ export default function ContainmentControlPage() {
     await saveAccessLog(
       command,
       success,
-      `Ceiling ${open ? "opened" : "closed"} via software control`
+      `Ceiling window ${open ? "opened" : "closed"} via software control`
     );
     setIsPublishing(false);
   };
@@ -320,9 +325,14 @@ export default function ContainmentControlPage() {
     }
   };
 
-  // Check if advanced controls should be shown
-  const shouldShowAdvancedControls = () => {
-    return containmentId === 1 && containmentData?.type === 2;
+  // Manual Sliding Partition control (for type 1 - display only, not controllable)
+  const shouldShowPartitionDisplay = () => {
+    return containmentData?.type === 1;
+  };
+
+  // Check if ceiling controls should be shown (for type 2)
+  const shouldShowCeilingControls = () => {
+    return containmentData?.type === 2;
   };
 
   const isConnected = mqttStatus === "connected";
@@ -354,10 +364,50 @@ export default function ContainmentControlPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6">
-          {shouldShowAdvancedControls() && (
+          {/* Manual Sliding Partition Display (Type 1 - Display Only) */}
+          {shouldShowPartitionDisplay() && (
             <div className="space-y-3 sm:space-y-4">
               <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Ceiling Control
+                Manual Sliding Partition Window
+              </h3>
+
+              <div className="p-3 sm:p-4 border border-border rounded-lg bg-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Split className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                    <div>
+                      <div className="font-medium text-xs sm:text-sm">
+                        Partition Status: Center Position
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
+                        Manual operation only - not controllable via software
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-2 sm:px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Manual Only
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual representation */}
+                <div className="mt-3 sm:mt-4 flex items-center justify-center">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <div className="w-8 h-1 bg-border rounded"></div>
+                    <Split className="h-4 w-4 text-blue-500" />
+                    <div className="w-8 h-1 bg-border rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Ceiling Control (Type 2) */}
+          {shouldShowCeilingControls() && (
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">
+                Ceiling Window Control
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -370,8 +420,8 @@ export default function ContainmentControlPage() {
                   className="h-10 sm:h-12 flex items-center justify-center gap-2 text-xs sm:text-sm"
                 >
                   <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Open Ceiling (Down)</span>
-                  <span className="sm:hidden">Open (Down)</span>
+                  <span className="hidden sm:inline">Open Ceiling Window (Down)</span>
+                  <span className="sm:hidden">Open Window (Down)</span>
                 </Button>
 
                 <Button
@@ -383,8 +433,8 @@ export default function ContainmentControlPage() {
                   className="h-10 sm:h-12 flex items-center justify-center gap-2 text-xs sm:text-sm"
                 >
                   <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Close Ceiling (Up)</span>
-                  <span className="sm:hidden">Close (Up)</span>
+                  <span className="hidden sm:inline">Close Ceiling Window (Up)</span>
+                  <span className="sm:hidden">Close Window (Up)</span>
                 </Button>
               </div>
 
@@ -398,13 +448,13 @@ export default function ContainmentControlPage() {
                   )}
                   <div>
                     <div className="font-medium text-xs sm:text-sm">
-                      Ceiling Status:{" "}
+                      Ceiling Window Status:{" "}
                       {controlState.ceilingState
                         ? "Open (Down)"
                         : "Closed (Up)"}
                     </div>
                     <div className="text-[10px] sm:text-xs text-muted-foreground">
-                      Current ceiling position
+                      Current ceiling window position
                     </div>
                   </div>
                 </div>

@@ -422,6 +422,7 @@ export function getContainmentTypeEnum(typeString: string): ContainmentType {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
@@ -3343,6 +3344,7 @@ export enum AccessMethod {
   Card = 4,
   BMS = 5,
   Software = 6,
+  Palm = 7,
 }
 
 export interface SoftwareAccessRequest {
@@ -4582,9 +4584,9 @@ export const systemManagementApi = {
     }
   },
 
-  async getSystemInfo(): Promise<ApiResponse<SystemStatusInfo>> {
+  async getSystemInfo(): Promise<ApiResponse<SystemInfoDisplay>> {
     try {
-      const data = await client.get<SystemStatusInfo>("/systemmanagement/info");
+      const data = await client.get<SystemInfoDisplay>("/systemmanagement/info");
       return {
         success: true,
         data,
@@ -4620,7 +4622,7 @@ export interface SystemService {
   description: string;
 }
 
-export interface SystemStatusInfo {
+export interface SystemInfoDisplay {
   hostName: string;
   operatingSystem: string;
   architecture: string;

@@ -8,5 +8,6 @@ namespace Backend.Enums
         Card = 4,
         BMS = 5,
         Software = 6,
+        Palm = 7,
     }
 }

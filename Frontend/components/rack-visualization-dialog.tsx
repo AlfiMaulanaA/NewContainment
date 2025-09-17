@@ -296,9 +296,9 @@ export default function RackVisualizationDialog({
                                     ? `${getDeviceColor(
                                         unit.device.type
                                       )} text-white hover:opacity-80`
-                                    : "bg-gray-400 text-white hover:opacity-80"
-                                  : "bg-gray-400 text-white"
-                                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                                    : "bg-gray-400 dark:bg-gray-600 text-white hover:opacity-80"
+                                  : "bg-gray-400 dark:bg-gray-600 text-white"
+                                : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                             }
                           `}
                           onClick={() =>
@@ -306,7 +306,7 @@ export default function RackVisualizationDialog({
                           }
                         >
                           {/* Unit Number */}
-                          <div className="w-8 text-xs font-mono text-center border-r border-opacity-30">
+                          <div className="w-8 text-xs font-mono text-center border-r border-opacity-30 dark:border-gray-500">
                             {unit.unitNumber}
                           </div>
 
@@ -374,31 +374,31 @@ export default function RackVisualizationDialog({
                 <h4 className="font-semibold mb-3">Legend</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <div className="w-4 h-4 bg-blue-500 dark:bg-blue-600 rounded"></div>
                     <span>Server</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <div className="w-4 h-4 bg-green-500 dark:bg-green-600 rounded"></div>
                     <span>Network/Switch</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                    <div className="w-4 h-4 bg-purple-500 dark:bg-purple-600 rounded"></div>
                     <span>Storage</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <div className="w-4 h-4 bg-orange-500 dark:bg-orange-600 rounded"></div>
                     <span>Monitor</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <div className="w-4 h-4 bg-red-500 dark:bg-red-600 rounded"></div>
                     <span>Compute/CPU</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-teal-500 rounded"></div>
+                    <div className="w-4 h-4 bg-teal-500 dark:bg-teal-600 rounded"></div>
                     <span>Sensor</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
+                    <div className="w-4 h-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded"></div>
                     <span>Empty Unit</span>
                   </div>
                 </div>
@@ -420,8 +420,8 @@ export default function RackVisualizationDialog({
                           p-3 rounded-lg border cursor-pointer transition-colors
                           ${
                             selectedDevice?.id === device.id
-                              ? "border-primary bg-primary/5"
-                              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                              ? "border-primary bg-primary/5 dark:bg-primary/10"
+                              : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                           }
                         `}
                         onClick={() => setSelectedDevice(device)}

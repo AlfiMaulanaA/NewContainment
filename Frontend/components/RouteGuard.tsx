@@ -29,7 +29,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
     if (isLoading || isChecking) {
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 5000); // Show refresh button after 5 seconds
+      }, 1000); // Show refresh button after 5 seconds
 
       return () => clearTimeout(timer);
     } else {
@@ -73,7 +73,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
             "RouteGuard: User not authenticated for protected route, redirecting"
           );
           setHasRedirected(true);
-          // router.replace("/auth/login");
+          router.replace("/auth/login");
         } else {
           setIsChecking(false);
         }
@@ -99,11 +99,15 @@ export function RouteGuard({ children }: RouteGuardProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-sm text-muted-foreground">Loading authentication...</p>
+        <p className="text-sm text-muted-foreground">
+          Loading authentication...
+        </p>
 
         {loadingTimeout && (
           <div className="flex flex-col items-center gap-2 mt-4">
-            <p className="text-sm text-muted-foreground">Taking longer than expected?</p>
+            <p className="text-sm text-muted-foreground">
+              Taking longer than expected?
+            </p>
             <Button
               variant="outline"
               size="sm"

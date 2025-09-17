@@ -19,7 +19,7 @@ export function useMQTT() {
     const handleConnectionStatusChange = (connected: boolean) => {
       if (mounted) {
         setIsConnected(connected);
-        console.log("MQTT connection status changed:", connected);
+        // console.log("MQTT connection status changed:", connected);
         if (!connected) {
           setError("MQTT connection lost");
         } else {

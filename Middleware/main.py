@@ -7,7 +7,9 @@ import sys
 import time
 import uuid
 import threading
-from datetime import datetime
+import schedule
+import concurrent.futures
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Callable
 
 # Import pyzk library
@@ -75,6 +77,15 @@ class ZKDeviceManager:
         self.last_attendance_records = {}
         self.device_last_access_time = {}  # Track last access time per device
         self.user_cache = {}  # Cache user data for faster lookup
+
+        # Automatic synchronization scheduler
+        self.sync_scheduler_enabled = False
+        self.sync_scheduler_thread = None
+        self.sync_interval_hours = 1
+        self.last_sync_time = None
+        self.sync_history = []
+        self.device_health_status = {}
+        self.failed_devices = set()
         
         # Create directories and initialize
         os.makedirs("JSON", exist_ok=True)
@@ -1334,13 +1345,19 @@ class ZKDeviceManager:
             'deleteCard': lambda: self.delete_card(data),
             'setUserRole': lambda: self.set_user_role(data),
             'playSound': lambda: self._handle_play_sound_command(data),
-            'getFingerprintList': lambda: self.get_fingerprint_list(data.get('device_id'))
+            'getFingerprintList': lambda: self.get_fingerprint_list(data.get('device_id')),
+            'startAutoSync': lambda: self.start_auto_sync(data),
+            'stopAutoSync': lambda: self.stop_auto_sync(),
+            'manualSync': lambda: self.manual_device_sync(data),
+            'discoverDevices': lambda: self.discover_new_devices(),
+            'resetFailedDevices': lambda: self.reset_failed_devices(),
+            'getSyncStatus': lambda: self.get_sync_status()
         }
         
         result = command_map.get(command, lambda: self.create_response('error', f'Unknown user command: {command}'))()
         
         # Special handling for fingerprint and card commands - they handle their own MQTT publishing
-        if command in ['registerFinger', 'regsterFinger', 'deleteFinger', 'syncronizeCard', 'deleteCard', 'setUserRole']:
+        if command in ['registerFinger', 'regsterFinger', 'deleteFinger', 'syncronizeCard', 'deleteCard', 'setUserRole', 'startAutoSync', 'stopAutoSync', 'manualSync', 'discoverDevices', 'resetFailedDevices']:
             print(f"📤 {command} command completed - MQTT responses handled internally")
             return
         
@@ -4051,7 +4068,587 @@ class ZKDeviceManager:
                     
         except Exception as e:
             print(f"❌ Error stopping live monitoring: {e}")
-    
+
+    # ==================== AUTOMATIC SYNCHRONIZATION ====================
+
+    def start_auto_sync(self, data: Dict = None) -> Dict:
+        """Start automatic device synchronization scheduler"""
+        try:
+            if self.sync_scheduler_enabled:
+                return self.create_response('warning', 'Auto-sync scheduler is already running')
+
+            # Parse configuration
+            interval_hours = data.get('interval_hours', 1) if data else 1
+            self.sync_interval_hours = interval_hours
+
+            # Start scheduler thread
+            self.sync_scheduler_enabled = True
+            self.sync_scheduler_thread = threading.Thread(target=self._run_sync_scheduler, daemon=True)
+            self.sync_scheduler_thread.start()
+
+            message = f'Auto-sync scheduler started with {interval_hours} hour interval'
+            print(f"🔄 {message}")
+
+            # Publish MQTT response
+            if self.mqtt_connected:
+                response_data = {
+                    'status': 'success',
+                    'message': message,
+                    'interval_hours': interval_hours,
+                    'start_time': datetime.now().isoformat() + 'Z'
+                }
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(response_data))
+
+            return self.create_response('success', message, {
+                'interval_hours': interval_hours,
+                'status': 'started'
+            })
+
+        except Exception as e:
+            error_msg = f"Failed to start auto-sync: {str(e)}"
+            print(f"❌ {error_msg}")
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps({
+                    'status': 'error',
+                    'message': error_msg
+                }))
+            return self.create_response('error', error_msg)
+
+    def stop_auto_sync(self) -> Dict:
+        """Stop automatic device synchronization scheduler"""
+        try:
+            if not self.sync_scheduler_enabled:
+                return self.create_response('warning', 'Auto-sync scheduler is not running')
+
+            self.sync_scheduler_enabled = False
+            schedule.clear()
+
+            if self.sync_scheduler_thread and self.sync_scheduler_thread.is_alive():
+                # Thread will stop on next iteration due to sync_scheduler_enabled = False
+                pass
+
+            message = 'Auto-sync scheduler stopped'
+            print(f"🛑 {message}")
+
+            # Publish MQTT response
+            if self.mqtt_connected:
+                response_data = {
+                    'status': 'success',
+                    'message': message,
+                    'stop_time': datetime.now().isoformat() + 'Z'
+                }
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(response_data))
+
+            return self.create_response('success', message, {'status': 'stopped'})
+
+        except Exception as e:
+            error_msg = f"Failed to stop auto-sync: {str(e)}"
+            print(f"❌ {error_msg}")
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps({
+                    'status': 'error',
+                    'message': error_msg
+                }))
+            return self.create_response('error', error_msg)
+
+    def _run_sync_scheduler(self):
+        """Run the automatic sync scheduler"""
+        # Schedule the sync job
+        schedule.every(self.sync_interval_hours).hours.do(self._scheduled_device_sync)
+
+        print(f"📅 Scheduler running - sync every {self.sync_interval_hours} hour(s)")
+
+        while self.sync_scheduler_enabled:
+            try:
+                schedule.run_pending()
+                time.sleep(60)  # Check every minute
+            except Exception as e:
+                print(f"❌ Scheduler error: {e}")
+                time.sleep(60)
+
+        print("📅 Scheduler thread terminated")
+
+    def _scheduled_device_sync(self):
+        """Perform scheduled device synchronization"""
+        try:
+            print("🔄 Starting scheduled device synchronization...")
+            sync_start = datetime.now()
+
+            # Discover active devices
+            active_devices = self.discover_new_devices(publish_result=False)
+
+            if len(active_devices.get('data', {}).get('accessible_devices', [])) < 2:
+                print("⚠️ Skipping sync - need at least 2 active devices")
+                return
+
+            # Perform synchronization
+            sync_result = self.manual_device_sync({}, publish_result=False)
+
+            # Update sync history
+            sync_record = {
+                'type': 'scheduled',
+                'start_time': sync_start.isoformat(),
+                'end_time': datetime.now().isoformat(),
+                'result': sync_result,
+                'devices_count': len(active_devices.get('data', {}).get('accessible_devices', []))
+            }
+
+            self.sync_history.append(sync_record)
+            self.last_sync_time = datetime.now()
+
+            # Keep only last 50 sync records
+            if len(self.sync_history) > 50:
+                self.sync_history = self.sync_history[-50:]
+
+            # Publish scheduled sync result
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_status'], json.dumps({
+                    'event_type': 'scheduled_sync_completed',
+                    'result': sync_result,
+                    'timestamp': datetime.now().isoformat() + 'Z'
+                }))
+
+            print("✅ Scheduled device synchronization completed")
+
+        except Exception as e:
+            print(f"❌ Scheduled sync error: {e}")
+
+    def manual_device_sync(self, data: Dict = None, publish_result: bool = True) -> Dict:
+        """Perform manual device synchronization"""
+        try:
+            sync_start = datetime.now()
+            print("🔄 Starting manual device synchronization...")
+
+            # Get target devices
+            target_device_ids = data.get('device_ids', []) if data else []
+
+            if target_device_ids:
+                # Sync specific devices
+                target_devices = [d for d in self.devices if d.get('id') in target_device_ids and d.get('enabled', True)]
+            else:
+                # Sync all enabled devices
+                target_devices = [d for d in self.devices if d.get('enabled', True)]
+
+            if len(target_devices) < 2:
+                message = 'Need at least 2 devices for synchronization'
+                result = self.create_response('warning', message)
+                if publish_result and self.mqtt_connected:
+                    self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+                return result
+
+            # Test device connectivity
+            accessible_devices = []
+            for device in target_devices:
+                try:
+                    zk = ZK(ip=device['ip'], port=device.get('port', 4370), timeout=5)
+                    conn = zk.connect()
+                    conn.disconnect()
+                    accessible_devices.append(device)
+
+                    # Update device health status
+                    self.device_health_status[device['id']] = {
+                        'status': 'online',
+                        'last_check': datetime.now().isoformat(),
+                        'consecutive_failures': 0
+                    }
+                except Exception as e:
+                    print(f"⚠️ Device {device.get('name')} ({device.get('ip')}) not accessible: {e}")
+
+                    # Update failed device status
+                    device_id = device['id']
+                    if device_id not in self.device_health_status:
+                        self.device_health_status[device_id] = {'consecutive_failures': 0}
+
+                    self.device_health_status[device_id]['status'] = 'offline'
+                    self.device_health_status[device_id]['last_error'] = str(e)
+                    self.device_health_status[device_id]['consecutive_failures'] += 1
+                    self.device_health_status[device_id]['last_check'] = datetime.now().isoformat()
+
+                    # Add to failed devices if failure count exceeds threshold
+                    if self.device_health_status[device_id]['consecutive_failures'] >= 3:
+                        self.failed_devices.add(device_id)
+
+            if len(accessible_devices) < 2:
+                message = f'Only {len(accessible_devices)} device(s) accessible, need at least 2 for sync'
+                result = self.create_response('warning', message)
+                if publish_result and self.mqtt_connected:
+                    self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+                return result
+
+            # Perform card synchronization (using existing method)
+            card_sync_result = self.synchronize_card({})
+
+            # Perform user synchronization across devices
+            user_sync_result = self._sync_users_across_devices(accessible_devices)
+
+            sync_end = datetime.now()
+            sync_duration = (sync_end - sync_start).total_seconds()
+
+            result = self.create_response('success', f'Device synchronization completed for {len(accessible_devices)} devices', {
+                'devices_synced': len(accessible_devices),
+                'duration_seconds': sync_duration,
+                'card_sync': card_sync_result,
+                'user_sync': user_sync_result,
+                'start_time': sync_start.isoformat(),
+                'end_time': sync_end.isoformat()
+            })
+
+            # Update sync history for manual sync
+            sync_record = {
+                'type': 'manual',
+                'start_time': sync_start.isoformat(),
+                'end_time': sync_end.isoformat(),
+                'result': result,
+                'devices_count': len(accessible_devices)
+            }
+
+            self.sync_history.append(sync_record)
+            self.last_sync_time = sync_end
+
+            if len(self.sync_history) > 50:
+                self.sync_history = self.sync_history[-50:]
+
+            print(f"✅ Manual sync completed in {sync_duration:.2f} seconds")
+
+            if publish_result and self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+
+            return result
+
+        except Exception as e:
+            error_msg = f"Manual sync failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            result = self.create_response('error', error_msg)
+            if publish_result and self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+            return result
+
+    def _sync_users_across_devices(self, devices: List[Dict]) -> Dict:
+        """Synchronize users across multiple devices"""
+        try:
+            print(f"👤 Syncing users across {len(devices)} devices...")
+
+            # Collect all users from all devices
+            all_users = {}
+            device_users = {}
+
+            for device in devices:
+                try:
+                    zk = ZK(ip=device['ip'], port=device.get('port', 4370), timeout=10)
+                    conn = zk.connect()
+                    users = conn.get_users()
+
+                    device_users[device['id']] = []
+                    for user in users:
+                        user_data = {
+                            'uid': user.uid,
+                            'name': user.name,
+                            'privilege': user.privilege,
+                            'password': user.password,
+                            'group_id': user.group_id,
+                            'user_id': user.user_id,
+                            'card': user.card
+                        }
+                        device_users[device['id']].append(user_data)
+                        all_users[user.uid] = user_data
+
+                    conn.disconnect()
+                    print(f"  📖 Read {len(users)} users from {device.get('name')}")
+
+                except Exception as e:
+                    print(f"  ❌ Failed to read users from {device.get('name')}: {e}")
+                    device_users[device['id']] = []
+
+            # Sync missing users to each device
+            sync_results = []
+            for device in devices:
+                try:
+                    device_uid_set = {user['uid'] for user in device_users[device['id']]}
+                    missing_users = [user for uid, user in all_users.items() if uid not in device_uid_set]
+
+                    if not missing_users:
+                        print(f"  ✅ {device.get('name')} already has all users")
+                        continue
+
+                    print(f"  🔄 Syncing {len(missing_users)} users to {device.get('name')}")
+
+                    zk = ZK(ip=device['ip'], port=device.get('port', 4370), timeout=15)
+                    conn = zk.connect()
+
+                    synced_count = 0
+                    for user in missing_users:
+                        try:
+                            conn.set_user(
+                                uid=user['uid'],
+                                name=user['name'],
+                                privilege=user['privilege'],
+                                password=user['password'],
+                                group_id=user['group_id'],
+                                user_id=user['user_id'],
+                                card=user['card']
+                            )
+                            synced_count += 1
+                        except Exception as e:
+                            print(f"    ⚠️ Failed to sync user {user['name']} (UID: {user['uid']}): {e}")
+
+                    conn.disconnect()
+
+                    sync_results.append({
+                        'device_id': device['id'],
+                        'device_name': device.get('name'),
+                        'synced_users': synced_count,
+                        'total_missing': len(missing_users)
+                    })
+
+                    print(f"  ✅ Synced {synced_count}/{len(missing_users)} users to {device.get('name')}")
+
+                except Exception as e:
+                    print(f"  ❌ Failed to sync users to {device.get('name')}: {e}")
+                    sync_results.append({
+                        'device_id': device['id'],
+                        'device_name': device.get('name'),
+                        'error': str(e)
+                    })
+
+            total_synced = sum(r.get('synced_users', 0) for r in sync_results)
+            return {
+                'status': 'success',
+                'message': f'User sync completed - {total_synced} users synced across devices',
+                'total_users': len(all_users),
+                'sync_results': sync_results
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'User sync failed: {str(e)}'
+            }
+
+    def discover_new_devices(self, publish_result: bool = True) -> Dict:
+        """Discover and test connectivity of all configured devices"""
+        try:
+            print("🔍 Discovering devices...")
+            discovery_start = datetime.now()
+
+            devices = self.devices
+            if not devices:
+                self.load_configurations()
+                devices = self.devices
+
+            enabled_devices = [d for d in devices if d.get('enabled', True)]
+
+            accessible_devices = []
+            failed_devices = []
+
+            def test_device_connectivity(device):
+                try:
+                    zk = ZK(
+                        ip=device['ip'],
+                        port=device.get('port', 4370),
+                        timeout=device.get('timeout', 5),
+                        password=device.get('password', 0),
+                        force_udp=device.get('force_udp', False)
+                    )
+
+                    conn = zk.connect()
+
+                    # Get device information
+                    device_info = {
+                        'device_id': device.get('id'),
+                        'name': device.get('name'),
+                        'ip': device.get('ip'),
+                        'users_count': len(conn.get_users()),
+                        'templates_count': len(conn.get_templates()),
+                        'status': 'online',
+                        'last_check': datetime.now().isoformat()
+                    }
+
+                    try:
+                        device_info['serial_number'] = conn.get_serialnumber()
+                    except:
+                        device_info['serial_number'] = 'Unknown'
+
+                    try:
+                        device_info['firmware_version'] = conn.get_firmware_version()
+                    except:
+                        device_info['firmware_version'] = 'Unknown'
+
+                    conn.disconnect()
+                    accessible_devices.append(device_info)
+
+                    # Update health status
+                    self.device_health_status[device['id']] = {
+                        'status': 'online',
+                        'last_check': datetime.now().isoformat(),
+                        'consecutive_failures': 0
+                    }
+
+                    # Remove from failed devices if it was there
+                    self.failed_devices.discard(device['id'])
+
+                except Exception as e:
+                    failed_info = {
+                        'device_id': device.get('id'),
+                        'name': device.get('name'),
+                        'ip': device.get('ip'),
+                        'status': 'offline',
+                        'error': str(e),
+                        'last_check': datetime.now().isoformat()
+                    }
+                    failed_devices.append(failed_info)
+
+                    # Update health status
+                    device_id = device['id']
+                    if device_id not in self.device_health_status:
+                        self.device_health_status[device_id] = {'consecutive_failures': 0}
+
+                    self.device_health_status[device_id]['status'] = 'offline'
+                    self.device_health_status[device_id]['last_error'] = str(e)
+                    self.device_health_status[device_id]['consecutive_failures'] += 1
+                    self.device_health_status[device_id]['last_check'] = datetime.now().isoformat()
+
+                    if self.device_health_status[device_id]['consecutive_failures'] >= 3:
+                        self.failed_devices.add(device_id)
+
+            # Test devices in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                executor.map(test_device_connectivity, enabled_devices)
+
+            discovery_end = datetime.now()
+            discovery_duration = (discovery_end - discovery_start).total_seconds()
+
+            result = self.create_response('success', f'Device discovery completed - {len(accessible_devices)}/{len(enabled_devices)} devices accessible', {
+                'total_devices': len(enabled_devices),
+                'accessible_devices': accessible_devices,
+                'failed_devices': failed_devices,
+                'discovery_duration': discovery_duration,
+                'timestamp': discovery_end.isoformat()
+            })
+
+            print(f"✅ Discovery completed: {len(accessible_devices)}/{len(enabled_devices)} devices accessible")
+
+            if publish_result and self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+
+            return result
+
+        except Exception as e:
+            error_msg = f"Device discovery failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            result = self.create_response('error', error_msg)
+            if publish_result and self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+            return result
+
+    def reset_failed_devices(self) -> Dict:
+        """Reset devices that have failed multiple times"""
+        try:
+            if not self.failed_devices:
+                result = self.create_response('success', 'No failed devices to reset')
+                if self.mqtt_connected:
+                    self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+                return result
+
+            print(f"🔧 Resetting {len(self.failed_devices)} failed devices...")
+            reset_results = []
+
+            for device_id in list(self.failed_devices):
+                device = next((d for d in self.devices if d.get('id') == device_id), None)
+                if not device:
+                    continue
+
+                try:
+                    print(f"  🔧 Attempting to reset {device.get('name')} ({device.get('ip')})...")
+
+                    zk = ZK(ip=device['ip'], port=device.get('port', 4370), timeout=15)
+                    conn = zk.connect()
+
+                    # Try to restart/refresh the device
+                    conn.restart()
+                    time.sleep(2)
+
+                    # Test if device is now accessible
+                    test_conn = zk.connect()
+                    test_conn.disconnect()
+
+                    conn.disconnect()
+
+                    # Reset successful - remove from failed devices
+                    self.failed_devices.remove(device_id)
+                    self.device_health_status[device_id] = {
+                        'status': 'reset_successful',
+                        'last_reset': datetime.now().isoformat(),
+                        'consecutive_failures': 0
+                    }
+
+                    reset_results.append({
+                        'device_id': device_id,
+                        'device_name': device.get('name'),
+                        'status': 'success',
+                        'message': 'Device reset successful'
+                    })
+
+                    print(f"  ✅ Reset successful: {device.get('name')}")
+
+                except Exception as e:
+                    reset_results.append({
+                        'device_id': device_id,
+                        'device_name': device.get('name'),
+                        'status': 'failed',
+                        'error': str(e)
+                    })
+                    print(f"  ❌ Reset failed for {device.get('name')}: {e}")
+
+            successful_resets = sum(1 for r in reset_results if r['status'] == 'success')
+
+            result = self.create_response('success', f'Reset completed - {successful_resets}/{len(reset_results)} devices reset successfully', {
+                'total_attempted': len(reset_results),
+                'successful_resets': successful_resets,
+                'remaining_failed_devices': len(self.failed_devices),
+                'reset_results': reset_results
+            })
+
+            print(f"✅ Reset operation completed: {successful_resets}/{len(reset_results)} successful")
+
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+
+            return result
+
+        except Exception as e:
+            error_msg = f"Device reset failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            result = self.create_response('error', error_msg)
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+            return result
+
+    def get_sync_status(self) -> Dict:
+        """Get current synchronization status"""
+        try:
+            result = self.create_response('success', 'Sync status retrieved', {
+                'auto_sync_enabled': self.sync_scheduler_enabled,
+                'sync_interval_hours': self.sync_interval_hours,
+                'last_sync_time': self.last_sync_time.isoformat() if self.last_sync_time else None,
+                'total_syncs_performed': len(self.sync_history),
+                'failed_devices_count': len(self.failed_devices),
+                'failed_devices': list(self.failed_devices),
+                'device_health_status': self.device_health_status,
+                'recent_sync_history': self.sync_history[-10:] if self.sync_history else []
+            })
+
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+
+            return result
+
+        except Exception as e:
+            error_msg = f"Failed to get sync status: {str(e)}"
+            result = self.create_response('error', error_msg)
+            if self.mqtt_connected:
+                self.mqtt_client.publish(self.TOPICS['system_response'], json.dumps(result))
+            return result
+
     # ==================== SERVICE MANAGEMENT ====================
     
     def start_service(self):

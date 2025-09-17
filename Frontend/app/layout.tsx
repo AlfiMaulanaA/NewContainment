@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
+import { VirtualKeyboardProvider } from "@/contexts/virtual-keyboard-context";
 
 // Mengambil nama aplikasi dan ikon dari environment variables atau menggunakan nilai default
 const AppName = process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment System";
@@ -12,8 +13,8 @@ const AppName = process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment System";
 // Using system fonts instead of Google Fonts
 
 export const metadata: Metadata = {
-  title: `${AppName} | GSPE`,
-  description: "IOT Containment Monitoring and Management System",
+  title: `${AppName} | Containment`,
+  description: "IOT Monitoring and Management System",
   icons: {
     icon: "/IOT.ico", // Menggunakan path langsung, variabel IconTabs tidak diperlukan
     shortcut: "/IOT.ico",
@@ -40,8 +41,10 @@ export default function RootLayout({
           defaultTheme="light" // Theme default
           enableSystem // Memungkinkan sistem OS menentukan theme
         >
-          {/* Semua konten aplikasi dibungkus oleh ClientLayout */}
-          <ClientLayout>{children}</ClientLayout>
+          <VirtualKeyboardProvider>
+            {/* Semua konten aplikasi dibungkus oleh ClientLayout */}
+            <ClientLayout>{children}</ClientLayout>
+          </VirtualKeyboardProvider>
         </ThemeProvider>
       </body>
     </html>

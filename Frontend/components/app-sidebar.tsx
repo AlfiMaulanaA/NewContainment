@@ -18,7 +18,20 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { LogOut, Mail, User2, School, Shield, RefreshCw, AlertCircle, Home, Settings, BarChart3, Users } from "lucide-react";
+import {
+  LogOut,
+  Mail,
+  User2,
+  School,
+  Shield,
+  RefreshCw,
+  AlertCircle,
+  Home,
+  Settings,
+  BarChart3,
+  Users,
+  Container,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -51,20 +64,45 @@ const fallbackMenu = {
       id: "main",
       title: "Main",
       items: [
-        { id: "dashboard", title: "Dashboard", url: "/dashboard", icon: "Home" },
-        { id: "dashboard-overview", title: "Overview", url: "/dashboard-overview", icon: "BarChart3" },
-      ]
+        {
+          id: "dashboard",
+          title: "Dashboard",
+          url: "/dashboard",
+          icon: "Home",
+        },
+        {
+          id: "dashboard-overview",
+          title: "Overview",
+          url: "/dashboard-overview",
+          icon: "BarChart3",
+        },
+      ],
     },
     {
       id: "management",
-      title: "Management", 
+      title: "Management",
       items: [
-        { id: "control-containment", title: "Containment Control", url: "/control/containment", icon: "Settings" },
-        { id: "management-users", title: "Users", url: "/management/users", icon: "Users" },
-        { id: "configuration", title: "Configuration", url: "/configuration", icon: "Settings" },
-      ]
-    }
-  ]
+        {
+          id: "control-containment",
+          title: "Containment Control",
+          url: "/control/containment",
+          icon: "Settings",
+        },
+        {
+          id: "management-users",
+          title: "Users",
+          url: "/management/users",
+          icon: "Users",
+        },
+        {
+          id: "configuration",
+          title: "Configuration",
+          url: "/configuration",
+          icon: "Settings",
+        },
+      ],
+    },
+  ],
 };
 
 export function AppSidebar() {
@@ -74,14 +112,14 @@ export function AppSidebar() {
     isLoading: menuLoading,
     error: menuError,
     refreshMenu,
+    isRetrying: menuRetrying,
+    retryCount: menuRetryCount,
   } = useDynamicMenu();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isScrollVisible, setIsScrollVisible] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const { apiBaseUrl } = getAppConfig();
 
@@ -90,14 +128,19 @@ export function AppSidebar() {
     // Exact match for root routes
     if (itemUrl === "/" && pathname === "/") return true;
     if (itemUrl === "/" && pathname !== "/") return false;
-    
+
     // For non-root routes, check if pathname starts with itemUrl
     if (itemUrl !== "/" && pathname.startsWith(itemUrl)) {
       // Additional check to avoid false positives like "/user" matching "/users"
       const nextChar = pathname[itemUrl.length];
-      return nextChar === "/" || nextChar === undefined || nextChar === "?" || nextChar === "#";
+      return (
+        nextChar === "/" ||
+        nextChar === undefined ||
+        nextChar === "?" ||
+        nextChar === "#"
+      );
     }
-    
+
     return false;
   };
 
@@ -143,21 +186,16 @@ export function AppSidebar() {
   }, [pathname, isMobile, setOpenMobile]);
 
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
-  
+
   // Handle menu retry
   const handleRetryMenu = async () => {
-    if (isRetrying || retryCount >= 3) return;
-    
-    setIsRetrying(true);
-    setRetryCount(prev => prev + 1);
-    
+    if (menuRetrying || menuRetryCount >= 3) return;
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
       await refreshMenu();
     } catch (error) {
       console.error("Menu retry failed:", error);
-    } finally {
-      setIsRetrying(false);
     }
   };
 
@@ -182,26 +220,31 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center border-gray-400 justify-center rounded-lg bg-primary text-primary-foreground">
-              <img
-                src="/images/gspe.jpg"
-                alt="GSPE Logo"
-                className="h-full w-full object-cover rounded-lg"
-              />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
+              <Container className="h-6 w-6 text-dark" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">
-                GSPE
+                Containment
               </h1>
               <p className="text-xs text-sidebar-foreground/70">
-                Containment System
+                IOT Monitoring System
               </p>
             </div>
           </div>
         </SidebarHeader>
         <SidebarContent className="flex flex-col items-center justify-center p-6 space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground text-center">Loading menu...</p>
+          <p className="text-sm text-muted-foreground text-center">
+            {menuRetrying
+              ? `Retrying... (${menuRetryCount}/3)`
+              : "Loading menu..."}
+          </p>
+          {menuRetrying && (
+            <p className="text-xs text-orange-500 text-center">
+              Reconnecting to server...
+            </p>
+          )}
         </SidebarContent>
       </Sidebar>
     );
@@ -209,30 +252,26 @@ export function AppSidebar() {
 
   // Enhanced error handling with retry and fallback
   if (menuError) {
-    const shouldShowFallback = retryCount >= 3;
-    
+    const shouldShowFallback = menuRetryCount >= 3;
+
     return (
       <Sidebar>
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center border-gray-400 justify-center rounded-lg bg-primary text-primary-foreground">
-              <img
-                src="/images/gspe.jpg"
-                alt="GSPE Logo"
-                className="h-full w-full object-cover rounded-lg"
-              />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary shadow-lg">
+              <Container className="h-6 w-6 text-dark" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">
-                GSPE
+                Containment
               </h1>
               <p className="text-xs text-sidebar-foreground/70">
-                Containment System
+                IoT Monitoring System
               </p>
             </div>
           </div>
         </SidebarHeader>
-        
+
         <SidebarContent className="p-4">
           {!shouldShowFallback ? (
             // Error state with retry option
@@ -241,27 +280,38 @@ export function AppSidebar() {
                 <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
               <div className="text-center space-y-2">
-                <p className="text-sm font-medium text-foreground">Failed to load menu</p>
+                <p className="text-sm font-medium text-foreground">
+                  Failed to load menu
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {retryCount > 0 ? `Attempt ${retryCount}/3 failed` : "Unable to connect to server"}
+                  {menuRetryCount > 0
+                    ? `Attempt ${menuRetryCount}/3 failed`
+                    : "Unable to connect to server"}
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleRetryMenu}
-                disabled={isRetrying || retryCount >= 3}
+                disabled={menuRetrying || menuRetryCount >= 3}
                 className="flex items-center gap-2"
               >
-                <RefreshCw className={`h-4 w-4 ${isRetrying ? 'animate-spin' : ''}`} />
-                {isRetrying ? 'Retrying...' : retryCount >= 3 ? 'Max retries reached' : 'Retry'}
+                <RefreshCw
+                  className={`h-4 w-4 ${menuRetrying ? "animate-spin" : ""}`}
+                />
+                {menuRetrying
+                  ? "Retrying..."
+                  : menuRetryCount >= 3
+                  ? "Max retries reached"
+                  : "Retry"}
               </Button>
-              {retryCount >= 2 && (
+              {menuRetryCount >= 2 && (
                 <Button
                   variant="link"
                   size="sm"
                   onClick={() => {
-                    setRetryCount(3); // Trigger fallback
+                    // Use fallback menu directly
+                    window.location.reload();
                   }}
                   className="text-xs"
                 >
@@ -278,7 +328,7 @@ export function AppSidebar() {
                   Using basic menu (limited features)
                 </p>
               </div>
-              
+
               {fallbackMenu.menuGroups.map((group) => (
                 <SidebarGroup key={group.id} className="mb-6">
                   <SidebarGroupLabel className="text-sidebar-foreground/80 mb-2">
@@ -294,19 +344,30 @@ export function AppSidebar() {
                             <SidebarMenuButton
                               asChild
                               isActive={isActive}
-                              className={`w-full ${isActive ? "sidebar-menu-active" : ""}`}
+                              className={`w-full ${
+                                isActive ? "sidebar-menu-active" : ""
+                              }`}
                             >
-                              <Link href={item.url} className="flex items-center gap-3">
+                              <Link
+                                href={item.url}
+                                className="flex items-center gap-3"
+                              >
                                 {IconComponent && (
-                                  <IconComponent className={`sidebar-icon h-4 w-4 transition-colors ${
-                                    isActive 
-                                      ? "" 
-                                      : "text-sidebar-foreground/60"
-                                  }`} />
+                                  <IconComponent
+                                    className={`sidebar-icon h-4 w-4 transition-colors ${
+                                      isActive
+                                        ? ""
+                                        : "text-sidebar-foreground/60"
+                                    }`}
+                                  />
                                 )}
-                                <span className={`sidebar-text transition-colors ${
-                                  isActive ? "" : ""
-                                }`}>{item.title}</span>
+                                <span
+                                  className={`sidebar-text transition-colors ${
+                                    isActive ? "" : ""
+                                  }`}
+                                >
+                                  {item.title}
+                                </span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -319,12 +380,12 @@ export function AppSidebar() {
             </div>
           )}
         </SidebarContent>
-        
+
         {/* Footer tetap ada walaupun error */}
         <SidebarFooter className="p-4 bg-background border-t border-sidebar-border">
           <Dialog>
             <DialogTrigger asChild>
-              <div className="flex items-center gap-3 mb-4 px-1 cursor-pointer hover:bg-muted rounded-md p-1 transition hover:shadow-sm">
+              <div className="flex items-center gap-3 px-1 cursor-pointer hover:bg-muted rounded-md p-1 transition hover:shadow-sm">
                 <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-sidebar-border">
                   <ThemeAvatar
                     user={currentUser}
@@ -386,7 +447,7 @@ export function AppSidebar() {
 
               <Separator />
 
-              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <div className="mt-2 space-y-3 text-sm text-muted-foreground">
                 <p className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-primary" />
                   <span>
@@ -476,7 +537,7 @@ export function AppSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
-        
+
         <LogoutConfirmation
           isOpen={showLogoutConfirmation}
           onClose={() => setShowLogoutConfirmation(false)}
@@ -494,15 +555,11 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center border-gray-400 justify-center rounded-lg bg-primary text-primary-foreground">
-            <img
-              src="/images/gspe.jpg"
-              alt="GSPE Logo"
-              className="h-full w-full object-cover rounded-lg"
-            />
+            <Container className="h-6 w-6 text-white" />
           </div>
           <div>
             <h1 className="text-lg font-semibold text-sidebar-foreground">
-              GSPE
+              Containment
             </h1>
             <p className="text-xs text-sidebar-foreground/70">
               Containment System
@@ -581,162 +638,162 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      
+
       <SidebarFooter className="p-4 bg-background border-t border-sidebar-border">
-          <Dialog>
-            <DialogTrigger asChild>
-              <div className="flex items-center gap-3 mb-4 px-1 cursor-pointer hover:bg-muted rounded-md p-1 transition hover:shadow-sm">
-                <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-sidebar-border">
-                  <ThemeAvatar
-                    user={currentUser}
-                    baseUrl={apiBaseUrl}
-                    className="object-cover"
-                    alt="User Avatar"
-                    width={40}
-                    height={40}
-                  />
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="font-semibold text-sm text-sidebar-foreground truncate">
-                    {currentUser?.name || "Loading..."}{" "}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-sidebar-foreground/70">
-                      {getRoleDisplayName(currentUser?.role)}
-                    </span>
-                  </div>
-                </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <div className="flex items-center gap-3 px-1 cursor-pointer hover:bg-muted rounded-md p-1 transition hover:shadow-sm">
+              <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-sidebar-border">
+                <ThemeAvatar
+                  user={currentUser}
+                  baseUrl={apiBaseUrl}
+                  className="object-cover"
+                  alt="User Avatar"
+                  width={40}
+                  height={40}
+                />
               </div>
-            </DialogTrigger>
-
-            <DialogContent className="max-w-md animate-in fade-in zoom-in-75 bg-background p-6 rounded-xl shadow-xl border">
-              <DialogHeader>
-                <DialogTitle className="text-center text-lg font-bold text-foreground">
-                  User Profile
-                </DialogTitle>
-                <DialogDescription className="text-center text-muted-foreground">
-                  Your account information
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex flex-col items-center mt-2">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary shadow-md mb-2">
-                  <ThemeAvatar
-                    user={currentUser}
-                    baseUrl={apiBaseUrl}
-                    className="object-cover"
-                    alt="User Avatar"
-                    width={96}
-                    height={96}
-                  />
-                </div>
-                <h3 className="text-lg font-semibold">
-                  {currentUser?.name || ""}
-                </h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge
-                    className={`text-xs ${getRoleColor(currentUser?.role)}`}
-                  >
-                    {getRoleDisplayName(currentUser?.role)}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground italic">
-                    IOT Containment System User
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-primary" />
-                  <span>
-                    <span className="font-medium text-foreground">Email:</span>{" "}
-                    {currentUser?.email || "user@example.com"}
-                  </span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <User2 className="w-4 h-4 text-primary" />
-                  <span>
-                    <span className="font-medium text-foreground">Role:</span>{" "}
-                    {getRoleDisplayName(currentUser?.role)}
-                  </span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <User2 className="w-4 h-4 text-primary" />
-                  <span>
-                    <span className="font-medium text-foreground">
-                      User ID:
-                    </span>{" "}
-                    #{currentUser?.id || "N/A"}
-                  </span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <School className="w-4 h-4 text-primary" />
-                  <span>
-                    <span className="font-medium text-foreground">System:</span>{" "}
-                    IOT Containment Monitoring
-                  </span>
-                </p>
-              </div>
-
-              <Separator className="mt-4" />
-
-              <div className="flex justify-end gap-2 mt-4">
-                <Button
-                  variant="destructive"
-                  className="hover:scale-105 transition"
-                  onClick={handleLogoutClick}
-                  disabled={isLoggingOut}
-                >
-                  {isLoggingOut ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8z"
-                        />
-                      </svg>
-                      Logging out...
-                    </span>
-                  ) : (
-                    "Logout"
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Separator className="my-2 bg-sidebar-border h-px" />
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="flex items-center gap-2 text-destructive bg-destructive/5 hover:bg-destructive/20 hover:text-destructive-foreground focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 transition-colors px-3 py-3 rounded-md w-full border border-transparent hover:border-destructive/40"
-                asChild
-              >
-                <span
-                  onClick={handleLogoutClick}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    {isLoggingOut ? "Logging out..." : "Logout"}
-                  </span>
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="font-semibold text-sm text-sidebar-foreground truncate">
+                  {currentUser?.name || "Loading..."}{" "}
                 </span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-sidebar-foreground/70">
+                    {getRoleDisplayName(currentUser?.role)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </DialogTrigger>
+
+          <DialogContent className="max-w-md animate-in fade-in zoom-in-75 bg-background p-6 rounded-xl shadow-xl border">
+            <DialogHeader>
+              <DialogTitle className="text-center text-lg font-bold text-foreground">
+                User Profile
+              </DialogTitle>
+              <DialogDescription className="text-center text-muted-foreground">
+                Your account information
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col items-center mt-2">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary shadow-md mb-2">
+                <ThemeAvatar
+                  user={currentUser}
+                  baseUrl={apiBaseUrl}
+                  className="object-cover"
+                  alt="User Avatar"
+                  width={96}
+                  height={96}
+                />
+              </div>
+              <h3 className="text-lg font-semibold">
+                {currentUser?.name || ""}
+              </h3>
+              <div className="flex items-center gap-2 mb-4">
+                <Badge className={`text-xs ${getRoleColor(currentUser?.role)}`}>
+                  {getRoleDisplayName(currentUser?.role)}
+                </Badge>
+                <p className="text-sm text-muted-foreground italic">
+                  IOT Containment System User
+                </p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                <span>
+                  <span className="font-medium text-foreground">Email:</span>{" "}
+                  {currentUser?.email || "user@example.com"}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <User2 className="w-4 h-4 text-primary" />
+                <span>
+                  <span className="font-medium text-foreground">Role:</span>{" "}
+                  {getRoleDisplayName(currentUser?.role)}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <User2 className="w-4 h-4 text-primary" />
+                <span>
+                  <span className="font-medium text-foreground">User ID:</span>{" "}
+                  #{currentUser?.id || "N/A"}
+                </span>
+              </p>
+              <p className="flex items-center gap-2">
+                <School className="w-4 h-4 text-primary" />
+                <span>
+                  <span className="font-medium text-foreground">System:</span>{" "}
+                  IOT Containment Monitoring
+                </span>
+              </p>
+            </div>
+
+            <Separator className="mt-4" />
+
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="destructive"
+                className="hover:scale-105 transition"
+                onClick={handleLogoutClick}
+                disabled={isLoggingOut}
+              >
+                {isLoggingOut ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    Logging out...
+                  </span>
+                ) : (
+                  "Logout"
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Separator className="my-2 bg-sidebar-border h-px" />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="flex items-center gap-2
+  text-destructive bg-destructive/5 hover:bg-destructive/20 hover:text-destructive-foreground
+  focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2
+  transition-colors px-3 py-3 rounded-md w-full border border-transparent hover:border-destructive/40
+  dark:hover:border-white/40 dark:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
+              asChild
+            >
+              <span
+                onClick={handleLogoutClick}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
       <SidebarRail />
       <br />
       <LogoutConfirmation

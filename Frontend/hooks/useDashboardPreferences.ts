@@ -8,6 +8,21 @@ export interface DashboardPreferences {
   autoPlayInterval: number;
   favoriteComponents: string[];
   lastViewedComponent: number;
+  // New dashboard UI layout settings
+  selectedDashboardLayout: 'dashboard-1' | 'dashboard-2' | 'dashboard-3';
+  displayType: 'scroll' | 'carousel';
+  carouselMode: 'manual' | 'automatic';
+  carouselInterval: number; // in seconds - time between section transitions
+  // CCTV wrapper settings
+  cctvSettings: {
+    enabled: boolean;
+    autoRefresh: boolean;
+    refreshInterval: number; // in seconds
+    showTitles: boolean;
+    gridLayout: '2x2' | '3x3' | '4x4';
+    autoSwitchChannels: boolean;
+    channelSwitchInterval: number; // in seconds
+  };
 }
 
 const DEFAULT_PREFERENCES: DashboardPreferences = {
@@ -15,7 +30,22 @@ const DEFAULT_PREFERENCES: DashboardPreferences = {
   autoPlayEnabled: false,
   autoPlayInterval: 15000,
   favoriteComponents: [],
-  lastViewedComponent: 0
+  lastViewedComponent: 0,
+  // New dashboard UI layout settings
+  selectedDashboardLayout: 'dashboard-1',
+  displayType: 'carousel',
+  carouselMode: 'manual',
+  carouselInterval: 8, // 8 seconds default
+  // CCTV wrapper settings
+  cctvSettings: {
+    enabled: true,
+    autoRefresh: true,
+    refreshInterval: 30,
+    showTitles: true,
+    gridLayout: '2x2',
+    autoSwitchChannels: false,
+    channelSwitchInterval: 10
+  }
 };
 
 const STORAGE_KEY = 'dashboard-preferences';
@@ -88,6 +118,52 @@ export function useDashboardPreferences() {
     setPreferences(prev => ({ ...prev, lastViewedComponent: index }));
   }, []);
 
+  // New dashboard layout functions
+  const setDashboardLayout = useCallback((layout: 'dashboard-1' | 'dashboard-2' | 'dashboard-3') => {
+    setPreferences(prev => ({ ...prev, selectedDashboardLayout: layout }));
+  }, []);
+
+  const setDisplayType = useCallback((type: 'scroll' | 'carousel') => {
+    setPreferences(prev => ({ ...prev, displayType: type }));
+  }, []);
+
+  const setCarouselMode = useCallback((mode: 'manual' | 'automatic') => {
+    setPreferences(prev => ({ ...prev, carouselMode: mode }));
+  }, []);
+
+  const setCarouselInterval = useCallback((interval: number) => {
+    setPreferences(prev => ({ ...prev, carouselInterval: interval }));
+  }, []);
+
+  // CCTV settings functions
+  const updateCctvSettings = useCallback((updates: Partial<typeof preferences.cctvSettings>) => {
+    setPreferences(prev => ({
+      ...prev,
+      cctvSettings: { ...prev.cctvSettings, ...updates }
+    }));
+  }, []);
+
+  const toggleCctvEnabled = useCallback(() => {
+    setPreferences(prev => ({
+      ...prev,
+      cctvSettings: { ...prev.cctvSettings, enabled: !prev.cctvSettings.enabled }
+    }));
+  }, []);
+
+  const toggleCctvAutoRefresh = useCallback(() => {
+    setPreferences(prev => ({
+      ...prev,
+      cctvSettings: { ...prev.cctvSettings, autoRefresh: !prev.cctvSettings.autoRefresh }
+    }));
+  }, []);
+
+  const toggleCctvAutoSwitch = useCallback(() => {
+    setPreferences(prev => ({
+      ...prev,
+      cctvSettings: { ...prev.cctvSettings, autoSwitchChannels: !prev.cctvSettings.autoSwitchChannels }
+    }));
+  }, []);
+
   return {
     preferences,
     isLoaded,
@@ -98,6 +174,16 @@ export function useDashboardPreferences() {
     setAutoPlayInterval,
     addFavoriteComponent,
     removeFavoriteComponent,
-    setLastViewedComponent
+    setLastViewedComponent,
+    // New dashboard layout functions
+    setDashboardLayout,
+    setDisplayType,
+    setCarouselMode,
+    setCarouselInterval,
+    // CCTV settings functions
+    updateCctvSettings,
+    toggleCctvEnabled,
+    toggleCctvAutoRefresh,
+    toggleCctvAutoSwitch
   };
 }

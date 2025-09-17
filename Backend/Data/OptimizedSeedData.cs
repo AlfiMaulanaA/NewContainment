@@ -58,7 +58,7 @@ namespace Backend.Data
                 // System configuration seeding
                 await SeedContainmentStatusAsync(context, containments, logger);
                 await SeedMaintenanceAsync(context, users, containments, racks, logger);
-                await SeedCameraConfigAsync(context, logger);
+                // await SeedCameraConfigAsync(context, logger);
                 await SeedMqttConfigurationAsync(context, users, logger);
                 await SeedNetworkConfigurationAsync(context, users, logger);
 

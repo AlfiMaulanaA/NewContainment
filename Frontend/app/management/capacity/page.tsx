@@ -253,21 +253,21 @@ export default function RackManagementPage({
   };
 
   const getCapacityUtilizationColor = (usedU: number, totalU: number) => {
-    if (totalU === 0) return "text-gray-500";
+    if (totalU === 0) return "text-gray-500 dark:text-gray-400";
     const percentage = (usedU / totalU) * 100;
-    if (percentage >= 90) return "text-red-600";
-    if (percentage >= 75) return "text-orange-600";
-    if (percentage >= 50) return "text-yellow-600";
-    return "text-green-600";
+    if (percentage >= 90) return "text-red-600 dark:text-red-400";
+    if (percentage >= 75) return "text-orange-600 dark:text-orange-400";
+    if (percentage >= 50) return "text-yellow-600 dark:text-yellow-400";
+    return "text-green-600 dark:text-green-400";
   };
 
   const getCapacityUtilizationBadge = (usedU: number, totalU: number) => {
     if (totalU === 0) return <Badge variant="secondary">No Capacity</Badge>;
     const percentage = (usedU / totalU) * 100;
     if (percentage >= 90) return <Badge variant="destructive">Critical</Badge>;
-    if (percentage >= 75) return <Badge className="bg-orange-500">High</Badge>;
-    if (percentage >= 50) return <Badge className="bg-yellow-500">Medium</Badge>;
-    return <Badge className="bg-green-500">Low</Badge>;
+    if (percentage >= 75) return <Badge className="bg-orange-500 dark:bg-orange-600 text-white">High</Badge>;
+    if (percentage >= 50) return <Badge className="bg-yellow-500 dark:bg-yellow-600 text-white dark:text-gray-900">Medium</Badge>;
+    return <Badge className="bg-green-500 dark:bg-green-600 text-white">Low</Badge>;
   };
 
   return (
@@ -306,8 +306,8 @@ export default function RackManagementPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Racks</CardTitle>
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <HardDriveUpload className="h-4 w-4 text-gray-600" />
+            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              <HardDriveUpload className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -321,8 +321,8 @@ export default function RackManagementPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Racks</CardTitle>
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Activity className="h-4 w-4 text-green-600" />
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -336,8 +336,8 @@ export default function RackManagementPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Used Capacity</CardTitle>
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <HardDrive className="h-4 w-4 text-blue-600" />
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <HardDrive className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -349,8 +349,8 @@ export default function RackManagementPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Available Capacity</CardTitle>
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Building className="h-4 w-4 text-green-600" />
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <Building className="h-4 w-4 text-green-600 dark:text-green-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -362,8 +362,8 @@ export default function RackManagementPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Utilization</CardTitle>
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Activity className="h-4 w-4 text-purple-600" />
+            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+              <Activity className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             </div>
           </CardHeader>
           <CardContent>
@@ -497,12 +497,12 @@ export default function RackManagementPage({
                               <span className="text-xs text-muted-foreground">
                                 Remaining: {remainingU} U
                               </span>
-                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                <div 
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1">
+                                <div
                                   className={`h-2 rounded-full ${
-                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.9 ? 'bg-red-500' :
-                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.75 ? 'bg-orange-500' :
-                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.5 ? 'bg-yellow-500' : 'bg-green-500'
+                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.9 ? 'bg-red-500 dark:bg-red-400' :
+                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.75 ? 'bg-orange-500 dark:bg-orange-400' :
+                                    totalCapacity > 0 && (usedU / totalCapacity) >= 0.5 ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-green-500 dark:bg-green-400'
                                   }`}
                                   style={{
                                     width: `${totalCapacity > 0 ? (usedU / totalCapacity) * 100 : 0}%`
@@ -519,7 +519,7 @@ export default function RackManagementPage({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-blue-600 hover:text-blue-800 p-1 h-auto font-medium"
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 p-1 h-auto font-medium"
                                 title="View devices in this rack"
                                 onClick={() =>
                                   router.push(
@@ -544,7 +544,7 @@ export default function RackManagementPage({
                                       )}`
                                     )
                                   }
-                                  className="text-gray-500 hover:text-gray-700 p-1 h-auto"
+                                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 h-auto"
                                   title="Manage devices"
                                 >
                                   <HardDrive className="h-3 w-3" />

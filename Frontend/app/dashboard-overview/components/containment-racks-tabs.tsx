@@ -1131,7 +1131,7 @@ export default function RackManagementPage({
                                                   </div>
                                                 );
                                               })}
-                                              
+
                                               {/* Tombol collapse */}
                                               <Button
                                                 variant="ghost"

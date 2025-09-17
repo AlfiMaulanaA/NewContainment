@@ -41,19 +41,19 @@ export default function ClientLayout({
   // For protected pages, use full layout with sidebar
   return (
     <AuthProvider>
-      <RouteGuard>
-        <DeveloperModeProvider>
-          <SafeGlobalAttendanceProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <main className="flex-1 overflow-auto">{children}</main>
-              <Toaster richColors position="top-right" />
-              <SessionTimeoutWarning />
-              <BackendStatusAlert />
-            </SidebarProvider>
-          </SafeGlobalAttendanceProvider>
-        </DeveloperModeProvider>
-      </RouteGuard>
+      {/* <RouteGuard> */}
+      <DeveloperModeProvider>
+        <SafeGlobalAttendanceProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1 overflow-auto">{children}</main>
+            <Toaster richColors position="top-right" />
+            <SessionTimeoutWarning />
+            <BackendStatusAlert autoHideDelay={3000} />
+          </SidebarProvider>
+        </SafeGlobalAttendanceProvider>
+      </DeveloperModeProvider>
+      {/* </RouteGuard> */}
     </AuthProvider>
   );
 }

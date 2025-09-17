@@ -394,17 +394,17 @@ export default function MaintenancePage() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "completed":
-        return "bg-green-500";
+        return "bg-green-500 dark:bg-green-600";
       case "in progress":
-        return "bg-blue-500";
+        return "bg-blue-500 dark:bg-blue-600";
       case "scheduled":
-        return "bg-gray-500";
+        return "bg-gray-500 dark:bg-gray-600";
       case "cancelled":
-        return "bg-red-500";
+        return "bg-red-500 dark:bg-red-600";
       case "on hold":
-        return "bg-yellow-500";
+        return "bg-yellow-500 dark:bg-yellow-600";
       default:
-        return "bg-gray-400";
+        return "bg-gray-400 dark:bg-gray-600";
     }
   };
 
@@ -958,14 +958,14 @@ export default function MaintenancePage() {
                 {/* Calendar Header - Day Labels */}
                 <div className="grid grid-cols-7 gap-0 mb-2">
                   {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                    <div key={day} className="h-8 flex items-center justify-center text-sm font-semibold text-gray-600 bg-gray-100 border border-gray-200 first:rounded-tl-lg last:rounded-tr-lg">
+                    <div key={day} className="h-8 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 first:rounded-tl-lg last:rounded-tr-lg">
                       {day}
                     </div>
                   ))}
                 </div>
                 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-0 border border-gray-200 rounded-b-lg overflow-hidden">
+                <div className="grid grid-cols-7 gap-0 border border-gray-200 dark:border-gray-600 rounded-b-lg overflow-hidden">
                   {generateCalendarDays().map((day, index) => {
                     const maintenancesForDay = getMaintenancesForDate(day);
                     const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -976,11 +976,11 @@ export default function MaintenancePage() {
                       <div
                         key={index}
                         className={cn(
-                          "min-h-[80px] md:min-h-[100px] p-2 border-r border-b border-gray-200 transition-all duration-200 relative group cursor-pointer",
-                          "hover:bg-blue-50 hover:border-blue-300",
-                          !isCurrentMonth && "text-muted-foreground bg-gray-50/70",
-                          isSelected && "bg-blue-100 border-blue-400",
-                          isCurrentDay && "bg-gradient-to-br from-blue-50 to-blue-100 font-semibold",
+                          "min-h-[80px] md:min-h-[100px] p-2 border-r border-b border-gray-200 dark:border-gray-600 transition-all duration-200 relative group cursor-pointer",
+                          "hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600",
+                          !isCurrentMonth && "text-muted-foreground bg-gray-50/70 dark:bg-gray-800/70",
+                          isSelected && "bg-blue-100 dark:bg-blue-900/50 border-blue-400 dark:border-blue-500",
+                          isCurrentDay && "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/60 font-semibold",
                           (index + 1) % 7 === 0 && "border-r-0", // Remove right border for last column in each row
                           index >= generateCalendarDays().length - 7 && "border-b-0" // Remove bottom border for last row
                         )}
@@ -989,13 +989,13 @@ export default function MaintenancePage() {
                         {/* Day number - positioned at top left */}
                         <div className={cn(
                           "text-sm font-medium mb-2 flex items-center justify-start",
-                          isCurrentDay && "text-blue-700 font-bold",
-                          isSelected && "text-blue-600",
-                          !isCurrentMonth && "text-gray-400"
+                          isCurrentDay && "text-blue-700 dark:text-blue-300 font-bold",
+                          isSelected && "text-blue-600 dark:text-blue-400",
+                          !isCurrentMonth && "text-gray-400 dark:text-gray-500"
                         )}>
                           <span className={cn(
                             "min-w-[20px] h-5 flex items-center justify-center",
-                            isCurrentDay && "bg-blue-600 text-white rounded-full text-xs font-bold"
+                            isCurrentDay && "bg-blue-600 dark:bg-blue-500 text-white rounded-full text-xs font-bold"
                           )}>
                             {format(day, "d")}
                           </span>
@@ -1034,7 +1034,7 @@ export default function MaintenancePage() {
                           {/* Show count indicator for multiple tasks */}
                           {maintenancesForDay.length > 1 && (
                             <div 
-                              className="text-[8px] md:text-[9px] text-gray-500 bg-gray-100 px-1 py-0.5 rounded text-center cursor-pointer hover:bg-gray-200 transition-colors border border-gray-300"
+                              className="text-[8px] md:text-[9px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-300 dark:border-gray-600"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedDate(day);
@@ -1058,44 +1058,44 @@ export default function MaintenancePage() {
                 </div>
 
                 {/* Improved Legend with better visibility */}
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">Status Legend:</h5>
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-600">
+                  <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status Legend:</h5>
                   <div className="flex flex-wrap gap-3 text-sm">
-                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
-                      <div className="w-3 h-3 bg-green-500 rounded shadow-sm"></div>
-                      <span className="font-medium">Completed</span>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border dark:border-gray-600">
+                      <div className="w-3 h-3 bg-green-500 dark:bg-green-600 rounded shadow-sm"></div>
+                      <span className="font-medium dark:text-gray-200">Completed</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
-                      <div className="w-3 h-3 bg-blue-500 rounded shadow-sm"></div>
-                      <span className="font-medium">In Progress</span>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border dark:border-gray-600">
+                      <div className="w-3 h-3 bg-blue-500 dark:bg-blue-600 rounded shadow-sm"></div>
+                      <span className="font-medium dark:text-gray-200">In Progress</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
-                      <div className="w-3 h-3 bg-gray-500 rounded shadow-sm"></div>
-                      <span className="font-medium">Scheduled</span>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border dark:border-gray-600">
+                      <div className="w-3 h-3 bg-gray-500 dark:bg-gray-600 rounded shadow-sm"></div>
+                      <span className="font-medium dark:text-gray-200">Scheduled</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
-                      <div className="w-3 h-3 bg-yellow-500 rounded shadow-sm"></div>
-                      <span className="font-medium">On Hold</span>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border dark:border-gray-600">
+                      <div className="w-3 h-3 bg-yellow-500 dark:bg-yellow-600 rounded shadow-sm"></div>
+                      <span className="font-medium dark:text-gray-200">On Hold</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border">
-                      <div className="w-3 h-3 bg-red-500 rounded shadow-sm"></div>
-                      <span className="font-medium">Cancelled</span>
+                    <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border dark:border-gray-600">
+                      <div className="w-3 h-3 bg-red-500 dark:bg-red-600 rounded shadow-sm"></div>
+                      <span className="font-medium dark:text-gray-200">Cancelled</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Enhanced Selected Date Details */}
                 {selectedDate && (
-                  <div id="selected-date-details" className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm">
+                  <div id="selected-date-details" className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/30 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-lg text-blue-900">
+                      <h4 className="font-semibold text-lg text-blue-900 dark:text-blue-100">
                         📅 {format(selectedDate, "EEEE, MMMM d, yyyy")}
                       </h4>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setSelectedDate(null)}
-                        className="text-blue-700 hover:text-blue-900"
+                        className="text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100"
                       >
                         ✕ Close
                       </Button>
@@ -1104,36 +1104,36 @@ export default function MaintenancePage() {
                     {getMaintenancesForDate(selectedDate).length === 0 ? (
                       <div className="text-center py-6">
                         <div className="text-6xl mb-2">📝</div>
-                        <p className="text-gray-600 font-medium">No maintenance tasks scheduled</p>
-                        <p className="text-sm text-gray-500">This date is free for scheduling new maintenance</p>
+                        <p className="text-gray-600 dark:text-gray-300 font-medium">No maintenance tasks scheduled</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">This date is free for scheduling new maintenance</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        <div className="text-sm text-blue-700 font-medium mb-3">
+                        <div className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-3">
                           📋 {getMaintenancesForDate(selectedDate).length} maintenance task(s) scheduled
                         </div>
                         {getMaintenancesForDate(selectedDate).map((maintenance, index) => (
                           <div
                             key={maintenance.id}
-                            className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200"
                             onClick={() => openViewDialog(maintenance)}
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-bold text-gray-500">#{index + 1}</span>
-                                <div className="font-semibold text-gray-900">{maintenance.name}</div>
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">{maintenance.name}</div>
                               </div>
-                              <div className="text-sm text-gray-600 mb-1">
+                              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                                 🎯 <strong>Target:</strong> {getTargetName(maintenance)}
                               </div>
-                              <div className="text-sm text-gray-600 mb-1">
+                              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                                 👤 <strong>Assigned:</strong> {maintenance.assignedToUser?.name || `User #${maintenance.assignTo}`}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
                                 ⏰ <strong>Duration:</strong> {format(new Date(maintenance.startTask), "MMM dd, HH:mm")} - {format(new Date(maintenance.endTask), "MMM dd, HH:mm")}
                               </div>
                               {maintenance.description && (
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                   📄 <strong>Description:</strong> {maintenance.description.substring(0, 100)}{maintenance.description.length > 100 ? '...' : ''}
                                 </div>
                               )}
@@ -1145,7 +1145,7 @@ export default function MaintenancePage() {
                               >
                                 {maintenance.status}
                               </Badge>
-                              <div className="text-xs text-gray-400">Click to view details</div>
+                              <div className="text-xs text-gray-400 dark:text-gray-500">Click to view details</div>
                             </div>
                           </div>
                         ))}

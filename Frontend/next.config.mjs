@@ -13,8 +13,6 @@ const nextConfig = {
     webpackBuildWorker: true,
     // Remove turbo as it might conflict with other optimizations
   },
-  // Enable SWC minification for better performance
-  swcMinify: true,
   // Disable image optimization for static export
   images: {
     unoptimized: true,

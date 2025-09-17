@@ -364,15 +364,15 @@ export default function ContainmentControlPage() {
       </header>
 
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground dark:text-gray-300">
           Control containment doors and ceiling via MQTT commands
         </p>
 
         {/* Connection Status Alert */}
         {isInitializing && (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-blue-700">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
                 <Activity className="h-4 w-4 animate-pulse" />
                 <span className="text-sm font-medium">
                   Initializing MQTT connection...
@@ -384,10 +384,10 @@ export default function ContainmentControlPage() {
 
         {!isInitializing && !isConnected && (
           <div className="space-y-4">
-            <Card className="border-orange-200 bg-orange-50">
+            <Card className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-orange-700">
+                  <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
                     <AlertCircle className="h-4 w-4" />
                     <span className="text-sm font-medium">
                       MQTT connection required to send control commands.
@@ -462,18 +462,18 @@ export default function ContainmentControlPage() {
                 </h3>
 
                 {/* Front Door Always Open */}
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700">
                   <div className="flex items-center gap-3">
                     {controlState.frontDoorAlwaysOpen ? (
                       <DoorOpen className="h-4 w-4 text-green-500" />
                     ) : (
-                      <DoorClosed className="h-4 w-4 text-gray-500" />
+                      <DoorClosed className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     )}
                     <div>
                       <Label className="font-medium">
                         Front Door Always Open
                       </Label>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground dark:text-gray-400">
                         Keep front door permanently open
                       </div>
                     </div>
@@ -486,18 +486,18 @@ export default function ContainmentControlPage() {
                 </div>
 
                 {/* Back Door Always Open */}
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700">
                   <div className="flex items-center gap-3">
                     {controlState.backDoorAlwaysOpen ? (
                       <DoorOpen className="h-4 w-4 text-green-500" />
                     ) : (
-                      <DoorClosed className="h-4 w-4 text-gray-500" />
+                      <DoorClosed className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     )}
                     <div>
                       <Label className="font-medium">
                         Back Door Always Open
                       </Label>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground dark:text-gray-400">
                         Keep back door permanently open
                       </div>
                     </div>
@@ -521,7 +521,7 @@ export default function ContainmentControlPage() {
                   ? "Advanced System Controls"
                   : "System Controls"}
                 {containmentData && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                  <span className="text-sm font-normal text-muted-foreground dark:text-gray-300 ml-2">
                     - {containmentData.name}
                   </span>
                 )}
@@ -536,22 +536,24 @@ export default function ContainmentControlPage() {
                       Ceiling Control
                     </h3>
 
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700">
                       <div className="flex items-center gap-3">
                         {controlState.ceilingState ? (
                           <ArrowDown className="h-4 w-4 text-blue-500" />
                         ) : (
-                          <ArrowUp className="h-4 w-4 text-gray-500" />
+                          <ArrowUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         )}
                         <div>
                           <Label className="font-medium">
                             Ceiling Position
                           </Label>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-muted-foreground dark:text-gray-300">
                             Current:{" "}
-                            {controlState.ceilingState
-                              ? "Open (Down)"
-                              : "Closed (Up)"}
+                            <span className="font-medium">
+                              {controlState.ceilingState
+                                ? "Open (Down)"
+                                : "Closed (Up)"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -594,7 +596,7 @@ export default function ContainmentControlPage() {
                 {containmentStatus && (
                   <>
                     {/* Emergency Status - Most Important */}
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700">
                       <div className="flex items-center gap-3">
                         {containmentStatus.emergencyStatus ? (
                           <AlertCircle className="h-4 w-4 text-red-500" />
@@ -605,11 +607,13 @@ export default function ContainmentControlPage() {
                           <Label className="font-medium">
                             Emergency Status
                           </Label>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-muted-foreground dark:text-gray-300">
                             System{" "}
-                            {containmentStatus.emergencyStatus
-                              ? "in emergency"
-                              : "operating normally"}
+                            <span className="font-medium">
+                              {containmentStatus.emergencyStatus
+                                ? "in emergency"
+                                : "operating normally"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -636,7 +640,7 @@ export default function ContainmentControlPage() {
                 {containmentStatus ? (
                   <div className="grid grid-cols-2 gap-3">
                     {/* Front Door Limit Switch */}
-                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                       <div className="flex items-center gap-2">
                         <DoorOpen className="h-3 w-3 text-muted-foreground" />
                         <span className="text-xs font-medium">Front Door</span>
@@ -656,7 +660,7 @@ export default function ContainmentControlPage() {
                     </div>
 
                     {/* Back Door Limit Switch */}
-                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                       <div className="flex items-center gap-2">
                         <DoorOpen className="h-3 w-3 text-muted-foreground" />
                         <span className="text-xs font-medium">Back Door</span>
@@ -676,7 +680,7 @@ export default function ContainmentControlPage() {
                     </div>
 
                     {/* Lighting Status */}
-                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                       <div className="flex items-center gap-2">
                         <Monitor className="h-3 w-3 text-muted-foreground" />
                         <span className="text-xs font-medium">Lighting</span>
@@ -696,7 +700,7 @@ export default function ContainmentControlPage() {
                     </div>
 
                     {/* Fire Suppression System */}
-                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between p-2 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                       <div className="flex items-center gap-2">
                         <Shield className="h-3 w-3 text-muted-foreground" />
                         <span className="text-xs font-medium">
@@ -714,7 +718,7 @@ export default function ContainmentControlPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-4 text-muted-foreground">
+                  <div className="text-center py-4 text-muted-foreground dark:text-gray-400">
                     <Monitor className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>Loading status data...</p>
                   </div>
@@ -756,7 +760,7 @@ export default function ContainmentControlPage() {
                 {accessLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
+                    className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700"
                   >
                     <div className="flex items-center gap-3">
                       {log.isSuccess ? (
@@ -771,7 +775,7 @@ export default function ContainmentControlPage() {
                             {log.user}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-xs text-muted-foreground dark:text-gray-400 mt-1">
                           <div className="flex items-center gap-2">
                             <Monitor className="h-3 w-3" />
                             <span>{log.trigger}</span>
@@ -789,7 +793,7 @@ export default function ContainmentControlPage() {
                       >
                         {log.isSuccess ? "Success" : "Failed"}
                       </Badge>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-gray-400 mt-1">
                         <Clock className="h-3 w-3" />
                         {new Date(log.timestamp).toLocaleString()}
                       </div>
@@ -798,7 +802,7 @@ export default function ContainmentControlPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-muted-foreground dark:text-gray-400">
                 {isLoadingLogs ? (
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -819,24 +823,24 @@ export default function ContainmentControlPage() {
         </Card>
 
         {/* MQTT Topic Information */}
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
           <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
+            <CardTitle className="text-blue-800 dark:text-blue-200 flex items-center gap-2">
               <Wifi className="h-5 w-5" />
               MQTT Configuration
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-blue-700 space-y-2">
+            <div className="text-blue-700 dark:text-blue-300 space-y-2">
               <div className="flex items-center gap-2">
                 <strong>Topic:</strong>
-                <code className="bg-blue-100 px-2 py-1 rounded text-sm">
+                <code className="bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-sm">
                   IOT/Containment/Control
                 </code>
               </div>
               <div className="text-sm">
                 <strong>Payload Format:</strong>
-                <code className="bg-blue-100 px-2 py-1 rounded text-sm ml-1">
+                <code className="bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-sm ml-1">
                   {'{ "data": "command" }'}
                 </code>
               </div>

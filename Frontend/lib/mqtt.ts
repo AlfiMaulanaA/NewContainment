@@ -647,6 +647,31 @@ export const mqttClient = {
     const client = this.getInstance();
     if (!client) return;
     client.removeConnectionListener(listener);
+  },
+
+  // Add missing methods from useMQTT.ts
+  getTopic(subtopic: string): string {
+    const client = this.getInstance();
+    if (!client) return subtopic;
+    return client.getTopic(subtopic);
+  },
+
+  async subscribeTopic(subtopic: string, callback: (topic: string, message: string) => void): Promise<boolean> {
+    const client = this.getInstance();
+    if (!client) return false;
+    return await client.subscribeTopic(subtopic, callback);
+  },
+
+  async publishTopic(subtopic: string, message: string, retain = false): Promise<boolean> {
+    const client = this.getInstance();
+    if (!client) return false;
+    return await client.publishTopic(subtopic, message, retain);
+  },
+
+  async reloadConfig(): Promise<boolean> {
+    const client = this.getInstance();
+    if (!client) return false;
+    return await client.reloadConfig();
   }
 };
 

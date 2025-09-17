@@ -19,21 +19,49 @@ export function useDynamicMenu() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const { registerMenuRefresh } = useDeveloperMode();
 
-  const fetchUserMenu = async () => {
+  const fetchUserMenu = async (isRetryAttempt = false) => {
     try {
-      setIsLoading(true);
+      if (!isRetryAttempt) {
+        setIsLoading(true);
+      } else {
+        setIsRetrying(true);
+      }
       setError(null);
 
       const data = await menuApi.getUserMenu();
       setMenuData(data);
       setLastUpdate(Date.now());
+      setRetryCount(0); // Reset retry count on success
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
+
+      // Auto-retry mechanism for failed requests
+      if (retryCount < 3) { // Max 3 retries
+        const nextRetryCount = retryCount + 1;
+        setRetryCount(nextRetryCount);
+
+        // Exponential backoff: 2s, 4s, 8s
+        const retryDelay = Math.pow(2, nextRetryCount) * 1000;
+
+        console.log(`Menu fetch failed, retrying in ${retryDelay/1000}s (attempt ${nextRetryCount}/3)`);
+
+        setTimeout(() => {
+          fetchUserMenu(true);
+        }, retryDelay);
+      } else {
+        console.error("Menu fetch failed after 3 retries:", errorMessage);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isRetryAttempt) {
+        setIsLoading(false);
+      } else {
+        setIsRetrying(false);
+      }
     }
   };
 
@@ -64,13 +92,35 @@ export function useDynamicMenu() {
       }
     };
 
+    // Listen for page visibility changes (when user comes back to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && error) {
+        console.log("Page became visible and there was an error, retrying menu fetch...");
+        setRetryCount(0); // Reset retry count
+        fetchUserMenu();
+      }
+    };
+
+    // Listen for online status changes (when connection is restored)
+    const handleOnlineStatus = () => {
+      if (navigator.onLine && error) {
+        console.log("Connection restored, retrying menu fetch...");
+        setRetryCount(0); // Reset retry count
+        fetchUserMenu();
+      }
+    };
+
     window.addEventListener("storage", handleStorageChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnlineStatus);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnlineStatus);
     };
-  }, [registerMenuRefresh]);
+  }, [registerMenuRefresh, error, retryCount]);
 
   return {
     menuData,
@@ -78,6 +128,8 @@ export function useDynamicMenu() {
     error,
     refreshMenu,
     lastUpdate,
+    isRetrying,
+    retryCount,
   };
 }
 

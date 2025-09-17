@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import {
   MonitorPlay,
   Grid3X3,
@@ -13,6 +14,16 @@ import {
   Minimize2,
   Settings,
   RefreshCw,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  RotateCw,
+  Eye,
+  EyeOff,
+  Wifi,
+  WifiOff,
+  AlertCircle,
 } from "lucide-react";
 import ModernCCTVWidget from "@/components/cctv-widget-modern";
 import {
@@ -39,9 +50,48 @@ export default function CCTVWrapperCard({
   defaultLayout = "auto",
   compact = false,
 }: CCTVWrapperCardProps) {
+  const { preferences, updateCctvSettings, toggleCctvEnabled, toggleCctvAutoRefresh } = useDashboardPreferences();
+  const { cctvSettings } = preferences;
+
   const [currentLayout, setCurrentLayout] = useState<GridLayout>(defaultLayout);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto refresh functionality
+  useEffect(() => {
+    if (cctvSettings.autoRefresh && cctvSettings.enabled) {
+      autoRefreshRef.current = setInterval(() => {
+        handleRefresh();
+      }, cctvSettings.refreshInterval * 1000);
+    } else {
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current);
+        autoRefreshRef.current = null;
+      }
+    }
+
+    return () => {
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current);
+      }
+    };
+  }, [cctvSettings.autoRefresh, cctvSettings.enabled, cctvSettings.refreshInterval]);
+
+  // Sync layout with CCTV settings
+  useEffect(() => {
+    if (cctvSettings.gridLayout === '2x2') {
+      setCurrentLayout('2x2');
+    } else if (cctvSettings.gridLayout === '3x3') {
+      setCurrentLayout('3x3');
+    } else if (cctvSettings.gridLayout === '4x4') {
+      setCurrentLayout('4x2');
+    }
+  }, [cctvSettings.gridLayout]);
 
   const getGridClasses = (layout: GridLayout): string => {
     switch (layout) {
@@ -93,11 +143,55 @@ export default function CCTVWrapperCard({
 
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1);
+    setLastRefresh(new Date());
+  };
+
+  const handleLayoutChange = (layout: GridLayout) => {
+    setCurrentLayout(layout);
+    // Update CCTV settings based on layout
+    if (layout === '2x2') {
+      updateCctvSettings({ gridLayout: '2x2' });
+    } else if (layout === '3x3') {
+      updateCctvSettings({ gridLayout: '3x3' });
+    } else if (layout === '4x2') {
+      updateCctvSettings({ gridLayout: '4x4' });
+    }
+  };
+
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
   };
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
+
+  // If CCTV is disabled, show disabled state
+  if (!cctvSettings.enabled) {
+    return (
+      <Card className={`${compact ? "border-0 shadow-sm" : "shadow-lg"} bg-background`}>
+        <CardContent className="p-6 text-center">
+          <div className="space-y-4">
+            <EyeOff className="h-12 w-12 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="font-medium">CCTV Monitoring Disabled</h3>
+              <p className="text-sm text-muted-foreground">
+                Enable CCTV monitoring in dashboard settings
+              </p>
+            </div>
+            <Button variant="outline" onClick={toggleCctvEnabled}>
+              <Eye className="h-4 w-4 mr-2" />
+              Enable CCTV
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isFullscreen) {
     return (
@@ -126,7 +220,7 @@ export default function CCTVWrapperCard({
                   (layout) => (
                     <DropdownMenuItem
                       key={layout}
-                      onClick={() => setCurrentLayout(layout)}
+                      onClick={() => handleLayoutChange(layout)}
                       className="flex items-center gap-2"
                     >
                       {getLayoutIcon(layout)}
@@ -137,11 +231,30 @@ export default function CCTVWrapperCard({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button onClick={handleRefresh} variant="ghost" size="sm">
+            {/* CCTV Controls */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePlayPause}
+              title={isPlaying ? "Pause" : "Play"}
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMute}
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
+
+            <Button onClick={handleRefresh} variant="ghost" size="sm" title="Refresh feeds">
               <RefreshCw className="h-4 w-4" />
             </Button>
 
-            <Button onClick={toggleFullscreen} variant="ghost" size="sm">
+            <Button onClick={toggleFullscreen} variant="ghost" size="sm" title="Exit fullscreen">
               <Minimize2 className="h-5 w-5" />
             </Button>
           </div>

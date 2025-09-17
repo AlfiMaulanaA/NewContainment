@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/api-service";
-import { getCurrentUserFromToken } from "@/lib/auth-utils";
 import { AuthNotifications } from "@/lib/auth-notifications";
 import {
   Facebook,
@@ -17,6 +16,7 @@ import {
   EyeOff,
   Sun,
   Moon,
+  Container,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { setCookie } from "cookies-next";
@@ -112,8 +112,11 @@ const LoginPage = () => {
         // Show success notification
         AuthNotifications.loginSuccess(result.data.user.name);
 
-        console.log('🔍 Login successful, token stored:', result.data.token ? 'YES' : 'NO');
-        
+        console.log(
+          "🔍 Login successful, token stored:",
+          result.data.token ? "YES" : "NO"
+        );
+
         // Wait a bit for the auth state to update, then navigate
         setTimeout(() => {
           router.push("/dashboard-overview");
@@ -132,39 +135,29 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen font-sans relativebg-background">
+    <div className="flex min-h-screen font-sans relative bg-background text-foreground">
       {/* Kiri: Gambar dan informasi */}
       <div
         className="flex-1 relative bg-cover bg-center overflow-hidden hidden lg:block"
         style={{ backgroundImage: "url(/images/border-device.png)" }}
       >
         <div
-          className="absolute inset-0 bg-black/60 p-8 m-8 rounded-2xl flex flex-col justify-between animate-fadeInLeft"
+          className="absolute inset-0 bg-black/60 dark:bg-black/80 p-8 m-8 rounded-2xl flex flex-col justify-between animate-fadeInLeft"
           style={{ clipPath: "polygon(0 0, 80% 0, 100% 100%, 0% 100%)" }}
         >
           {/* Info Produksi */}
           <div className="absolute top-6 left-6 z-10 text-white">
             <div className="text-sm font-medium mb-2">Production By</div>
             <div className="flex items-center gap-2 animate-fadeInUp">
-              <div className="w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden backdrop-blur-sm flex items-center justify-centerbg-background/70">
-                <img
-                  src="/images/gspe.jpg"
-                  alt="GSPE"
-                  width={32}
-                  height={32}
-                  className={`rounded-full object-cover ${
-                    theme === "dark"
-                      ? "filter brightness-125 contrast-110 saturate-110"
-                      : "filter brightness-110 contrast-110"
-                  }`}
-                />
+              <div className="w-10 h-10 rounded-full border-2 border-white/20 backdrop-blur-sm flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700">
+                <Container className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="font-bold leading-tight">
-                  PT Graha Sumber Prima Elektronik
+                <p className="font-bold leading-tight text-white">
+                  IoT Containment Monitoring
                 </p>
                 <p className="text-white/70 text-sm leading-tight">
-                  Manufactur Electrical Panel & Internet Of Things
+                  Advanced Containment & Sensor Monitoring System
                 </p>
               </div>
             </div>
@@ -192,33 +185,23 @@ const LoginPage = () => {
             size="default"
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             aria-label="Toggle Theme"
-            className="flex items-center gap-2" // Menggunakan flexbox untuk tata letak
+            className="flex items-center gap-2 text-foreground hover:bg-accent hover:text-accent-foreground"
           >
             {theme === "light" ? (
               <Moon className="h-5 w-5" />
             ) : (
               <Sun className="h-5 w-5" />
             )}
-            <span className="ml-2">
-              {theme === "light" ? "Dark Mode" : "Light Mode"}
-            </span>
+            <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
           </Button>
         </div>
 
         <div className="w-full max-w-md space-y-6 animate-slideIn py-12">
           <div>
-            <h2
-              className={`text-3xl font-bold text-center animate-fadeInUp ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
+            <h2 className="text-3xl font-bold text-center animate-fadeInUp text-foreground">
               Hi, Welcome Back.
             </h2>
-            <p
-              className={`text-center mt-2 text-sm ${
-                theme === "dark" ? "text-gray-300" : "text-gray-500"
-              }`}
-            >
+            <p className="text-center mt-2 text-sm text-muted-foreground">
               <span
                 className="inline-block border-r-2 border-blue-500 pr-2 animate-typing overflow-hidden whitespace-nowrap"
                 style={{
@@ -234,7 +217,9 @@ const LoginPage = () => {
           {/* Form Input */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -242,11 +227,14 @@ const LoginPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Enter your email"
+                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-foreground">
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -255,12 +243,12 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Enter your password"
-                  className="pr-10"
+                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground"
                 />
                 <button
                   type="button"
                   onClick={() => setPasswordVisible(!passwordVisible)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 focus:outline-none"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none"
                   tabIndex={-1}
                 >
                   {passwordVisible ? (
@@ -271,10 +259,10 @@ const LoginPage = () => {
                 </button>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <label className="flex items-center gap-2 text-xs text-gray-600">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <input
                     type="checkbox"
-                    className="accent-blue-600"
+                    className="accent-blue-600 dark:accent-blue-400"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                   />
@@ -282,7 +270,7 @@ const LoginPage = () => {
                 </label>
                 <a
                   href="/auth/forgot-password"
-                  className="text-xs text-blue-600 hover:underline"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Forgot password?
                 </a>
@@ -327,15 +315,11 @@ const LoginPage = () => {
             )}
 
             {/* Daftar */}
-            <p
-              className={`text-center text-sm ${
-                theme === "dark" ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
+            <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
               <a
                 href="/auth/register"
-                className="underline text-blue-600 hover:text-blue-700"
+                className="underline text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
               >
                 Sign up
               </a>
@@ -348,7 +332,7 @@ const LoginPage = () => {
               href="https://facebook.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-blue-600"
+              className="text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               <Facebook className="w-5 h-5 inline" />
             </a>
@@ -356,7 +340,7 @@ const LoginPage = () => {
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-sky-500"
+              className="text-muted-foreground hover:text-sky-500 dark:hover:text-sky-400 transition-colors"
             >
               <Twitter className="w-5 h-5 inline" />
             </a>
@@ -364,7 +348,7 @@ const LoginPage = () => {
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-pink-500"
+              className="text-muted-foreground hover:text-pink-500 dark:hover:text-pink-400 transition-colors"
             >
               <Instagram className="w-5 h-5 inline" />
             </a>
@@ -373,13 +357,7 @@ const LoginPage = () => {
       </div>
 
       {/* Versi Aplikasi */}
-      <div
-        className={`absolute bottom-2 right-4 text-xs px-3 py-1 rounded-full backdrop-blur-sm shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md ${
-          theme === "dark"
-            ? "text-gray-300 border border-gray-600 bg-gray-800/70 hover:bg-gray-700/80"
-            : "text-gray-400 border border-gray-300 bg-white/70 hover:bg-white"
-        }`}
-      >
+      <div className="absolute bottom-2 right-4 text-xs px-3 py-1 rounded-full backdrop-blur-sm shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md text-muted-foreground border border-border bg-background/70 hover:bg-accent/80">
         Version {appVersion}
       </div>
     </div>

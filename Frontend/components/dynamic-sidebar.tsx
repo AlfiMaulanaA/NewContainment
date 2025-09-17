@@ -18,7 +18,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { LogOut, Mail, User2, School, Unlock, Code } from "lucide-react";
+import {
+  LogOut,
+  Mail,
+  User2,
+  School,
+  Unlock,
+  Code,
+  Container,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -175,19 +183,15 @@ export function DynamicSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center border-gray-400 justify-center rounded-lg bg-primary text-primary-foreground">
-            <img
-              src="/images/gspe.jpg"
-              alt="GSPE Logo"
-              className="h-full w-full object-cover rounded-lg"
-            />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
+            <Container className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-lg font-semibold text-sidebar-foreground">
-              GSPE
+              Containment
             </h1>
             <p className="text-xs text-sidebar-foreground/70">
-              Containment System
+              IoT Monitoring System
             </p>
           </div>
         </div>

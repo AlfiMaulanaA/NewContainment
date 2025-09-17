@@ -31,8 +31,17 @@ import {
   CreditCard,
   Lock,
   RotateCw,
-  Monitor, // Add Sliders icon
-  Settings, // Add Settings icon\n  Monitor, // Add Monitor icon
+  Monitor,
+  Settings,
+  Hand,
+  RefreshCw,
+  Shield,
+  Activity,
+  AlertTriangle,
+  PlayCircle,
+  StopCircle,
+  Search,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -67,6 +76,56 @@ interface AttendanceRecord {
   };
 }
 
+interface SyncStatus {
+  auto_sync_enabled: boolean;
+  sync_interval_hours: number;
+  last_sync_time: string | null;
+  total_syncs_performed: number;
+  failed_devices_count: number;
+  failed_devices: string[];
+  device_health_status: Record<string, {
+    status: string;
+    last_check: string;
+    consecutive_failures: number;
+    last_error?: string;
+  }>;
+  recent_sync_history: Array<{
+    type: 'manual' | 'scheduled';
+    start_time: string;
+    end_time: string;
+    devices_count: number;
+    result: {
+      status: string;
+      devices_synced: number;
+    };
+  }>;
+}
+
+interface DeviceDiscovery {
+  total_devices: number;
+  accessible_devices: Array<{
+    device_id: string;
+    name: string;
+    ip: string;
+    users_count: number;
+    templates_count: number;
+    status: string;
+    serial_number: string;
+    firmware_version: string;
+    last_check: string;
+  }>;
+  failed_devices: Array<{
+    device_id: string;
+    name: string;
+    ip: string;
+    status: string;
+    error: string;
+    last_check: string;
+  }>;
+  discovery_duration: number;
+  timestamp: string;
+}
+
 // --- Helper Functions
 const getPrivilegeLabel = (privilege: number) => {
   switch (privilege) {
@@ -95,6 +154,8 @@ const getAccessMethodIcon = (via: AccessMethod) => {
       return <Settings className="h-4 w-4" />;
     case AccessMethod.Software:
       return <Monitor className="h-4 w-4" />;
+    case AccessMethod.Palm:
+      return <Hand className="h-4 w-4" />;
     default:
       return <Lock className="h-4 w-4" />;
   }
@@ -114,6 +175,8 @@ const getAccessMethodName = (via: AccessMethod) => {
       return "BMS System";
     case AccessMethod.Software:
       return "Software";
+    case AccessMethod.Palm:
+      return "Palm Recognition";
     default:
       return "Unknown";
   }
@@ -145,6 +208,17 @@ export default function UnifiedDashboard() {
   >([]);
   const [isAttendanceRefreshing, setIsAttendanceRefreshing] = useState(false);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
+
+  // Synchronization states
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [isSyncStatusRefreshing, setIsSyncStatusRefreshing] = useState(false);
+  const [deviceDiscovery, setDeviceDiscovery] = useState<DeviceDiscovery | null>(null);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isStartingAutoSync, setIsStartingAutoSync] = useState(false);
+  const [isStoppingAutoSync, setIsStoppingAutoSync] = useState(false);
+  const [isResettingDevices, setIsResettingDevices] = useState(false);
+  const [syncInterval, setSyncInterval] = useState(1);
 
   const handleFetchUsers = useCallback(async () => {
     if (!isConnected) return;
@@ -230,17 +304,129 @@ export default function UnifiedDashboard() {
     }
   }, []);
 
+  // Synchronization handlers
+  const handleGetSyncStatus = useCallback(async () => {
+    if (!isConnected) return;
+    setIsSyncStatusRefreshing(true);
+    await publish(
+      "accessControl/user/command",
+      JSON.stringify({ command: "getSyncStatus" })
+    );
+  }, [isConnected, publish]);
+
+  const handleStartAutoSync = useCallback(async () => {
+    if (!isConnected) return;
+    setIsStartingAutoSync(true);
+    await publish(
+      "accessControl/user/command",
+      JSON.stringify({
+        command: "startAutoSync",
+        interval_hours: syncInterval
+      })
+    );
+  }, [isConnected, publish, syncInterval]);
+
+  const handleStopAutoSync = useCallback(async () => {
+    if (!isConnected) return;
+    setIsStoppingAutoSync(true);
+    await publish(
+      "accessControl/user/command",
+      JSON.stringify({ command: "stopAutoSync" })
+    );
+  }, [isConnected, publish]);
+
+  const handleManualSync = useCallback(async () => {
+    if (!isConnected) return;
+    setIsSyncing(true);
+    await publish(
+      "accessControl/user/command",
+      JSON.stringify({ command: "manualSync" })
+    );
+  }, [isConnected, publish]);
+
+  const handleDiscoverDevices = useCallback(async () => {
+    if (!isConnected) return;
+    setIsDiscovering(true);
+    await publish(
+      "accessControl/user/command",
+      JSON.stringify({ command: "discoverDevices" })
+    );
+  }, [isConnected, publish]);
+
+  const handleResetFailedDevices = useCallback(async () => {
+    if (!isConnected) return;
+    setIsResettingDevices(true);
+    await publish(
+      "accessControl/user/command",
+      JSON.stringify({ command: "resetFailedDevices" })
+    );
+  }, [isConnected, publish]);
+
+  const handleSyncResponse = useCallback((topic: string, message: string) => {
+    try {
+      const payload = JSON.parse(message);
+
+      // Reset all loading states
+      setIsSyncStatusRefreshing(false);
+      setIsStartingAutoSync(false);
+      setIsStoppingAutoSync(false);
+      setIsSyncing(false);
+      setIsDiscovering(false);
+      setIsResettingDevices(false);
+
+      if (payload.status === "success" && payload.data) {
+        // Handle different response types based on the response structure
+        if (payload.data.auto_sync_enabled !== undefined) {
+          // This is getSyncStatus response
+          setSyncStatus(payload.data);
+        } else if (payload.data.accessible_devices !== undefined) {
+          // This is discoverDevices response
+          setDeviceDiscovery(payload.data);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse sync MQTT message:", e);
+      // Reset loading states on error
+      setIsSyncStatusRefreshing(false);
+      setIsStartingAutoSync(false);
+      setIsStoppingAutoSync(false);
+      setIsSyncing(false);
+      setIsDiscovering(false);
+      setIsResettingDevices(false);
+    }
+  }, []);
+
+  const handleSystemStatusResponse = useCallback((topic: string, message: string) => {
+    try {
+      const payload = JSON.parse(message);
+
+      // Handle scheduled sync notifications
+      if (payload.event_type === "scheduled_sync_completed") {
+        // Refresh sync status after scheduled sync
+        handleGetSyncStatus();
+      }
+    } catch (e) {
+      console.error("Failed to parse system status MQTT message:", e);
+    }
+  }, [handleGetSyncStatus]);
+
   useEffect(() => {
     if (isConnected) {
       subscribe("accessControl/user/response", handleUserResponse);
       subscribe("accessControl/device/response", handleDeviceResponse);
+      subscribe("accessControl/user/response", handleSyncResponse);
+      subscribe("accessControl/system/response", handleSyncResponse);
+      subscribe("accessControl/system/status", handleSystemStatusResponse);
       handleFetchUsers();
       handleTestConnection();
       handleFetchAttendance();
+      handleGetSyncStatus();
     }
     return () => {
       unsubscribe("accessControl/user/response");
       unsubscribe("accessControl/device/response");
+      unsubscribe("accessControl/system/response");
+      unsubscribe("accessControl/system/status");
     };
   }, [
     isConnected,
@@ -248,9 +434,12 @@ export default function UnifiedDashboard() {
     unsubscribe,
     handleUserResponse,
     handleDeviceResponse,
+    handleSyncResponse,
+    handleSystemStatusResponse,
     handleFetchUsers,
     handleTestConnection,
     handleFetchAttendance,
+    handleGetSyncStatus,
   ]);
 
   return (
@@ -271,8 +460,8 @@ export default function UnifiedDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <HardDrive className="h-5 w-5 text-blue-600" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <HardDrive className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               Quick Navigation
             </CardTitle>
@@ -281,17 +470,17 @@ export default function UnifiedDashboard() {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Button
                 variant="outline"
                 className="flex items-center justify-start h-auto p-4 hover:shadow-md transition-all duration-200 "
                 onClick={() => router.push("/access-control/device")}
               >
-                <div className="p-3 bg-blue-100 rounded-full mr-4">
-                  <Wifi className="h-5 w-5 text-blue-600" />
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full mr-4">
+                  <Wifi className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex flex-col items-start text-left flex-1">
-                  <span className="text-sm font-semibold text-gray-800 mb-1">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                     Device Management
                   </span>
                   <span className="text-xs text-muted-foreground mb-2">
@@ -309,11 +498,11 @@ export default function UnifiedDashboard() {
                 className="flex items-center justify-start h-auto p-4 hover:shadow-md transition-all duration-200 "
                 onClick={() => router.push("/access-control/user")}
               >
-                <div className="p-3 bg-green-100 rounded-full mr-4">
-                  <Users className="h-5 w-5 text-green-600" />
+                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full mr-4">
+                  <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="flex flex-col items-start text-left flex-1">
-                  <span className="text-sm font-semibold text-gray-800 mb-1">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                     User Management
                   </span>
                   <span className="text-xs text-muted-foreground mb-2">
@@ -327,14 +516,35 @@ export default function UnifiedDashboard() {
 
               <Button
                 variant="outline"
+                className="flex items-center justify-start h-auto p-4 hover:shadow-md transition-all duration-200"
+                onClick={() => router.push("/access-control/palm")}
+              >
+                <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full mr-4">
+                  <Hand className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex flex-col items-start text-left flex-1">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                    Palm Recognition
+                  </span>
+                  <span className="text-xs text-muted-foreground mb-2">
+                    MQTT-based palm biometric system
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    Real-time Control
+                  </Badge>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
                 className="flex items-center justify-start h-auto p-4 hover:shadow-md transition-all duration-200  "
                 onClick={() => router.push("/access-control/configuration")}
               >
-                <div className="p-3 bg-orange-100 rounded-full mr-4">
-                  <Settings className="h-5 w-5 text-orange-600" />
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full mr-4">
+                  <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div className="flex flex-col items-start text-left flex-1">
-                  <span className="text-sm font-semibold text-gray-800 mb-1">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                     System Configuration
                   </span>
                   <span className="text-xs text-muted-foreground mb-2">
@@ -351,11 +561,11 @@ export default function UnifiedDashboard() {
                 className="flex items-center justify-start h-auto p-4 hover:shadow-md transition-all duration-200"
                 onClick={() => router.push("/access-control/attendance")}
               >
-                <div className="p-3 bg-purple-100 rounded-full mr-4">
-                  <Clock4 className="h-5 w-5 text-purple-600" />
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full mr-4">
+                  <Clock4 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="flex flex-col items-start text-left flex-1">
-                  <span className="text-sm font-semibold text-gray-800 mb-1">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
                     Attendance Logs
                   </span>
                   <span className="text-xs text-muted-foreground mb-2">
@@ -363,6 +573,30 @@ export default function UnifiedDashboard() {
                   </span>
                   <Badge variant="secondary" className="text-xs">
                     {attendanceRecords.length} Recent Records
+                  </Badge>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex items-center justify-start h-auto p-4 hover:shadow-md transition-all duration-200"
+                onClick={() => {}}
+              >
+                <div className="p-3 bg-cyan-100 dark:bg-cyan-900/20 rounded-full mr-4">
+                  <RefreshCw className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div className="flex flex-col items-start text-left flex-1">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                    Device Synchronization
+                  </span>
+                  <span className="text-xs text-muted-foreground mb-2">
+                    Auto & manual device sync management
+                  </span>
+                  <Badge
+                    variant={syncStatus?.auto_sync_enabled ? "default" : "secondary"}
+                    className="text-xs"
+                  >
+                    {syncStatus?.auto_sync_enabled ? "Auto-Sync ON" : "Auto-Sync OFF"}
                   </Badge>
                 </div>
               </Button>
@@ -377,7 +611,7 @@ export default function UnifiedDashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Online Devices
               </CardTitle>
-              <div className="p-2 bg-green-100 text-green-500 rounded-full">
+              <div className="p-2 bg-green-100 dark:bg-green-900/20 text-green-500 dark:text-green-400 rounded-full">
                 <Wifi className="h-4 w-4" />
               </div>
             </CardHeader>
@@ -396,7 +630,7 @@ export default function UnifiedDashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Offline Devices
               </CardTitle>
-              <div className="p-2 bg-red-100 text-red-500 rounded-full">
+              <div className="p-2 bg-red-100 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-full">
                 <XCircle className="h-4 w-4" />
               </div>
             </CardHeader>
@@ -431,7 +665,7 @@ export default function UnifiedDashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Access Logs
               </CardTitle>
-              <div className="p-2 bg-blue-100 text-blue-500 rounded-full">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 rounded-full">
                 <Clock4 className="h-4 w-4" />
               </div>
             </CardHeader>
@@ -443,6 +677,363 @@ export default function UnifiedDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Device Synchronization Dashboard */}
+        <Card className="border shadow-sm">
+          <CardHeader>
+            <div className="flex flex-row items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" />
+                  Device Synchronization
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Automatic and manual device synchronization management
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-xl font-semibold">
+                    {syncStatus?.total_syncs_performed || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Total Syncs
+                  </div>
+                </div>
+                <Button
+                  onClick={handleGetSyncStatus}
+                  disabled={!isConnected || isSyncStatusRefreshing}
+                  size="sm"
+                  variant="outline"
+                >
+                  {isSyncStatusRefreshing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Refresh Status
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6">
+              {/* Sync Status Cards */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="border shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Auto-Sync Status
+                    </CardTitle>
+                    <div className={`p-2 rounded-full ${
+                      syncStatus?.auto_sync_enabled
+                        ? "bg-green-100 dark:bg-green-900/20 text-green-500 dark:text-green-400"
+                        : "bg-gray-100 dark:bg-gray-900/20 text-gray-500 dark:text-gray-400"
+                    }`}>
+                      {syncStatus?.auto_sync_enabled ? <PlayCircle className="h-4 w-4" /> : <StopCircle className="h-4 w-4" />}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold mb-1">
+                      {syncStatus?.auto_sync_enabled ? "ON" : "OFF"}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {syncStatus?.auto_sync_enabled
+                        ? `Every ${syncStatus.sync_interval_hours}h`
+                        : "Disabled"
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Failed Devices
+                    </CardTitle>
+                    <div className={`p-2 rounded-full ${
+                      (syncStatus?.failed_devices_count || 0) > 0
+                        ? "bg-red-100 dark:bg-red-900/20 text-red-500 dark:text-red-400"
+                        : "bg-green-100 dark:bg-green-900/20 text-green-500 dark:text-green-400"
+                    }`}>
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold mb-1">
+                      {syncStatus?.failed_devices_count || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Need Attention
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Last Sync
+                    </CardTitle>
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 rounded-full">
+                      <Clock4 className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm font-bold mb-1">
+                      {syncStatus?.last_sync_time
+                        ? formatTimestamp(syncStatus.last_sync_time)
+                        : "Never"
+                      }
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Last Execution
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Discovered Devices
+                    </CardTitle>
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/20 text-purple-500 dark:text-purple-400 rounded-full">
+                      <Search className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold mb-1">
+                      {deviceDiscovery?.accessible_devices?.length || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Online Devices
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Control Panel */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Auto-Sync Controls */}
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <PlayCircle className="h-4 w-4" />
+                      Automatic Synchronization
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Sync Interval (hours)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="24"
+                          value={syncInterval}
+                          onChange={(e) => setSyncInterval(parseInt(e.target.value) || 1)}
+                          className="flex h-9 w-20 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                        <span className="text-sm text-muted-foreground">hours</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleStartAutoSync}
+                        disabled={!isConnected || isStartingAutoSync || syncStatus?.auto_sync_enabled}
+                        size="sm"
+                        className="flex-1"
+                      >
+                        {isStartingAutoSync ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <PlayCircle className="mr-2 h-4 w-4" />
+                        )}
+                        Start Auto-Sync
+                      </Button>
+                      <Button
+                        onClick={handleStopAutoSync}
+                        disabled={!isConnected || isStoppingAutoSync || !syncStatus?.auto_sync_enabled}
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        {isStoppingAutoSync ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <StopCircle className="mr-2 h-4 w-4" />
+                        )}
+                        Stop Auto-Sync
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Manual Controls */}
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Manual Operations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button
+                      onClick={handleManualSync}
+                      disabled={!isConnected || isSyncing}
+                      size="sm"
+                      variant="default"
+                      className="w-full"
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      Manual Sync Now
+                    </Button>
+                    <Button
+                      onClick={handleDiscoverDevices}
+                      disabled={!isConnected || isDiscovering}
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {isDiscovering ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="mr-2 h-4 w-4" />
+                      )}
+                      Discover Devices
+                    </Button>
+                    <Button
+                      onClick={handleResetFailedDevices}
+                      disabled={!isConnected || isResettingDevices || (syncStatus?.failed_devices_count || 0) === 0}
+                      size="sm"
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      {isResettingDevices ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Shield className="mr-2 h-4 w-4" />
+                      )}
+                      Reset Failed Devices
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Device Discovery Results */}
+              {deviceDiscovery && (
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Activity className="h-4 w-4" />
+                      Device Discovery Results
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Last discovery: {formatTimestamp(deviceDiscovery.timestamp)}
+                      ({deviceDiscovery.discovery_duration.toFixed(2)}s)
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {/* Accessible Devices */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 text-green-600 dark:text-green-400">
+                          Online Devices ({deviceDiscovery.accessible_devices.length})
+                        </h4>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {deviceDiscovery.accessible_devices.map((device, index) => (
+                            <div key={index} className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+                              <div className="p-2 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-full">
+                                <CheckCircle className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{device.name}</div>
+                                <div className="text-xs text-muted-foreground">{device.ip}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {device.users_count} users, {device.templates_count} templates
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Failed Devices */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 text-red-600 dark:text-red-400">
+                          Offline Devices ({deviceDiscovery.failed_devices.length})
+                        </h4>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {deviceDiscovery.failed_devices.map((device, index) => (
+                            <div key={index} className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800">
+                              <div className="p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full">
+                                <XCircle className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{device.name}</div>
+                                <div className="text-xs text-muted-foreground">{device.ip}</div>
+                                <div className="text-xs text-red-600 dark:text-red-400 truncate">
+                                  {device.error}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Sync History */}
+              {syncStatus?.recent_sync_history && syncStatus.recent_sync_history.length > 0 && (
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Clock4 className="h-4 w-4" />
+                      Recent Sync History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {syncStatus.recent_sync_history.slice(0, 5).map((sync, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                          <div className={`p-2 rounded-full ${
+                            sync.result.status === 'success'
+                              ? "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                              : "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                          }`}>
+                            {sync.result.status === 'success' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={sync.type === 'manual' ? 'default' : 'secondary'} className="text-xs">
+                                {sync.type === 'manual' ? 'Manual' : 'Scheduled'}
+                              </Badge>
+                              <span className="text-sm font-medium">
+                                {sync.result.devices_synced} devices synced
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatTimestamp(sync.start_time)} - Duration: {
+                                ((new Date(sync.end_time).getTime() - new Date(sync.start_time).getTime()) / 1000).toFixed(1)
+                              }s
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* User Management Section */}
         <Card className="border shadow-sm">
@@ -489,7 +1080,7 @@ export default function UnifiedDashboard() {
             ) : users.length > 0 ? (
               <div className="overflow-auto max-h-[500px] rounded-md border">
                 <UITable>
-                  <TableHeader className="sticky top-0 z-10">
+                  <TableHeader className="sticky top-0 bg-background dark:bg-background z-10">
                     <TableRow>
                       <TableHead>UID</TableHead>
                       <TableHead>Name</TableHead>
@@ -513,7 +1104,7 @@ export default function UnifiedDashboard() {
                           </div>
                         </TableCell>
                         <TableCell className="font-mono">
-                          <div className="bg-muted p-2 rounded-full">
+                          <div className="bg-muted dark:bg-muted/20 p-2 rounded-full">
                             {user.user_id}
                           </div>
                         </TableCell>
@@ -593,7 +1184,7 @@ export default function UnifiedDashboard() {
             ) : deviceStatuses.length > 0 ? (
               <div className="overflow-auto max-h-[500px] rounded-md border">
                 <UITable>
-                  <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                  <TableHeader className="sticky top-0 bg-muted/50 dark:bg-muted/20 z-10">
                     <TableRow>
                       <TableHead>Device ID</TableHead>
                       <TableHead>Device Name</TableHead>
@@ -645,7 +1236,7 @@ export default function UnifiedDashboard() {
                               {device.response_time_ms?.toFixed(1)} ms
                             </span>
                           ) : (
-                            <span className="text-destructive">
+                            <span className="text-destructive dark:text-red-400">
                               {device.error || "Connection failed"}
                             </span>
                           )}
@@ -709,13 +1300,13 @@ export default function UnifiedDashboard() {
                 <p>Loading logs...</p>
               </div>
             ) : attendanceError ? (
-              <div className="text-center py-12 text-red-500">
+              <div className="text-center py-12 text-red-500 dark:text-red-400">
                 <p>{attendanceError}</p>
               </div>
             ) : attendanceRecords.length > 0 ? (
               <div className="overflow-auto max-h-[400px] rounded-md border">
                 <UITable>
-                  <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                  <TableHeader className="sticky top-0 bg-muted/50 dark:bg-muted/20 z-10">
                     <TableRow>
                       <TableHead>Time</TableHead>
                       <TableHead>Status</TableHead>

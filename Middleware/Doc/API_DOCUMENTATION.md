@@ -51,7 +51,13 @@ accessControl/{category}/{type}
    - Live Monitoring (Start, Stop, Status)
    - Data Retrieval (History, Reports)
 
-4. [System Management](#4-system-management)
+4. [Device Synchronization](#4-device-synchronization)
+   - Automatic Synchronization (Scheduled, Hourly)
+   - Manual Synchronization (On-demand, Device-specific)
+   - Device Discovery and Health Monitoring
+   - Failed Device Reset and Recovery
+
+5. [System Management](#5-system-management)
    - Configuration Management
    - System Status and Control
 
@@ -2928,6 +2934,425 @@ All operations are logged with detailed information including:
 - CRUD operation results
 - Configuration changes
 
+---
+
+# 4. Device Synchronization
+
+This section covers automatic and manual device synchronization features including device discovery, health monitoring, and failed device recovery.
+
+**Command Topic**: `accessControl/user/command`
+**Response Topic**: `accessControl/user/response`
+**Status Topic**: `accessControl/system/status`
+
+## 4.1 Start Automatic Synchronization
+
+**Command**: `startAutoSync`
+
+Start automatic device synchronization scheduler that runs at specified intervals.
+
+### Request Format
+
+```json
+{
+  "command": "startAutoSync",
+  "interval_hours": 1
+}
+```
+
+### Parameters
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `interval_hours` | integer | No | 1 | Synchronization interval in hours (1-24) |
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Auto-sync scheduler started with 1 hour interval",
+  "data": {
+    "interval_hours": 1,
+    "status": "started",
+    "start_time": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Example
+
+**Request:**
+```json
+{
+  "command": "startAutoSync",
+  "interval_hours": 2
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Auto-sync scheduler started with 2 hour interval",
+  "data": {
+    "interval_hours": 2,
+    "status": "started",
+    "start_time": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+## 4.2 Stop Automatic Synchronization
+
+**Command**: `stopAutoSync`
+
+Stop the automatic device synchronization scheduler.
+
+### Request Format
+
+```json
+{
+  "command": "stopAutoSync"
+}
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Auto-sync scheduler stopped",
+  "data": {
+    "status": "stopped",
+    "stop_time": "2024-01-15T12:30:00Z"
+  }
+}
+```
+
+## 4.3 Manual Device Synchronization
+
+**Command**: `manualSync`
+
+Perform immediate synchronization between devices. Can sync all devices or specific devices only.
+
+### Request Format
+
+```json
+{
+  "command": "manualSync",
+  "device_ids": ["device_1", "device_2"]
+}
+```
+
+### Parameters
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `device_ids` | array | No | List of specific device IDs to sync. If omitted, all enabled devices will be synced |
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Device synchronization completed for 3 devices",
+  "data": {
+    "devices_synced": 3,
+    "duration_seconds": 12.5,
+    "start_time": "2024-01-15T10:30:00Z",
+    "end_time": "2024-01-15T10:30:12Z",
+    "card_sync": {
+      "status": "success",
+      "message": "Card synchronization completed"
+    },
+    "user_sync": {
+      "status": "success",
+      "message": "User sync completed - 15 users synced across devices",
+      "total_users": 25,
+      "sync_results": [
+        {
+          "device_id": "device_1",
+          "device_name": "Front Door",
+          "synced_users": 5,
+          "total_missing": 5
+        }
+      ]
+    }
+  }
+}
+```
+
+### Example - Sync All Devices
+
+**Request:**
+```json
+{
+  "command": "manualSync"
+}
+```
+
+### Example - Sync Specific Devices
+
+**Request:**
+```json
+{
+  "command": "manualSync",
+  "device_ids": ["front_door", "back_door"]
+}
+```
+
+## 4.4 Device Discovery
+
+**Command**: `discoverDevices`
+
+Discover and test connectivity of all configured devices, providing real-time device status and health information.
+
+### Request Format
+
+```json
+{
+  "command": "discoverDevices"
+}
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Device discovery completed - 3/4 devices accessible",
+  "data": {
+    "total_devices": 4,
+    "discovery_duration": 5.2,
+    "timestamp": "2024-01-15T10:30:00Z",
+    "accessible_devices": [
+      {
+        "device_id": "device_1",
+        "name": "Front Door",
+        "ip": "192.168.1.100",
+        "users_count": 25,
+        "templates_count": 45,
+        "status": "online",
+        "serial_number": "DGD9190019060",
+        "firmware_version": "6.60",
+        "last_check": "2024-01-15T10:30:00Z"
+      },
+      {
+        "device_id": "device_2",
+        "name": "Back Door",
+        "ip": "192.168.1.101",
+        "users_count": 20,
+        "templates_count": 35,
+        "status": "online",
+        "serial_number": "DGD9190019061",
+        "firmware_version": "6.60",
+        "last_check": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "failed_devices": [
+      {
+        "device_id": "device_3",
+        "name": "Side Door",
+        "ip": "192.168.1.102",
+        "status": "offline",
+        "error": "Network timeout after 5 seconds",
+        "last_check": "2024-01-15T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+## 4.5 Reset Failed Devices
+
+**Command**: `resetFailedDevices`
+
+Attempt to reset and recover devices that have failed multiple connectivity tests.
+
+### Request Format
+
+```json
+{
+  "command": "resetFailedDevices"
+}
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Reset completed - 2/3 devices reset successfully",
+  "data": {
+    "total_attempted": 3,
+    "successful_resets": 2,
+    "remaining_failed_devices": 1,
+    "reset_results": [
+      {
+        "device_id": "device_1",
+        "device_name": "Front Door",
+        "status": "success",
+        "message": "Device reset successful"
+      },
+      {
+        "device_id": "device_2",
+        "device_name": "Back Door",
+        "status": "success",
+        "message": "Device reset successful"
+      },
+      {
+        "device_id": "device_3",
+        "device_name": "Side Door",
+        "status": "failed",
+        "error": "Connection timeout during reset"
+      }
+    ]
+  }
+}
+```
+
+## 4.6 Get Synchronization Status
+
+**Command**: `getSyncStatus`
+
+Get comprehensive status information about device synchronization, including scheduler status, sync history, and device health.
+
+### Request Format
+
+```json
+{
+  "command": "getSyncStatus"
+}
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Sync status retrieved",
+  "data": {
+    "auto_sync_enabled": true,
+    "sync_interval_hours": 1,
+    "last_sync_time": "2024-01-15T09:30:00Z",
+    "total_syncs_performed": 24,
+    "failed_devices_count": 1,
+    "failed_devices": ["device_3"],
+    "device_health_status": {
+      "device_1": {
+        "status": "online",
+        "last_check": "2024-01-15T10:30:00Z",
+        "consecutive_failures": 0
+      },
+      "device_2": {
+        "status": "online",
+        "last_check": "2024-01-15T10:30:00Z",
+        "consecutive_failures": 0
+      },
+      "device_3": {
+        "status": "offline",
+        "last_error": "Network timeout",
+        "consecutive_failures": 5,
+        "last_check": "2024-01-15T10:25:00Z"
+      }
+    },
+    "recent_sync_history": [
+      {
+        "type": "scheduled",
+        "start_time": "2024-01-15T09:30:00Z",
+        "end_time": "2024-01-15T09:30:15Z",
+        "devices_count": 2,
+        "result": {
+          "status": "success",
+          "devices_synced": 2
+        }
+      },
+      {
+        "type": "manual",
+        "start_time": "2024-01-15T08:45:00Z",
+        "end_time": "2024-01-15T08:45:10Z",
+        "devices_count": 3,
+        "result": {
+          "status": "success",
+          "devices_synced": 3
+        }
+      }
+    ]
+  }
+}
+```
+
+## 4.7 Automatic Sync Notifications
+
+When automatic synchronization is enabled, the system publishes periodic status updates to the system status topic.
+
+**Topic**: `accessControl/system/status`
+
+### Scheduled Sync Notification
+
+```json
+{
+  "event_type": "scheduled_sync_completed",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "result": {
+    "status": "success",
+    "message": "Device synchronization completed for 3 devices",
+    "data": {
+      "devices_synced": 3,
+      "duration_seconds": 8.2,
+      "card_sync": {
+        "status": "success"
+      },
+      "user_sync": {
+        "status": "success",
+        "total_users": 25
+      }
+    }
+  }
+}
+```
+
+## Device Synchronization Features
+
+✅ **Automatic Scheduling**
+- Configurable hourly synchronization (1-24 hours)
+- Background scheduler with thread management
+- Automatic device discovery before each sync
+- Smart sync skipping when insufficient devices
+
+✅ **Manual Synchronization**
+- On-demand sync for all devices or specific devices
+- Real-time progress reporting
+- Comprehensive sync results with timing
+- User and card synchronization support
+
+✅ **Device Discovery & Health Monitoring**
+- Parallel device connectivity testing
+- Real-time device information collection (users, templates, firmware)
+- Device health status tracking
+- Failed device detection and tracking
+- Consecutive failure counting
+
+✅ **Failed Device Recovery**
+- Automatic device reset for failed devices
+- Smart retry logic with exponential backoff
+- Device recovery status reporting
+- Failed device cooldown management
+
+✅ **Comprehensive Status Reporting**
+- Real-time sync status and history
+- Device health monitoring dashboard
+- Sync performance metrics
+- MQTT integration for all sync operations
+
+✅ **Data Synchronization**
+- User data sync across all devices
+- Card synchronization (existing feature integration)
+- Smart differential sync (only missing data)
+- Cross-device data consistency
+
+---
+
 ## Features Removed
 
 The following features have been removed from this simplified version:
@@ -2993,6 +3418,19 @@ The following features have been removed from this simplified version:
 - Detailed attendance information with user names
 - Access method detection (fingerprint, card, password, face)
 - Success/failure status tracking
+
+✅ **Device Synchronization**
+
+- Automatic hourly synchronization scheduler (configurable 1-24 hours)
+- Manual on-demand synchronization for all or specific devices
+- Real-time device discovery and connectivity testing
+- Device health monitoring with consecutive failure tracking
+- Failed device reset and recovery functionality
+- Comprehensive sync status reporting and history
+- User and card data synchronization across devices
+- Smart differential sync (only missing data)
+- MQTT integration for all sync operations
+- Background threading with safe scheduler management
 
 ✅ **MQTT Integration**
 

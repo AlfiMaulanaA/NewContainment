@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { VirtualKeyboardSettings } from "@/components/virtual-keyboard-settings";
+// Virtual keyboard settings removed - using react-simple-keyboard library instead
 
 import Swal from "sweetalert2";
 
@@ -1042,7 +1042,24 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="keyboard" className="space-y-6">
-            <VirtualKeyboardSettings />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Terminal className="h-5 w-5 text-primary" />
+                  Virtual Keyboard
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Virtual keyboard functionality has been replaced with react-simple-keyboard library for better performance and reliability.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Custom virtual keyboard settings are no longer needed as the library handles keyboard management automatically.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="autorefresh" className="space-y-6">

@@ -34,11 +34,11 @@ const DEFAULT_PREFERENCES: DashboardPreferences = {
   // New dashboard UI layout settings
   selectedDashboardLayout: 'dashboard-1',
   displayType: 'carousel',
-  carouselMode: 'manual',
-  carouselInterval: 8, // 8 seconds default
+  carouselMode: 'automatic',
+  carouselInterval: 60, // 1 minute (60 seconds)
   // CCTV wrapper settings
   cctvSettings: {
-    enabled: true,
+    enabled: false,
     autoRefresh: true,
     refreshInterval: 30,
     showTitles: true,

@@ -20,7 +20,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Project paths
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FRONTEND_DIR="$PROJECT_ROOT/Frontend"
 BACKEND_DIR="$PROJECT_ROOT/Backend"
 NGINX_DIR="$PROJECT_ROOT/nginx"

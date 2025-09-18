@@ -221,7 +221,7 @@ export function AppSidebar() {
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
-              <Container className="h-6 w-6 text-dark" />
+              <Container className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">
@@ -259,7 +259,7 @@ export function AppSidebar() {
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary shadow-lg">
-              <Container className="h-6 w-6 text-dark" />
+              <Container className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">

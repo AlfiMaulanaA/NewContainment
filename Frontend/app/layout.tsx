@@ -5,8 +5,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
-import { VirtualKeyboardProvider } from "@/contexts/virtual-keyboard-context";
-
 // Mengambil nama aplikasi dan ikon dari environment variables atau menggunakan nilai default
 const AppName = process.env.NEXT_PUBLIC_APP_NAME || "IOT Containment System";
 
@@ -41,10 +39,8 @@ export default function RootLayout({
           defaultTheme="light" // Theme default
           enableSystem // Memungkinkan sistem OS menentukan theme
         >
-          <VirtualKeyboardProvider>
-            {/* Semua konten aplikasi dibungkus oleh ClientLayout */}
-            <ClientLayout>{children}</ClientLayout>
-          </VirtualKeyboardProvider>
+          {/* Semua konten aplikasi dibungkus oleh ClientLayout */}
+          <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
       </body>
     </html>

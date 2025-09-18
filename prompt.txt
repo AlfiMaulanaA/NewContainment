@@ -1,2 +1,3 @@
-analisa saat login success dia akan route ke /dashboard-overview, akan tetapi sebelum itu ada fitur untuk RouteGuard.tsx, dan pada saat dihalaman itu user masih not authenticaed dan loading lama, saya perlu refresh baru berhail mau login. kenapa saat success login masih tidak Not auth dan perlu refresh dulu baru auth succes? RouteGuard: User not authenticated for protected route, redirecting
-RouteGuard.tsx:72 RouteGuard: User not authenticated for protected route, redirecting
+1. buat agar fitur keybaord virtual disable deafult awalnya
+2. hilangkan icon keyboard pada input saat virtual keyboard enable
+3. Default untuk dashboard setting CCVT disable, Dashboard 1, carousel, auto 1 menit

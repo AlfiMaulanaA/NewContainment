@@ -90,7 +90,9 @@ install_pyzk() {
     pip3 install --upgrade pip >> "$LOG_FILE" 2>&1
 
     # Clone PyZK repository
-    cd /opt
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+    cd "$PROJECT_DIR"
     if [[ -d "pyzk" ]]; then
         print_warning "PyZK directory already exists, removing..."
         rm -rf pyzk

@@ -6,7 +6,8 @@
 set -e
 
 REPO_URL="https://github.com/AlfiMaulanaA/NewContainment.git"
-PROJECT_DIR="/opt/NewContainment"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CURRENT_DIR=$(pwd)
 LOG_FILE="/var/log/containment_deploy.log"
 BACKUP_DIR="/opt/containment_backups/$(date +%Y%m%d_%H%M%S)"

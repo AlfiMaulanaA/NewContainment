@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Documentation
+*.md
+!README.md
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files
+test_*.py
+*_test.py
+
+# Configuration files (will be mounted as volumes)
+JSON/
+backups/

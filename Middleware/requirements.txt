@@ -1,0 +1,5 @@
+paho-mqtt>=1.6.1
+pyzk>=0.9
+schedule>=1.1.0
+concurrent.futures
+typing

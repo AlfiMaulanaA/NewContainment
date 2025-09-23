@@ -32,31 +32,51 @@ git clone https://github.com/AlfiMaulanaA/NewContainment.git
 cd NewContainment
 ```
 
-### 2. Start All Services
+### 2. Fix Requirements File (Python Middleware)
 
 ```bash
-# Windows (PowerShell/Command Prompt)
-docker-compose up -d
-
-# Linux
-sudo docker-compose up -d
+# Edit Middleware/requirements.txt to remove incompatible dependencies
+# concurrent.futures and typing are built-in Python 3.2+ and should be removed
 ```
 
-### 3. Wait for Services to Start
+### 3. Start Core Services First
+
+```bash
+# Start database and MQTT broker first
+docker-compose up -d db mosquitto
+
+# Wait for mosquitto to start properly
+docker-compose ps
+```
+
+### 4. Start Remaining Services
+
+```bash
+# Start middleware and backend
+docker-compose up -d middleware backend
+
+# Note: Frontend build may take 15-20 minutes due to Next.js compilation
+# Start frontend separately if needed
+docker-compose up -d frontend
+```
+
+### 5. Wait for Services to Start
 
 ```bash
 # Check service status
 docker-compose ps
 
-# View logs
-docker-compose logs -f
+# View logs for troubleshooting
+docker-compose logs -f mosquitto
+docker-compose logs -f backend
 ```
 
-### 4. Access Application
+### 6. Access Application
 
-- **Main Application**: http://localhost
-- **API Documentation**: http://localhost/api/swagger
-- **Health Check**: http://localhost/health
+- **Backend API**: http://localhost:5000
+- **Health Check**: http://localhost:5000/api/health
+- **Frontend**: http://localhost:3000 (when build completes)
+- **MQTT Broker**: localhost:1883 (TCP) or localhost:9001 (WebSocket)
 
 ## 📁 Project Structure
 
@@ -323,6 +343,53 @@ docker system prune -a --volumes
 
 ## 🚨 Common Issues & Solutions
 
+### Python Middleware Build Issues
+
+```bash
+# Error: No matching distribution found for concurrent.futures
+# Solution: Remove concurrent.futures and typing from requirements.txt
+# These are built-in Python modules since Python 3.2+
+
+# Edit Middleware/requirements.txt to contain only:
+paho-mqtt>=1.6.1
+pyzk>=0.9
+schedule>=1.1.0
+```
+
+### MQTT Broker Configuration Issues
+
+```bash
+# Error: Unknown configuration variable "max_retained_messages"
+# Error: Invalid max_packet_size value (0)
+# Solution: Use simplified mosquitto.conf
+
+# Minimal working mosquitto.conf:
+listener 1883
+allow_anonymous true
+
+listener 9001
+protocol websockets
+allow_anonymous true
+
+persistence true
+persistence_location /mosquitto/data/
+
+log_dest stdout
+```
+
+### Frontend Build Issues (Next.js)
+
+```bash
+# Error: Failed to load SWC binary for linux/x64
+# Solution 1: Use Node.js slim instead of alpine
+FROM node:18-slim AS base
+
+# Solution 2: Install compatibility libraries for alpine
+RUN apk add --no-cache libc6-compat gcompat
+
+# Build may take 15-20 minutes - be patient!
+```
+
 ### Port Conflicts
 
 ```bash
@@ -376,14 +443,45 @@ docker-compose exec db ls -la /app/data/
 ### MQTT Connection Issues
 
 ```bash
-# Check MQTT broker
+# Check MQTT broker logs
 docker-compose logs mosquitto
 
-# Test MQTT connection
-docker-compose exec mosquitto mosquitto_sub -h localhost -t test
+# Test MQTT connection from host
+mosquitto_sub -h localhost -p 1883 -t test
+
+# Test from within container network
+docker-compose exec backend ping mosquitto  # May not work on minimal images
 
 # Restart MQTT broker
 docker-compose restart mosquitto
+
+# Check network connectivity
+docker network inspect newcontainment_newcontainment
+```
+
+### Backend MQTT Connection Issues
+
+```bash
+# Backend trying to connect to external IP instead of mosquitto hostname
+# Check environment variables in docker-compose.yml:
+environment:
+  - MQTT_BROKER_HOST=mosquitto  # Should be 'mosquitto', not IP address
+  - MQTT_BROKER_PORT=1883
+
+# Restart backend after config change
+docker-compose restart backend
+```
+
+### Container Build Timeouts
+
+```bash
+# Build individual services with longer timeout
+docker build -t newcontainment-middleware ./Middleware
+docker build -t newcontainment-backend ./Backend
+docker build --no-cache -t newcontainment-frontend ./Frontend
+
+# Or build with increased timeout
+DOCKER_BUILDKIT=0 docker-compose build --build-arg BUILDKIT_INLINE_CACHE=1
 ```
 
 ## 📊 Performance Tuning
@@ -467,9 +565,19 @@ docker images > images.txt
 
 ## 🎯 Quick Reference
 
-### Start Services
+### Start Services (Recommended Order)
 
 ```bash
+# Start core infrastructure first
+docker-compose up -d db mosquitto
+
+# Start application services
+docker-compose up -d middleware backend
+
+# Start frontend (may take 15-20 minutes to build)
+docker-compose up -d frontend
+
+# Or start all at once (may timeout on slower systems)
 docker-compose up -d
 ```
 
@@ -488,19 +596,60 @@ docker-compose ps
 ### View Logs
 
 ```bash
+# All services
 docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f mosquitto
 ```
 
 ### Restart Services
 
 ```bash
+# All services
 docker-compose restart
+
+# Specific service
+docker-compose restart backend
 ```
 
 ### Update & Rebuild
 
 ```bash
 git pull && docker-compose up -d --build
+```
+
+### Build Individual Services
+
+```bash
+# If docker-compose build times out
+docker build -t newcontainment-middleware ./Middleware
+docker build -t newcontainment-backend ./Backend
+docker build -t newcontainment-frontend ./Frontend
+
+# Then start with compose
+docker-compose up -d --no-build
+```
+
+### Troubleshooting Quick Commands
+
+```bash
+# Check service status
+docker-compose ps
+
+# View logs for specific issues
+docker-compose logs mosquitto | grep -i error
+docker-compose logs backend | grep -i error
+
+# Test backend API
+curl http://localhost:5000/api/health
+
+# Check network connectivity
+docker network inspect newcontainment_newcontainment
+
+# Clean restart
+docker-compose down && docker-compose up -d
 ```
 
 **Happy Dockering! 🐳🚀**

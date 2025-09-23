@@ -2,12 +2,19 @@
 Description=Containment service
 After=network.target
 StartLimitIntervalSec=0
+
 [Service]
 Type=simple
+User=containment
+Group=containment
 Restart=always
 RestartSec=1
 ExecStart=/usr/local/bin/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
 WorkingDirectory=/home/containment/NewContainment/Backend/publish
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_ROOT=/usr/share/dotnet
+SyslogIdentifier=NewContainmentWeb
+KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target

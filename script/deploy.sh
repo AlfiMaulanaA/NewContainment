@@ -640,10 +640,12 @@ setup_database() {
     cd "$BACKEND_DIR"
 
     # Check if database exists and backup
-    if [ -f "app.db" ]; then
-        log "Backing up existing database..."
-        cp app.db "app.db.backup.$(date +%Y%m%d_%H%M%S)"
-    fi
+    for db in "containment.db" "app.db"; do
+        if [ -f "$db" ]; then
+            log "Backing up existing database: $db"
+            cp "$db" "${db}.backup.$(date +%Y%m%d_%H%M%S)"
+        fi
+    done
 
     # Install EF tools if not available
     if ! dotnet tool list -g | grep -q "dotnet-ef"; then
@@ -666,23 +668,48 @@ setup_database() {
         fi
     fi
 
+    # Set environment variables for migrations
+    export ASPNETCORE_ENVIRONMENT=Production
+    export ConnectionStrings__DefaultConnection="Data Source=./containment.db"
+
     # Run migrations
     log "Running database migrations..."
-    if dotnet ef database update --no-build; then
+
+    # Try different approaches for migrations
+    if dotnet ef database update --no-build --verbose; then
         log_success "Database migrations completed"
+    elif dotnet ef database update --verbose; then
+        log_success "Database migrations completed (with build)"
     else
-        log_error "Database migrations failed"
-        # Don't exit, continue with deployment
+        log_warning "EF migrations failed, trying alternative approach..."
+
+        # Try to run the application to trigger auto-migration
+        log "Attempting auto-migration via application startup..."
+        if [ -f "publish/Backend.dll" ]; then
+            timeout 10s dotnet publish/Backend.dll --migrate 2>/dev/null || true
+        fi
+
+        log_warning "Database migrations may need manual intervention"
     fi
 
-    # Force seed data if database is new or empty
-    if [ -f "app.db" ]; then
-        local table_count=$(sqlite3 app.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "0")
-        log "Database tables count: $table_count"
+    # Check database file and table count
+    local db_file=""
+    for db in "containment.db" "app.db" "publish/containment.db"; do
+        if [ -f "$db" ]; then
+            db_file="$db"
+            break
+        fi
+    done
+
+    if [ -n "$db_file" ]; then
+        local table_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "0")
+        log "Database tables count: $table_count (in $db_file)"
 
         if [ "$table_count" -lt "5" ]; then
             log_warning "Database has few tables, seeding will be handled by application startup"
         fi
+    else
+        log_warning "Database file not found, will be created on first application startup"
     fi
 
     log_success "Database setup completed"
@@ -726,7 +753,7 @@ install_systemd_service() {
 # Function to create default systemd service file
 create_systemd_service() {
     log "Creating NewContainmentWeb.service file..."
-    
+
     # Determine correct dotnet path
     local dotnet_path=""
     if [ -x "/usr/local/bin/dotnet" ]; then
@@ -739,10 +766,21 @@ create_systemd_service() {
         log_error "Could not find dotnet executable"
         return 1
     fi
-    
+
     log "Using dotnet path: $dotnet_path"
-    
-    cat > "$SERVICE_FILE" << EOF
+
+    # Check if the template service file exists in root directory
+    local template_service="$PROJECT_ROOT/NewContainmentWeb.service"
+    if [ -f "$template_service" ]; then
+        log "Using existing service template from root directory..."
+        # Copy the template and update the dotnet path
+        cp "$template_service" "$SERVICE_FILE"
+        # Replace the hardcoded dotnet path with the detected one
+        sed -i "s|ExecStart=/usr/local/bin/dotnet|ExecStart=$dotnet_path|g" "$SERVICE_FILE"
+        log "Updated dotnet path in service file to: $dotnet_path"
+    else
+        log "Creating new service file..."
+        cat > "$SERVICE_FILE" << EOF
 [Unit]
 Description=Containment service
 After=network.target
@@ -751,13 +789,14 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=1
-ExecStart=/usr/local/bin/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
+ExecStart=$dotnet_path /home/containment/NewContainment/Backend/publish/Backend.dll
 WorkingDirectory=/home/containment/NewContainment/Backend/publish
 
 [Install]
 WantedBy=multi-user.target
 EOF
-    
+    fi
+
     log_success "Service file created: $SERVICE_FILE"
 }
 

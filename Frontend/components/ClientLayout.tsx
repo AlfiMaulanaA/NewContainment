@@ -21,18 +21,17 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
 
-  // Memeriksa apakah path saat ini dimulai dengan "/auth/login" atau "/auth/register"
+  // Memeriksa apakah path saat ini dimulai dengan "/auth/"
   // Ini lebih robust terhadap trailing slashes atau sub-path
-  const hideSidebar =
-    pathname.startsWith("/auth/login") ||
-    pathname.startsWith("/auth/register") ||
-    pathname.startsWith("/auth/forgot-password");
+  const hideSidebar = pathname.startsWith("/auth/");
 
   // For auth pages, render minimal layout without RouteGuard to prevent conflicts
   if (hideSidebar) {
     return (
       <AuthProvider>
-        <main className="flex-1 overflow-auto">{children}</main>
+        <div className="min-h-screen">
+          {children}
+        </div>
         <Toaster richColors position="top-right" />
       </AuthProvider>
     );

@@ -9,7 +9,7 @@ User=containment
 Group=containment
 Restart=always
 RestartSec=1
-ExecStart=/usr/local/bin/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
+ExecStart=/usr/bin/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
 WorkingDirectory=/home/containment/NewContainment/Backend/publish
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_ROOT=/usr/share/dotnet

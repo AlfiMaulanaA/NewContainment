@@ -49,7 +49,6 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutoRefresh } from "@/components/AutoRefresh";
-// Virtual keyboard settings removed - using react-simple-keyboard library instead
 
 import Swal from "sweetalert2";
 
@@ -174,34 +173,43 @@ export default function SettingsPage() {
 
   return (
     <SidebarInset>
-      <header className="flex h-16 items-center justify-between border-b px-4">
+      <header className="flex h-16 items-center justify-between border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <Settings className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">General Settings</h1>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Settings className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold">General Settings</h1>
+              <p className="text-xs text-muted-foreground">Configure system preferences and dashboard options</p>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Toggle theme"
-            className="h-8 w-8"
-            onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-5 w-5 text-yellow-400 transition-all duration-200" />
-            ) : (
-              <Moon className="h-5 w-5 text-blue-600 transition-all duration-200" />
-            )}
-          </Button>
-          <span className="text-xs font-medium min-w-[70px] text-center select-none">
-            {theme === "dark" ? "Dark Mode" : "Light Mode"}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle theme"
+              className="h-6 w-6"
+              onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-yellow-500" />
+              ) : (
+                <Moon className="h-4 w-4 text-blue-600" />
+              )}
+            </Button>
+            <span className="text-xs font-medium text-center select-none">
+              {theme === "dark" ? "Dark" : "Light"}
+            </span>
+          </div>
           <Button
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 shadow-sm"
             onClick={refreshSystemInfo}
             disabled={isLoadingSystemInfo}
           >
@@ -214,81 +222,135 @@ export default function SettingsPage() {
           </Button>
         </div>
       </header>
-      <div className="p-6 space-y-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="system">System Settings</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard Settings</TabsTrigger>
-            <TabsTrigger value="cctv">CCTV Settings</TabsTrigger>
-            <TabsTrigger value="keyboard">Virtual Keyboard</TabsTrigger>
-            <TabsTrigger value="autorefresh">Auto Refresh</TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="system" className="space-y-6">
+      <div className="flex-1 p-6 space-y-8">
+        {/* Enhanced Tab Navigation */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-semibold tracking-tight">Settings Overview</h2>
+            <p className="text-sm text-muted-foreground">Manage your system preferences, dashboard layout, and monitoring options.</p>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="overflow-auto pb-2">
+              <TabsList className="inline-flex h-12 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground shadow-sm">
+                <TabsTrigger
+                  value="system"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+                >
+                  <Terminal className="h-4 w-4" />
+                  <span className="hidden sm:inline">System</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="dashboard"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+                >
+                  <Layout className="h-4 w-4" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="cctv"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+                >
+                  <MonitorPlay className="h-4 w-4" />
+                  <span className="hidden sm:inline">CCTV</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="autorefresh"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2"
+                >
+                  <RotateCw className="h-4 w-4" />
+                  <span className="hidden sm:inline">Auto Refresh</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+          <TabsContent value="system" className="space-y-6 mt-6">
             {/* Theme Settings Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {theme === "dark" ? (
-                    <Moon className="h-5 w-5 text-blue-600" />
-                  ) : (
-                    <Sun className="h-5 w-5 text-yellow-500" />
-                  )}
-                  Theme Settings
+            <Card className="shadow-sm border-0 bg-gradient-to-br from-background to-muted/20">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/10 to-blue-500/10">
+                    {theme === "dark" ? (
+                      <Moon className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <Sun className="h-5 w-5 text-orange-500" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-lg font-semibold">Theme Settings</span>
+                    <p className="text-sm text-muted-foreground font-normal">Customize your visual experience</p>
+                  </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="theme-mode" className="text-base font-medium">
-                        Appearance Mode
-                      </Label>
-                      <Badge variant="secondary" className="text-xs">
-                        {theme === "dark" ? "Dark" : "Light"}
-                      </Badge>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <Label htmlFor="theme-mode" className="text-base font-semibold">
+                          Appearance Mode
+                        </Label>
+                        <Badge variant="secondary" className="text-xs px-2 py-1">
+                          {theme === "system" ? "Auto" : theme === "dark" ? "Dark" : "Light"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Choose your preferred color scheme for the best viewing experience
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Switch between light and dark theme for better visibility
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant={theme === "light" ? "default" : "outline"}
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => handleThemeChange("light")}
-                    >
-                      <Sun className="h-4 w-4" />
-                      Light
-                    </Button>
-                    <Button
-                      variant={theme === "dark" ? "default" : "outline"}
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => handleThemeChange("dark")}
-                    >
-                      <Moon className="h-4 w-4" />
-                      Dark
-                    </Button>
-                    <Button
-                      variant={theme === "system" ? "default" : "outline"}
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => handleThemeChange("system")}
-                    >
-                      <Monitor className="h-4 w-4" />
-                      System
-                    </Button>
+
+                    <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+                      <Button
+                        variant={theme === "light" ? "default" : "ghost"}
+                        size="sm"
+                        className="gap-2 rounded-md transition-all"
+                        onClick={() => handleThemeChange("light")}
+                      >
+                        <Sun className="h-4 w-4" />
+                        <span className="hidden sm:inline">Light</span>
+                      </Button>
+                      <Button
+                        variant={theme === "dark" ? "default" : "ghost"}
+                        size="sm"
+                        className="gap-2 rounded-md transition-all"
+                        onClick={() => handleThemeChange("dark")}
+                      >
+                        <Moon className="h-4 w-4" />
+                        <span className="hidden sm:inline">Dark</span>
+                      </Button>
+                      <Button
+                        variant={theme === "system" ? "default" : "ghost"}
+                        size="sm"
+                        className="gap-2 rounded-md transition-all"
+                        onClick={() => handleThemeChange("system")}
+                      >
+                        <Monitor className="h-4 w-4" />
+                        <span className="hidden sm:inline">Auto</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <div className="text-lg font-bold text-primary mb-1">
-                    Current Theme: {theme === "system" ? "System Default" : theme === "dark" ? "Dark Mode" : "Light Mode"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Theme preference is saved automatically
+
+                <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                      {theme === "dark" ? (
+                        <Moon className="h-5 w-5 text-primary" />
+                      ) : theme === "light" ? (
+                        <Sun className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Monitor className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-primary mb-1">
+                        {theme === "system" ? "System Default" : theme === "dark" ? "Dark Mode" : "Light Mode"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Active theme • Saved automatically
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -334,81 +396,104 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             ) : systemInfo ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <Wifi className="h-6 w-6 text-blue-500" />
-                    <div>
-                      <h6 className="font-medium">IP Address</h6>
-                      <p className="text-sm text-muted-foreground">
-                        <strong>{ipType}:</strong> {ipAddress}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <Thermometer className="h-6 w-6 text-red-500" />
-                    <div>
-                      <h6 className="font-medium">CPU Temp</h6>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.cpu_temp}°C
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <Cpu className="h-6 w-6 text-green-700" />
-                    <div>
-                      <h6 className="font-medium">CPU Usage</h6>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.cpu_usage}%
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <MemoryStick className="h-6 w-6 text-green-600" />
-                    <div>
-                      <h6 className="font-medium">Memory Usage</h6>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.memory_usage}% (
-                        {Math.round(systemInfo.used_memory)}/
-                        {Math.round(systemInfo.total_memory)} MB)
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <HardDrive className="h-6 w-6 text-gray-600" />
-                    <div>
-                      <h6 className="font-medium">Disk Usage</h6>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.disk_usage}% (
-                        {Math.round(systemInfo.used_disk)}/
-                        {Math.round(systemInfo.total_disk)} MB)
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <Clock className="h-6 w-6 text-indigo-500" />
-                    <div>
-                      <h6 className="font-medium">Uptime</h6>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.uptime
-                          ? `${Math.floor(
-                              systemInfo.uptime / 3600
-                            )}h ${Math.floor((systemInfo.uptime % 3600) / 60)}m`
-                          : "N/A"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Terminal className="h-5 w-5 text-primary" />
+                    System Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Card className="border border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="p-3 bg-blue-500/10 rounded-lg">
+                          <Wifi className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <h6 className="font-semibold text-blue-900 dark:text-blue-100">Network Address</h6>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            <span className="font-medium">{ipType}:</span> {ipAddress}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/50 dark:to-red-900/30">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="p-3 bg-red-500/10 rounded-lg">
+                          <Thermometer className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <h6 className="font-semibold text-red-900 dark:text-red-100">CPU Temperature</h6>
+                          <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                            {systemInfo.cpu_temp}°C
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/50 dark:to-green-900/30">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="p-3 bg-green-500/10 rounded-lg">
+                          <Cpu className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <h6 className="font-semibold text-green-900 dark:text-green-100">CPU Usage</h6>
+                          <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                            {systemInfo.cpu_usage}%
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/50 dark:to-purple-900/30">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="p-3 bg-purple-500/10 rounded-lg">
+                          <MemoryStick className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <h6 className="font-semibold text-purple-900 dark:text-purple-100">Memory Usage</h6>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">
+                            <span className="font-medium">{systemInfo.memory_usage}%</span>
+                            <span className="text-xs block">({Math.round(systemInfo.used_memory)}/{Math.round(systemInfo.total_memory)} MB)</span>
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-950/50 dark:to-gray-900/30">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="p-3 bg-gray-500/10 rounded-lg">
+                          <HardDrive className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <h6 className="font-semibold text-gray-900 dark:text-gray-100">Disk Usage</h6>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-medium">{systemInfo.disk_usage}%</span>
+                            <span className="text-xs block">({Math.round(systemInfo.used_disk)}/{Math.round(systemInfo.total_disk)} MB)</span>
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/50 dark:to-indigo-900/30">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="p-3 bg-indigo-500/10 rounded-lg">
+                          <Clock className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <h6 className="font-semibold text-indigo-900 dark:text-indigo-100">System Uptime</h6>
+                          <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">
+                            {systemInfo.uptime
+                              ? `${Math.floor(
+                                  systemInfo.uptime / 3600
+                                )}h ${Math.floor((systemInfo.uptime % 3600) / 60)}m`
+                              : "N/A"}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </div>
             ) : null}
 
@@ -431,7 +516,7 @@ export default function SettingsPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="dashboard" className="space-y-6">
+          <TabsContent value="dashboard" className="space-y-6 mt-6">
             {!isLoaded ? (
               <div className="animate-pulse space-y-4">
                 <div className="h-8 bg-gray-200 rounded w-1/3"></div>
@@ -444,11 +529,16 @@ export default function SettingsPage() {
             ) : (
               <>
                 {/* Dashboard Layout Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Layout className="h-5 w-5" />
-                      Dashboard Layout
+                <Card className="shadow-sm border-0 bg-gradient-to-br from-background to-muted/20">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                        <Layout className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <span className="text-lg font-semibold">Dashboard Layout</span>
+                        <p className="text-sm text-muted-foreground font-normal">Choose your preferred dashboard theme</p>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -460,69 +550,108 @@ export default function SettingsPage() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div
-                          className={`relative cursor-pointer rounded-lg border-2 p-4 ${
+                          className={`group relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 ${
                             preferences.selectedDashboardLayout === 'dashboard-1'
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg transform scale-105'
+                              : 'border-border hover:border-primary/50 hover:shadow-md hover:transform hover:scale-102'
                           }`}
                           onClick={() => setDashboardLayout('dashboard-1')}
                         >
-                          <div className="flex flex-col items-center gap-2">
-                            <Layout className="h-8 w-8 text-primary" />
-                            <h4 className="font-medium">Dashboard 1</h4>
-                            <p className="text-xs text-muted-foreground text-center">
-                              Classic layout with sidebar navigation
-                            </p>
+                          <div className="flex flex-col items-center gap-4">
+                            <div className={`p-4 rounded-xl transition-colors ${
+                              preferences.selectedDashboardLayout === 'dashboard-1'
+                                ? 'bg-primary/20'
+                                : 'bg-muted group-hover:bg-primary/10'
+                            }`}>
+                              <Layout className="h-8 w-8 text-primary" />
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h4 className="font-semibold text-lg">Dashboard 1</h4>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                Classic layout with sidebar navigation and clean structure
+                              </p>
+                            </div>
                           </div>
                           {preferences.selectedDashboardLayout === 'dashboard-1' && (
-                            <div className="absolute top-2 right-2">
-                              <Badge variant="default" className="text-xs">Active</Badge>
+                            <div className="absolute -top-2 -right-2">
+                              <Badge variant="default" className="text-xs px-3 py-1 shadow-md">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                  Active
+                                </span>
+                              </Badge>
                             </div>
                           )}
                         </div>
 
                         <div
-                          className={`relative cursor-pointer rounded-lg border-2 p-4 ${
+                          className={`group relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 ${
                             preferences.selectedDashboardLayout === 'dashboard-2'
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg transform scale-105'
+                              : 'border-border hover:border-primary/50 hover:shadow-md hover:transform hover:scale-102'
                           }`}
                           onClick={() => setDashboardLayout('dashboard-2')}
                         >
-                          <div className="flex flex-col items-center gap-2">
-                            <Grid3X3 className="h-8 w-8 text-primary" />
-                            <h4 className="font-medium">Dashboard 2</h4>
-                            <p className="text-xs text-muted-foreground text-center">
-                              Grid layout with balanced sections
-                            </p>
+                          <div className="flex flex-col items-center gap-4">
+                            <div className={`p-4 rounded-xl transition-colors ${
+                              preferences.selectedDashboardLayout === 'dashboard-2'
+                                ? 'bg-primary/20'
+                                : 'bg-muted group-hover:bg-primary/10'
+                            }`}>
+                              <Grid3X3 className="h-8 w-8 text-primary" />
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h4 className="font-semibold text-lg">Dashboard 2</h4>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                Grid layout with balanced sections and optimized spacing
+                              </p>
+                            </div>
                           </div>
                           {preferences.selectedDashboardLayout === 'dashboard-2' && (
-                            <div className="absolute top-2 right-2">
-                              <Badge variant="default" className="text-xs">Active</Badge>
+                            <div className="absolute -top-2 -right-2">
+                              <Badge variant="default" className="text-xs px-3 py-1 shadow-md">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                  Active
+                                </span>
+                              </Badge>
                             </div>
                           )}
                         </div>
 
                         <div
-                          className={`relative cursor-pointer rounded-lg border-2 p-4 ${
+                          className={`group relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 ${
                             preferences.selectedDashboardLayout === 'dashboard-3'
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg transform scale-105'
+                              : 'border-border hover:border-primary/50 hover:shadow-md hover:transform hover:scale-102'
                           }`}
                           onClick={() => setDashboardLayout('dashboard-3')}
                         >
-                          <div className="flex flex-col items-center gap-2">
-                            <Monitor className="h-8 w-8 text-primary" />
-                            <h4 className="font-medium">Dashboard 3</h4>
-                            <p className="text-xs text-muted-foreground text-center">
-                              Compact layout for maximum density
-                            </p>
+                          <div className="flex flex-col items-center gap-4">
+                            <div className={`p-4 rounded-xl transition-colors ${
+                              preferences.selectedDashboardLayout === 'dashboard-3'
+                                ? 'bg-primary/20'
+                                : 'bg-muted group-hover:bg-primary/10'
+                            }`}>
+                              <Monitor className="h-8 w-8 text-primary" />
+                            </div>
+                            <div className="text-center space-y-2">
+                              <h4 className="font-semibold text-lg">Dashboard 3</h4>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                Compact layout for maximum density and information
+                              </p>
+                            </div>
                           </div>
                           {preferences.selectedDashboardLayout === 'dashboard-3' && (
-                            <div className="absolute top-2 right-2">
-                              <Badge variant="default" className="text-xs">Active</Badge>
+                            <div className="absolute -top-2 -right-2">
+                              <Badge variant="default" className="text-xs px-3 py-1 shadow-md">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                  Active
+                                </span>
+                              </Badge>
                             </div>
                           )}
                         </div>
@@ -674,40 +803,77 @@ export default function SettingsPage() {
                 </Card>
 
                 {/* Current Status */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Current Status</CardTitle>
+                <Card className="shadow-sm border-0 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-green-500/10">
+                        <Monitor className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <span className="text-lg font-semibold">Dashboard Status</span>
+                        <p className="text-sm text-muted-foreground font-normal">Current configuration overview</p>
+                      </div>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.isCarouselMode ? "Carousel" : "Scroll"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Display Mode
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="relative p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-blue-500/10 rounded-lg">
+                            {preferences.isCarouselMode ? (
+                              <Grid className="h-6 w-6 text-blue-600" />
+                            ) : (
+                              <List className="h-6 w-6 text-blue-600" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-1">
+                              {preferences.isCarouselMode ? "Carousel" : "Scroll"}
+                            </div>
+                            <div className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                              Display Mode
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.autoPlayEnabled ? "On" : "Off"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Auto-play
+                      <div className="relative p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-xl border border-purple-200 dark:border-purple-800">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-purple-500/10 rounded-lg">
+                            {preferences.autoPlayEnabled ? (
+                              <Play className="h-6 w-6 text-purple-600" />
+                            ) : (
+                              <Pause className="h-6 w-6 text-purple-600" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
+                              {preferences.autoPlayEnabled ? "Enabled" : "Disabled"}
+                            </div>
+                            <div className="text-xs text-purple-700 dark:text-purple-300 font-medium">
+                              Auto-play
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <div className="text-2xl font-bold text-primary mb-1">
-                          {preferences.carouselMode === 'automatic'
-                            ? preferences.carouselInterval >= 60
-                              ? `${Math.floor(preferences.carouselInterval / 60)}m`
-                              : `${preferences.carouselInterval}s`
-                            : "Manual"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Section Interval
+                      <div className="relative p-6 bg-gradient-to-br from-orange-500/10 to-orange-600/5 rounded-xl border border-orange-200 dark:border-orange-800">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-orange-500/10 rounded-lg">
+                            <Clock className="h-6 w-6 text-orange-600" />
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-orange-900 dark:text-orange-100 mb-1">
+                              {preferences.carouselMode === 'automatic'
+                                ? preferences.carouselInterval >= 60
+                                  ? `${Math.floor(preferences.carouselInterval / 60)}m`
+                                  : `${preferences.carouselInterval}s`
+                                : "Manual"}
+                            </div>
+                            <div className="text-xs text-orange-700 dark:text-orange-300 font-medium">
+                              Section Interval
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -743,7 +909,7 @@ export default function SettingsPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="cctv" className="space-y-6">
+          <TabsContent value="cctv" className="space-y-6 mt-6">
             {!isLoaded ? (
               <div className="animate-pulse space-y-4">
                 <div className="h-8 bg-gray-200 rounded w-1/3"></div>
@@ -756,11 +922,16 @@ export default function SettingsPage() {
             ) : (
               <>
                 {/* CCTV Basic Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MonitorPlay className="h-5 w-5" />
-                      CCTV Basic Settings
+                <Card className="shadow-sm border-0 bg-gradient-to-br from-background to-muted/20">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/10 to-blue-500/10">
+                        <MonitorPlay className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <span className="text-lg font-semibold">CCTV Basic Settings</span>
+                        <p className="text-sm text-muted-foreground font-normal">Configure CCTV monitoring preferences</p>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -1041,34 +1212,19 @@ export default function SettingsPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="keyboard" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Terminal className="h-5 w-5 text-primary" />
-                  Virtual Keyboard
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Virtual keyboard functionality has been replaced with react-simple-keyboard library for better performance and reliability.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Custom virtual keyboard settings are no longer needed as the library handles keyboard management automatically.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="autorefresh" className="space-y-6">
+          <TabsContent value="autorefresh" className="space-y-6 mt-6">
             {/* Auto Refresh Settings Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RotateCw className="h-5 w-5 text-primary" />
-                  Auto Refresh Settings
+            <Card className="shadow-sm border-0 bg-gradient-to-br from-background to-muted/20">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10">
+                    <RotateCw className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-semibold">Auto Refresh Settings</span>
+                    <p className="text-sm text-muted-foreground font-normal">Configure automatic page refresh intervals</p>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1137,6 +1293,7 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </SidebarInset>
   );

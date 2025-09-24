@@ -5,7 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LucideIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export interface PageHeaderProps {
   /**
@@ -98,6 +98,10 @@ export function PageHeader({
   children,
 }: PageHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Check if we're on an auth page where sidebar is not available
+  const isAuthPage = pathname.startsWith("/auth/");
 
   const handleBackClick = () => {
     if (backButton?.href) {
@@ -112,8 +116,13 @@ export function PageHeader({
           children
         ) : (
           <>
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            {/* Only show SidebarTrigger if not on auth page */}
+            {!isAuthPage && (
+              <>
+                <SidebarTrigger className="-ml-1" />
+                <Separator orientation="vertical" className="mr-2 h-4" />
+              </>
+            )}
 
             {/* Back button */}
             {backButton && (
@@ -134,7 +143,7 @@ export function PageHeader({
 
             {/* Icon */}
             {Icon && <Icon className="h-5 w-5" />}
-            
+
             {/* Title and subtitle */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
               <h1 className="text-lg font-semibold">{title}</h1>
@@ -147,7 +156,7 @@ export function PageHeader({
           </>
         )}
       </div>
-      
+
       {/* Actions */}
       {actions && (
         <div className="flex items-center gap-2">

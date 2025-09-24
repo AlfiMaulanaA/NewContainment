@@ -175,7 +175,25 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const sidebarContext = React.useContext(SidebarContext)
+
+    // If no sidebar context is available, render a minimal sidebar
+    if (!sidebarContext) {
+      return (
+        <div
+          ref={ref}
+          className={cn(
+            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      )
+    }
+
+    const { isMobile, state, openMobile, setOpenMobile } = sidebarContext
 
     if (collapsible === "none") {
       return (
@@ -263,7 +281,14 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const sidebarContext = React.useContext(SidebarContext)
+
+  // If no sidebar context is available, render a disabled button or return null
+  if (!sidebarContext) {
+    return null
+  }
+
+  const { toggleSidebar } = sidebarContext
 
   return (
     <Button
@@ -289,7 +314,14 @@ const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const sidebarContext = React.useContext(SidebarContext)
+
+  // If no sidebar context is available, return null
+  if (!sidebarContext) {
+    return null
+  }
+
+  const { toggleSidebar } = sidebarContext
 
   return (
     <button
@@ -554,7 +586,10 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const sidebarContext = React.useContext(SidebarContext)
+
+    // Get sidebar context values or use defaults
+    const { isMobile = false, state = "expanded" } = sidebarContext || {}
 
     const button = (
       <Comp

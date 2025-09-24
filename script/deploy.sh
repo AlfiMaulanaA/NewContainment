@@ -551,12 +551,60 @@ EOF
     
     if [ "$frontend_running" = false ]; then
         log_error "Frontend failed to start properly"
-        log "PM2 Status:"
-        pm2 list
-        log "PM2 Logs:"
-        pm2 logs newcontainment-frontend --lines 20
-        log "Port Status:"
-        netstat -tuln | grep ":3000" || log "Port 3000 not listening"
+
+        # Check if build directory exists
+        if [ ! -d "$FRONTEND_DIR/.next" ]; then
+            log_error "Build directory missing - frontend was not built properly"
+            return 1
+        fi
+
+        # Stop the errored process and restart with fresh config
+        log "Stopping errored PM2 process..."
+        pm2 stop newcontainment-frontend 2>/dev/null || true
+        pm2 delete newcontainment-frontend 2>/dev/null || true
+
+        # Wait a moment and try to start again with explicit settings
+        sleep 2
+        log "Attempting to restart frontend with explicit configuration..."
+
+        # Create a more robust ecosystem config
+        cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [
+    {
+      name: "newcontainment-frontend",
+      script: "npm",
+      args: "start",
+      cwd: "/home/containment/NewContainment/Frontend",
+      instances: 1,
+      exec_mode: "fork",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000
+      },
+      error_file: "./logs/error.log",
+      out_file: "./logs/out.log",
+      log_file: "./logs/combined.log",
+      time: true,
+      max_restarts: 3,
+      restart_delay: 5000
+    }
+  ]
+};
+EOF
+
+        # Try starting once more
+        if pm2 start ecosystem.config.js; then
+            sleep 3
+            if pm2 list | grep -q "online.*newcontainment-frontend"; then
+                log_success "Frontend restarted successfully"
+                frontend_running=true
+            else
+                log_error "Frontend still failing to start - check build output"
+            fi
+        else
+            log_error "Failed to restart frontend with PM2"
+        fi
         return 1
     fi
     

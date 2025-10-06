@@ -2,31 +2,43 @@
   "devices": [
     {
       "id": "device_1",
-      "name": "Front Door",
-      "ip": "192.168.0.203",
+      "name": "Main Entrance ZKTeco Device",
+      "ip": "192.168.1.100",
       "port": 4370,
       "password": 0,
-      "timeout": 10,
+      "timeout": 5,
       "force_udp": false,
       "enabled": true
     },
     {
       "id": "device_2",
-      "name": "Back Door",
-      "ip": "192.168.0.202",
+      "name": "Secondary Entrance ZKTeco Device",
+      "ip": "192.168.1.101",
       "port": 4370,
       "password": 0,
-      "timeout": 10,
+      "timeout": 5,
+      "force_udp": false,
+      "enabled": true
+    },
+    {
+      "id": "device_3",
+      "name": "Server Room ZKTeco Device",
+      "ip": "192.168.1.102",
+      "port": 4370,
+      "password": 0,
+      "timeout": 5,
       "force_udp": false,
       "enabled": true
     }
   ],
   "settings": {
-    "default_timeout": 10,
+    "default_timeout": 5,
     "default_port": 4370,
-    "max_retries": 5,
+    "max_retries": 3,
+    "verbose": true,
     "poll_interval": 3,
-    "verbose": false,
-    "master_device_id": "device_1"
+    "master_device_id": "device_1",
+    "sync_interval_hours": 1,
+    "auto_sync_enabled": true
   }
 }

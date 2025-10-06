@@ -24,7 +24,21 @@ interface ContainmentData {
 }
 
 export default function DashboardOverview() {
+  // CSS animations for timed elements
+  const progressAnimation = {
+    'animate-pulse-full': {
+      animation: 'pulse-full 2s ease-in-out infinite'
+    }
+  };
+
+  const progressKeyframes = `
+    @keyframes pulse-full {
+      0%, 100% { transform: translateX(-100%); width: 100%; }
+      50% { transform: translateX(0%); width: 100%; }
+    }
+  `;
   const [containmentData, setContainmentData] = useState<ContainmentData | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const searchParams = useSearchParams();
 
   const { preferences } = useDashboardPreferences();
@@ -80,6 +94,8 @@ export default function DashboardOverview() {
         }
       } catch (error) {
         console.error("Failed to load containment data:", error);
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
@@ -104,6 +120,30 @@ export default function DashboardOverview() {
       </div>
     );
   };
+
+  // Show loading screen if initial data is still loading
+  if (isInitialLoading) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-background via-muted to-muted/80 flex items-center justify-center">
+          <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-muted/20 rounded-2xl mb-6">
+            <Layout className="h-10 w-10 text-primary animate-pulse" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Loading Dashboard</h2>
+          <p className="text-muted-foreground text-sm">Initializing your workspace...</p>
+          {/* Simple progress indicator */}
+          <div className="mt-4 flex justify-center">
+            <div className="w-48 h-1 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full animate-pulse-full"></div>
+            </div>
+          </div>
+          </div>
+        </div>
+        <style jsx>{progressKeyframes}</style>
+      </>
+    );
+  }
 
   return (
     <SidebarInset>

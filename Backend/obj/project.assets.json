@@ -18520,24 +18520,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\alfim\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\alfim\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Alfi\\RnD\\DEVELOPMENT\\NewContainment\\Backend\\Backend.csproj",
+      "projectUniqueName": "C:\\Alfi\\RnD\\Development\\NewContainment\\Backend\\Backend.csproj",
       "projectName": "Backend",
-      "projectPath": "D:\\Alfi\\RnD\\DEVELOPMENT\\NewContainment\\Backend\\Backend.csproj",
+      "projectPath": "C:\\Alfi\\RnD\\Development\\NewContainment\\Backend\\Backend.csproj",
       "packagesPath": "C:\\Users\\alfim\\.nuget\\packages\\",
-      "outputPath": "D:\\Alfi\\RnD\\DEVELOPMENT\\NewContainment\\Backend\\obj\\",
+      "outputPath": "C:\\Alfi\\RnD\\Development\\NewContainment\\Backend\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\alfim\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config"
+        "C:\\Users\\alfim\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -18620,39 +18615,39 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Runtime.linux-arm",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.AspNetCore.App.Runtime.linux-arm64",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.linux-arm",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.linux-arm64",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.linux-x64",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.NETCore.App.Runtime.linux-arm",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.NETCore.App.Runtime.linux-arm64",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           },
           {
             "name": "Microsoft.NETCore.App.Runtime.linux-x64",
-            "version": "[9.0.8, 9.0.8]"
+            "version": "[9.0.9, 9.0.9]"
           }
         ],
         "frameworkReferences": {
@@ -18663,7 +18658,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

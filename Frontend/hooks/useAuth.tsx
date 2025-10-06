@@ -25,7 +25,7 @@ interface AuthContextType {
 // Helper function for debug logging
 function debugLog(message: string, ...args: any[]) {
   if (isAuthDebugEnabled()) {
-    console.log(`🔍 useAuth: ${message}`, ...args);
+    console.log(`Auth: ${message}`, ...args);
   }
 }
 

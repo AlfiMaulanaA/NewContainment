@@ -78,8 +78,21 @@ import {
   Device,
   CreateRackRequest,
   UpdateRackRequest,
+  ContainmentType,
   getContainmentTypeString,
 } from "@/lib/api-service";
+
+// Get containment type color with advanced gradient and styling
+const getContainmentTypeColor = (type: ContainmentType): string => {
+  switch (type) {
+    case ContainmentType.HotAisleContainment:
+      return "text-red-700 bg-gradient-to-r from-red-50:50 to-red-50 border border-red-300/60 shadow-sm rounded-full font-medium px-3 py-1 transition-all duration-300 hover:shadow-md hover:from-red-100/70 hover:via-red-200/70 hover:to-red-100/70 hover:border-red-400/80 hover:scale-[1.02] backdrop-blur-sm";
+    case ContainmentType.ColdAisleContainment:
+      return "text-blue-700 bg-gradient-to-r from-blue-50/50 via-blue-100/50 to-blue-50/50 border border-blue-300/60 shadow-sm rounded-full font-medium px-3 py-1 transition-all duration-300 hover:shadow-md hover:from-blue-100/70 hover:via-blue-200/70 hover:to-blue-100/70 hover:border-blue-400/80 hover:scale-[1.02] backdrop-blur-sm";
+    default:
+      return "text-gray-700 bg-gradient-to-r from-gray-50/50 via-gray-100/50 to-gray-50/50 border border-gray-300/60 shadow-sm rounded-full font-medium px-3 py-1 transition-all duration-300 hover:shadow-md hover:from-gray-100/70 hover:via-gray-200/70 hover:to-gray-100/70 hover:border-gray-400/80 hover:scale-[1.02] backdrop-blur-sm";
+  }
+};
 import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { toast } from "sonner";
@@ -777,11 +790,7 @@ export default function RackManagementPage({
                             <TableCell>
                               {containment ? (
                                 <Badge
-                                  className={
-                                    containment.type === 1
-                                      ? "text-center text-red-600 bg-red-100"
-                                      : "text-center text-blue-600 bg-blue-100"
-                                  }
+                                  className={getContainmentTypeColor(containment.type)}
                                 >
                                   {getContainmentTypeString(containment.type)}
                                 </Badge>

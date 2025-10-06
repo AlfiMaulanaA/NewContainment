@@ -69,18 +69,19 @@ export function useDynamicMenu() {
     fetchUserMenu();
   };
 
-  // Auto-refresh menu every 5 minutes or when developer mode changes
+  // Simplified menu refresh - every 10 minutes (no verbose logging)
   useEffect(() => {
     fetchUserMenu();
 
     // Register refresh callback with developer mode context
     registerMenuRefresh(fetchUserMenu);
 
+    // Simple interval for menu refresh - 10 minutes
     const interval = setInterval(() => {
       fetchUserMenu();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 10 * 60 * 1000); // 10 minutes
 
-    // Listen for developer mode changes
+    // Listen for developer mode changes only
     const handleStorageChange = (e: StorageEvent) => {
       if (
         e.key === "developer_mode_enabled" ||
@@ -88,39 +89,17 @@ export function useDynamicMenu() {
       ) {
         setTimeout(() => {
           fetchUserMenu();
-        }, 100); // Small delay to ensure storage is updated
-      }
-    };
-
-    // Listen for page visibility changes (when user comes back to tab)
-    const handleVisibilityChange = () => {
-      if (!document.hidden && error) {
-        console.log("Page became visible and there was an error, retrying menu fetch...");
-        setRetryCount(0); // Reset retry count
-        fetchUserMenu();
-      }
-    };
-
-    // Listen for online status changes (when connection is restored)
-    const handleOnlineStatus = () => {
-      if (navigator.onLine && error) {
-        console.log("Connection restored, retrying menu fetch...");
-        setRetryCount(0); // Reset retry count
-        fetchUserMenu();
+        }, 100);
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("online", handleOnlineStatus);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("online", handleOnlineStatus);
     };
-  }, [registerMenuRefresh, error, retryCount]);
+  }, [registerMenuRefresh]); // Only depend on registerMenuRefresh to avoid infinite loops
 
   return {
     menuData,

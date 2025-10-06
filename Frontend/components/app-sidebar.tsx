@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useDynamicMenu } from "@/hooks/useDynamicMenu";
 import { getIconComponent } from "@/lib/icon-mapping";
 import {
@@ -30,7 +30,7 @@ import {
   Settings,
   BarChart3,
   Users,
-  Container,
+  Archive, // Use Archive instead of Container
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -120,18 +120,88 @@ export function AppSidebar() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isScrollVisible, setIsScrollVisible] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const sidebarContentRef = useRef<HTMLDivElement>(null);
   const { apiBaseUrl } = getAppConfig();
 
-  // Enhanced function to check if menu item is active
+  // CACHING HOOKS - MUST BE AT THE TOP, before any early returns or conditional logic
+  const cachedIcons = useMemo(() => new Map<string, React.ComponentType<any>>(), []);
+  const effectiveMenuData = useMemo(() => menuData || fallbackMenu, [menuData]);
+  const getCachedIconComponent = useCallback((iconName: string) => {
+    if (!iconName) return null;
+    if (!cachedIcons.has(iconName)) {
+      cachedIcons.set(iconName, getIconComponent(iconName));
+    }
+    return cachedIcons.get(iconName);
+  }, [cachedIcons]);
+
+  const MemoizedMenuItem = useMemo(() => {
+    return React.memo(({ item, group }: { item: any; group: any }) => {
+      const IconComponent = getCachedIconComponent(item.icon);
+      const isActive = isMenuItemActive(item.url);
+
+      return (
+        <SidebarMenuItem key={item.id || item.title} className="sidebar-menu-item">
+          <SidebarMenuButton
+            asChild
+            isActive={isActive}
+            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-md ${
+              isActive ? "sidebar-menu-active" : ""
+            }`}
+          >
+            <Link href={item.url}>
+              {IconComponent && React.createElement(IconComponent, {
+                className: `sidebar-icon h-4 w-4 transition-all duration-200 ${
+                  isActive
+                    ? ""
+                    : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110"
+                }`
+              })}
+              <span className={`sidebar-text truncate transition-all duration-200 ${isActive ? "" : ""}`}>
+                {item.title}
+              </span>
+              {item.badgeText && (
+                <SidebarMenuBadge
+                  className={`ml-auto text-xs transition-colors ${
+                    item.badgeVariant === "destructive"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {item.badgeText}
+                </SidebarMenuBadge>
+              )}
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      );
+    });
+  }, [pathname]);
+
+  const MemoizedSidebarHeader = useMemo(() => (
+    <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
+      <div className="flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Archive className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold text-sidebar-foreground">
+            Containment
+          </h1>
+          <p className="text-xs text-sidebar-foreground/70">
+            Containment System
+          </p>
+        </div>
+      </div>
+    </SidebarHeader>
+  ), []);
+
+  // Regular functions and handlers
   const isMenuItemActive = (itemUrl: string) => {
-    // Exact match for root routes
     if (itemUrl === "/" && pathname === "/") return true;
     if (itemUrl === "/" && pathname !== "/") return false;
 
-    // For non-root routes, check if pathname starts with itemUrl
     if (itemUrl !== "/" && pathname.startsWith(itemUrl)) {
-      // Additional check to avoid false positives like "/user" matching "/users"
       const nextChar = pathname[itemUrl.length];
       return (
         nextChar === "/" ||
@@ -140,7 +210,6 @@ export function AppSidebar() {
         nextChar === "#"
       );
     }
-
     return false;
   };
 
@@ -178,14 +247,11 @@ export function AppSidebar() {
     }
   }, []);
 
-  // Auto-close mobile sidebar on navigation
   useEffect(() => {
     if (isMobile) {
       setOpenMobile(false);
     }
   }, [pathname, isMobile, setOpenMobile]);
-
-  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
 
   // Handle menu retry
   const handleRetryMenu = async () => {
@@ -220,8 +286,8 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
-              <Container className="h-6 w-6 text-sidebar-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
+              <Archive className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">
@@ -258,8 +324,8 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary shadow-lg">
-              <Container className="h-6 w-6 text-sidebar-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary shadow-lg">
+              <Archive className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">
@@ -547,26 +613,11 @@ export function AppSidebar() {
     );
   }
 
-  // Use dynamic menu data or fallback
-  const effectiveMenuData = menuData || fallbackMenu;
+
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center border-gray-400 justify-center rounded-lg bg-primary text-primary-foreground">
-            <Container className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-sidebar-foreground">
-              Containment
-            </h1>
-            <p className="text-xs text-sidebar-foreground/70">
-              Containment System
-            </p>
-          </div>
-        </div>
-      </SidebarHeader>
+      {MemoizedSidebarHeader}
 
       <SidebarContent
         ref={sidebarContentRef}
@@ -584,55 +635,13 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item: any) => {
-                  const IconComponent = getIconComponent(item.icon);
-                  const isActive = isMenuItemActive(item.url);
-
-                  return (
-                    <SidebarMenuItem
-                      key={item.id || item.title}
-                      className="sidebar-menu-item"
-                    >
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-md ${
-                          isActive ? "sidebar-menu-active" : ""
-                        }`}
-                      >
-                        <Link href={item.url}>
-                          {IconComponent && (
-                            <IconComponent
-                              className={`sidebar-icon h-4 w-4 transition-all duration-200 ${
-                                isActive
-                                  ? ""
-                                  : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground group-hover:scale-110"
-                              }`}
-                            />
-                          )}
-                          <span
-                            className={`sidebar-text truncate transition-all duration-200 ${
-                              isActive ? "" : ""
-                            }`}
-                          >
-                            {item.title}
-                          </span>
-                          {item.badgeText && (
-                            <SidebarMenuBadge
-                              className={`ml-auto text-xs transition-colors ${
-                                item.badgeVariant === "destructive"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              {item.badgeText}
-                            </SidebarMenuBadge>
-                          )}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                {group.items.map((item: any) => (
+                  <MemoizedMenuItem
+                    key={item.id || item.title}
+                    item={item}
+                    group={group}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

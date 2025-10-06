@@ -71,6 +71,7 @@ import {
 import {
   containmentsApi,
   racksApi,
+  devicesApi,
   Containment,
   Rack,
   ContainmentType,
@@ -108,6 +109,7 @@ export default function ContainmentManagementPage() {
     useState<Containment | null>(null);
   const [selectedRacks, setSelectedRacks] = useState<Rack[]>([]);
   const [racksLoading, setRacksLoading] = useState(false);
+  const [deviceCounts, setDeviceCounts] = useState<Record<number, number>>({});
 
   // Form state
   const [formData, setFormData] = useState<
@@ -154,6 +156,56 @@ export default function ContainmentManagementPage() {
     0
   );
 
+  // Calculate total devices across all containments
+  const totalDevices = Object.values(deviceCounts).reduce(
+    (sum, count) => sum + count,
+    0
+  );
+
+  // Load device counts for all containments
+  const loadDeviceCounts = async (containments: Containment[]) => {
+    try {
+      const deviceCountPromises = containments.map(async (containment) => {
+        const racksResult = await racksApi.getRacksByContainment(containment.id);
+        if (racksResult.success && racksResult.data) {
+          // Get devices for all racks in this containment
+          const devicePromises = racksResult.data.map(async (rack) => {
+            const deviceResult = await devicesApi.getDevicesByRack(rack.id);
+            return deviceResult.success && deviceResult.data ? deviceResult.data.length : 0;
+          });
+
+          const deviceCounts = await Promise.all(devicePromises);
+          const totalDevicesInContainment = deviceCounts.reduce((sum, count) => sum + count, 0);
+
+          return {
+            containmentId: containment.id,
+            deviceCount: totalDevicesInContainment,
+          };
+        }
+        return {
+          containmentId: containment.id,
+          deviceCount: 0,
+        };
+      });
+
+      const deviceCountResults = await Promise.all(deviceCountPromises);
+      const deviceCountMap: Record<number, number> = {};
+      deviceCountResults.forEach(({ containmentId, deviceCount }) => {
+        deviceCountMap[containmentId] = deviceCount;
+      });
+
+      setDeviceCounts(deviceCountMap);
+    } catch (error: any) {
+      console.error("Error loading device counts:", error);
+      // Set all counts to 0 if there's an error
+      const deviceCountMap: Record<number, number> = {};
+      containments.forEach((containment) => {
+        deviceCountMap[containment.id] = 0;
+      });
+      setDeviceCounts(deviceCountMap);
+    }
+  };
+
   // Load rack counts for all containments
   const loadRackCounts = async (containments: Containment[]) => {
     const rackCountMap = new Map<number, number>();
@@ -198,8 +250,9 @@ export default function ContainmentManagementPage() {
       const result = await containmentsApi.getContainments();
       if (result.success && result.data) {
         setContainments(result.data);
-        // Load rack counts after containments are loaded
+        // Load rack counts and device counts after containments are loaded
         await loadRackCounts(result.data);
+        await loadDeviceCounts(result.data);
       } else {
         toast.error(result.message || "Failed to load containments");
       }
@@ -304,17 +357,17 @@ export default function ContainmentManagementPage() {
     }
   };
 
-  // Get containment type color
-  const getContainmentTypeColor = (type: ContainmentType): string => {
-    switch (type) {
-      case ContainmentType.HotAisleContainment:
-        return "text-red-600 bg-red-100";
-      case ContainmentType.ColdAisleContainment:
-        return "text-blue-600 bg-blue-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
-  };
+// Get containment type color with advanced gradient and styling
+const getContainmentTypeColor = (type: ContainmentType): string => {
+  switch (type) {
+    case ContainmentType.HotAisleContainment:
+      return "text-red-700 bg-gradient-to-r from-red-50/50 via-red-100/50 to-red-50/50 border border-red-300/60 shadow-sm rounded-full font-medium px-3 py-1 transition-all duration-300 hover:shadow-md hover:from-red-100/70 hover:via-red-200/70 hover:to-red-100/70 hover:border-red-400/80 hover:scale-[1.02] backdrop-blur-sm";
+    case ContainmentType.ColdAisleContainment:
+      return "text-blue-700 bg-gradient-to-r from-blue-50/50 via-blue-100/50 to-blue-50/50 border border-blue-300/60 shadow-sm rounded-full font-medium px-3 py-1 transition-all duration-300 hover:shadow-md hover:from-blue-100/70 hover:via-blue-200/70 hover:to-blue-100/70 hover:border-blue-400/80 hover:scale-[1.02] backdrop-blur-sm";
+    default:
+      return "text-gray-700 bg-gradient-to-r from-gray-50/50 via-gray-100/50 to-gray-50/50 border border-gray-300/60 shadow-sm rounded-full font-medium px-3 py-1 transition-all duration-300 hover:shadow-md hover:from-gray-100/70 hover:via-gray-200/70 hover:to-gray-100/70 hover:border-gray-400/80 hover:scale-[1.02] backdrop-blur-sm";
+  }
+};
 
   // Handle manage racks - redirect to rack management page with containment ID
   const handleManageRacks = (containment: Containment) => {
@@ -496,7 +549,7 @@ export default function ContainmentManagementPage() {
       {/* Stats Cards */}
       <>
         {shouldShowAddButton && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 m-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 m-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -516,72 +569,6 @@ export default function ContainmentManagementPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active</CardTitle>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Activity className="h-4 w-4 text-green-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {activeContainments}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Currently active
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {inactiveContainments}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Inactive containments
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Hot Aisle</CardTitle>
-                <Badge className="text-red-600 bg-red-100 text-xs">Hot</Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{hotAisleContainments}</div>
-                <p className="text-xs text-muted-foreground">
-                  Hot aisle containments
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Cold Aisle
-                </CardTitle>
-                <Badge className="text-blue-600 bg-blue-100 text-xs">
-                  Cold
-                </Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {coldAisleContainments}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Cold aisle containments
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Total Racks
                 </CardTitle>
@@ -595,6 +582,25 @@ export default function ContainmentManagementPage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Racks across all containments
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Devices
+                </CardTitle>
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Computer className="h-4 w-4 text-blue-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {totalDevices}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Devices across all racks
                 </p>
               </CardContent>
             </Card>

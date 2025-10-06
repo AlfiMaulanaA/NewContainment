@@ -1,23 +1,14 @@
 {
   "mqtt": {
-    "broker": "192.168.0.138",
+    "broker": "mosquitto",
     "port": 1883,
     "keepalive": 60,
-    "client_id": "zkteco_tester",
+    "client_id": "zkteco_device_manager_NewContainment",
     "username": "",
-    "password": "",
-    "tls": {
-      "enabled": false,
-      "ca_certs": "",
-      "cert_file": "",
-      "key_file": ""
-    }
+    "password": ""
   },
   "mqtt_settings": {
     "qos": 1,
-    "retain": true,
-    "publish_individual_devices": true,
-    "publish_summary": true,
-    "alert_on_failure": true
+    "retain": false
   }
 }

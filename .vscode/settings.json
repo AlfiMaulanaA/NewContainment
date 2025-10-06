@@ -1,0 +1,13 @@
+{
+  "cSpell.enabled": false,
+  "cSpell.diagnosticLevel": "Hint",
+  "cSpell.showCommandsInEditorContextMenu": false,
+  "cSpell.showStatusBarButtons": false,
+  "cSpell.showSuggestionsLinkInEditorContextMenu": false,
+  "[json]": {
+    "editor.quickSuggestions": {
+      "strings": true
+    },
+    "editor.suggest.insertMode": "replace"
+  }
+}

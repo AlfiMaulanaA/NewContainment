@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
+    "build:analyze": "cross-env ANALYZE=true next build",
     "build:dev": "next build",
     "build:static": "cross-env NODE_ENV=production next build",
     "start": "next start -H 0.0.0.0",
@@ -13,7 +14,8 @@
     "export:prod": "cross-env NODE_ENV=production next build",
     "serve:static": "http-server out -H 0.0.0.0 -c-1 --cors",
     "setup": "echo No setup needed",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -86,10 +88,12 @@
     "@types/react": "^18.3.24",
     "@types/three": "^0.179.0",
     "@types/uuid": "^10.0.0",
+    "@tanstack/react-virtual": "^3.10.7",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "eslint": "^8",
     "eslint-config-next": "14.0.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "webpack-bundle-analyzer": "^4.10.2"
   }
 }

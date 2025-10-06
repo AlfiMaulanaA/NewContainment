@@ -5,7 +5,6 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-User=containment
 Group=containment
 Restart=always
 RestartSec=1

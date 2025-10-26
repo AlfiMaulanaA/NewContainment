@@ -26,6 +26,7 @@ namespace Backend.Models
         public bool OpenFrontDoorStatus { get; set; } = false;
         public bool OpenBackDoorStatus { get; set; } = false;
         public bool EmergencyTemp { get; set; } = false;
+        public bool EmergencyBms { get; set; } = false;
 
         // MQTT timestamp - last received message time
         public DateTime MqttTimestamp { get; set; } = DateTime.UtcNow;

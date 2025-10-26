@@ -13,6 +13,8 @@ namespace Backend.Services
         private IMqttClient? _mqttClient;
         private readonly Dictionary<string, Func<string, string, Task>> _messageHandlers;
         private bool _mqttEnabled;
+        private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
+        private bool _isConnecting = false;
 
         public bool IsConnected => _mqttClient?.IsConnected ?? false;
         public event EventHandler<string>? ConnectionStatusChanged;
@@ -30,8 +32,18 @@ namespace Backend.Services
 
         public async Task ConnectAsync()
         {
+            // Use semaphore to ensure only one connection attempt at a time
+            await _connectionLock.WaitAsync();
             try
             {
+                if (_isConnecting)
+                {
+                    _logger.LogInformation("MQTT connection attempt already in progress, waiting...");
+                    return;
+                }
+
+                _isConnecting = true;
+
                 // Get effective configuration from database or environment using scoped service
                 Dictionary<string, object> effectiveConfig;
                 using (var scope = _serviceScopeFactory.CreateScope())
@@ -81,7 +93,7 @@ namespace Backend.Services
                 _logger.LogInformation("Use WebSocket: {UseWebSocket}", useWebSocket);
                 _logger.LogInformation("WebSocket URI: {WebSocketUri}", webSocketUri ?? "N/A");
                 _logger.LogInformation("Has Credentials: {HasCredentials}", !string.IsNullOrEmpty(username));
-                _logger.LogInformation("================================");
+                _logger.LogInformation("===============================");
 
                 var clientOptionsBuilder = new MqttClientOptionsBuilder()
                     .WithClientId(clientId);
@@ -188,6 +200,11 @@ namespace Backend.Services
                 }
                 throw;
             }
+            finally
+            {
+                _isConnecting = false;  // Always reset connecting flag
+                _connectionLock.Release();  // Always release the semaphore
+            }
         }
 
         public async Task DisconnectAsync()
@@ -213,8 +230,15 @@ namespace Backend.Services
 
             try
             {
-                // Disconnect current client
-                await DisconnectAsync();
+                // Disconnect current client (ignore exceptions to allow reconnection)
+                try
+                {
+                    await DisconnectAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error during MQTT disconnection, proceeding with reconnection anyway");
+                }
 
                 // Dispose current client
                 _mqttClient?.Dispose();

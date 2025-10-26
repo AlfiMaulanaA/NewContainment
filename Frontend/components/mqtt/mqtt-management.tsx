@@ -113,8 +113,14 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
   };
 
   const getStatusBadge = useMemo(() => (isEnabled: boolean, isActive: boolean, configId: number) => {
-    const isConnected = connectionStatuses[configId.toString()] || false;
-    
+    const isConnected = connectionStatuses[configId.toString()];
+    const hasConnectionData = Object.keys(connectionStatuses).length > 0;
+
+    // If we don't have connection data yet, show "Checking..."
+    if (!hasConnectionData || isConnected === undefined) {
+      return <Badge variant="secondary" className="bg-yellow-500 text-white">Checking...</Badge>;
+    }
+
     if (isActive && isEnabled && isConnected) {
       return <Badge variant="default" className="bg-green-500">Connected & Active</Badge>;
     } else if (isActive && isEnabled && !isConnected) {
@@ -180,7 +186,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
               <span className="text-sm font-medium text-muted-foreground">MQTT Status</span>
             </div>
             <p className="text-2xl font-bold mt-2">
-              {effectiveConfiguration.IsEnabled ? "Enabled" : "Disabled"}
+              {effectiveConfiguration.IsEnabled ?? false ? "Enabled" : "Disabled"}
             </p>
           </CardContent>
         </Card>
@@ -280,7 +286,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                               <Eye className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent side="top" className="dark:bg-primary dark:text-primary-foreground">
                             View detailed configuration information
                           </TooltipContent>
                         </Tooltip>
@@ -296,7 +302,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                               <Edit2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent side="top" className="dark:bg-primary dark:text-primary-foreground">
                             Edit MQTT configuration settings
                           </TooltipContent>
                         </Tooltip>
@@ -312,7 +318,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                               <CheckCircle className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent side="top" className="dark:bg-primary dark:text-primary-foreground">
                             Set as active configuration
                           </TooltipContent>
                         </Tooltip>
@@ -329,7 +335,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                               <TestTube className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent side="top" className="dark:bg-primary dark:text-primary-foreground">
                             Test connection to MQTT broker
                           </TooltipContent>
                         </Tooltip>
@@ -344,7 +350,7 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                             <HelpCircle className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent side="top" className="dark:bg-primary dark:text-primary-foreground">
                           Configuration analysis and troubleshooting
                         </TooltipContent>
                       </Tooltip>
@@ -352,15 +358,15 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
                         <AlertDialogTrigger asChild>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 disabled={deletingId === config.id}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent side="top" className="dark:bg-primary dark:text-primary-foreground">
                               Delete MQTT configuration
                             </TooltipContent>
                           </Tooltip>
@@ -405,18 +411,26 @@ const MQTTManagement: React.FC<MQTTManagementProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(effectiveConfiguration).map(([key, value]) => (
-              <div key={key} className="p-3 border rounded">
-                <div className="font-medium text-sm text-muted-foreground">{key}</div>
-                <div className="mt-1 font-mono text-sm">
-                  {key === "Username" && value ? "••••••" :
-                   typeof value === "boolean" ? (value ? "true" : "false") : 
-                   String(value)}
+          {Object.keys(effectiveConfiguration).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(effectiveConfiguration).map(([key, value]) => (
+                <div key={key} className="p-3 border rounded">
+                  <div className="font-medium text-sm text-muted-foreground">{key}</div>
+                  <div className="mt-1 font-mono text-sm">
+                    {key === "Username" && value ? "••••••" :
+                     typeof value === "boolean" ? (value ? "true" : "false") :
+                     value !== null && value !== undefined ? String(value) : "Not set"}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p>No effective configuration data available</p>
+              <p className="text-sm mt-2">Configuration settings will appear here once loaded</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

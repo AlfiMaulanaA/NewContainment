@@ -8,15 +8,11 @@ interface AppConfig {
 
 // Standard Ports Configuration
 const PORTS = {
-  // Backend API
-  API_HTTP: 5000,
-  API_HTTPS: 5001,
-  // Frontend
-  FRONTEND_DEV: 3000,
+  // Single port for both development and production (HTTP only)
+  API_PORT: 5000,
   FRONTEND_PROD: 3000,
   // MQTT WebSocket Bridge
-  MQTT_WS_HTTP: 9000,
-  MQTT_WS_HTTPS: 9001,
+  MQTT_WS_PORT: 9000,
 } as const;
 
 export function getAppConfig(): AppConfig {
@@ -32,52 +28,15 @@ export function getAppConfig(): AppConfig {
     return `${protocol}://${host}:${port}`;
   };
 
-  if (isProduction && isBrowser) {
-    // Production - Dynamic Runtime Detection in Browser
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-    const isHttps = protocol === "https:";
-    
-    const envApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const envMqttHost = process.env.NEXT_PUBLIC_MQTT_HOST;
-    const envMqttPort = process.env.NEXT_PUBLIC_MQTT_PORT;
-    
-    // Check if env vars are hardcoded IPs/hostnames vs localhost
-    const shouldUseDynamic = !envApiUrl || 
-                           envApiUrl.includes('localhost') || 
-                           envApiUrl.includes('127.0.0.1');
-    
-    if (shouldUseDynamic) {
-      // Use dynamic hostname detection
-      if (isHttps) {
-        mqttBrokerUrl = buildMqttUrl(hostname, PORTS.MQTT_WS_HTTPS.toString(), true);
-        apiBaseUrl = `https://${hostname}:${PORTS.API_HTTPS}`;
-      } else {
-        mqttBrokerUrl = buildMqttUrl(hostname, PORTS.MQTT_WS_HTTP.toString());
-        apiBaseUrl = `http://${hostname}:${PORTS.API_HTTP}`;
-      }
-    } else {
-      // Use environment variables
-      apiBaseUrl = envApiUrl;
-      mqttBrokerUrl = buildMqttUrl(
-        envMqttHost || hostname, 
-        envMqttPort || PORTS.MQTT_WS_HTTP.toString()
-      );
-    }
-    
-  } else if (isProduction && !isBrowser) {
-    // Production - Build/SSR time
-    const host = process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
-    const port = process.env.NEXT_PUBLIC_MQTT_PORT || PORTS.MQTT_WS_HTTP.toString();
-    mqttBrokerUrl = buildMqttUrl(host, port);
-    apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || `http://localhost:${PORTS.API_HTTP}`;
-  } else {
-    // Development Configuration
-    const host = process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
-    const port = process.env.NEXT_PUBLIC_MQTT_PORT || PORTS.MQTT_WS_HTTP.toString();
-    mqttBrokerUrl = buildMqttUrl(host, port);
-    apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || `http://localhost:${PORTS.API_HTTP}`;
-  }
+  // Simplified configuration - Single HTTP port for all environments
+  const host = process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
+  const port = process.env.NEXT_PUBLIC_MQTT_PORT || PORTS.MQTT_WS_PORT.toString();
+
+  // Always use HTTP for API calls
+  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || `http://localhost:${PORTS.API_PORT}`;
+
+  // MQTT broker URL (WebSocket)
+  mqttBrokerUrl = buildMqttUrl(host, port);
 
   // Validation
   if (!mqttBrokerUrl) {

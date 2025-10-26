@@ -44,6 +44,7 @@ type StatusType =
   | "door_front"
   | "door_back"
   | "emergency_temp"
+  | "emergency_bms"
   | "window_partition" // Tipe baru untuk Window Partition
   | "default";
 
@@ -202,7 +203,8 @@ function ContainmentStatusTabs({ className }: ContainmentStatusTabsProps) {
       type === "emergency" ||
       type === "smoke" ||
       type === "emergency_button" ||
-      type === "emergency_temp"
+      type === "emergency_temp" ||
+      type === "emergency_bms"
     ) {
       return (
         <Badge

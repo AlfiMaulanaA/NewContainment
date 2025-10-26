@@ -4273,7 +4273,7 @@ export const whatsAppApi = {
   },
 };
 
-// MQTT Configuration API
+// Backward compatibility - keep the old mqttConfigApi with new implementation
 export const mqttConfigApi = {
   getEffectiveConfig: () => client.get("/mqttconfiguration/effective"),
   getCurrentStatus: () => client.get("/mqttconfiguration/status/current"),

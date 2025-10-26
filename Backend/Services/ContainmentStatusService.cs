@@ -57,6 +57,7 @@ namespace Backend.Services
                 existingStatus.OpenFrontDoorStatus = status.OpenFrontDoorStatus;
                 existingStatus.OpenBackDoorStatus = status.OpenBackDoorStatus;
                 existingStatus.EmergencyTemp = status.EmergencyTemp;
+                existingStatus.EmergencyBms = status.EmergencyBms;
                 existingStatus.MqttTimestamp = status.MqttTimestamp;
                 existingStatus.UpdatedAt = DateTime.UtcNow;
                 existingStatus.RawPayload = status.RawPayload;
@@ -128,6 +129,9 @@ namespace Backend.Services
 
                 if (payloadData.TryGetProperty("Emergency temp", out var emergencyTemp))
                     status.EmergencyTemp = emergencyTemp.GetBoolean();
+
+                if (payloadData.TryGetProperty("Emergency bms", out var emergencyBms))
+                    status.EmergencyBms = emergencyBms.GetBoolean();
 
                 // Process emergency status untuk reporting
                 await ProcessEmergencyStatuses(payloadData, jsonPayload);
@@ -205,6 +209,7 @@ namespace Backend.Services
                 OpenFrontDoorStatus = false,
                 OpenBackDoorStatus = false,
                 EmergencyTemp = false,
+                EmergencyBms = false,
                 MqttTimestamp = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,

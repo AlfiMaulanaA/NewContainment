@@ -208,9 +208,11 @@ namespace Backend.Services
 
             // Check if we already saved data for this exact rounded time
             var timeTolerance = TimeSpan.FromSeconds(5);
+            var minTimestamp = roundedTimestamp.Subtract(timeTolerance);
+            var maxTimestamp = roundedTimestamp.Add(timeTolerance);
             var alreadySavedForThisInterval = await _context.DeviceSensorData
                 .Where(d => d.DeviceId == deviceId)
-                .AnyAsync(d => Math.Abs((d.Timestamp - roundedTimestamp).TotalSeconds) <= timeTolerance.TotalSeconds);
+                .AnyAsync(d => d.Timestamp >= minTimestamp && d.Timestamp <= maxTimestamp);
 
             if (alreadySavedForThisInterval)
             {

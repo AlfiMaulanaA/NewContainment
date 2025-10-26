@@ -5,6 +5,7 @@ using Backend.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Backend.Enums;
 
 namespace Backend.Controllers
 {
@@ -185,6 +186,30 @@ namespace Backend.Controllers
         }
     }
 
+    public class ValidSensorTypeAttribute : ValidationAttribute
+    {
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+        {
+            if (value == null)
+                return ValidationResult.Success; // Allow null
+
+            if (value is string sensorType)
+            {
+                var validTypes = SensorTypeExtensions.GetAllDisplayNames();
+                if (validTypes.Contains(sensorType))
+                {
+                    return ValidationResult.Success;
+                }
+                else
+                {
+                    return new ValidationResult($"Invalid sensor type. Valid values are: {string.Join(", ", validTypes)}");
+                }
+            }
+
+            return new ValidationResult("SensorType must be a string");
+        }
+    }
+
     public class CreateDeviceRequest
     {
         [Required]
@@ -208,6 +233,7 @@ namespace Backend.Controllers
         public string? Topic { get; set; }
 
         [StringLength(50)]
+        [ValidSensorType]
         public string? SensorType { get; set; }
 
         public int? UCapacity { get; set; }
@@ -236,6 +262,7 @@ namespace Backend.Controllers
         public string? Topic { get; set; }
 
         [StringLength(50)]
+        [ValidSensorType]
         public string? SensorType { get; set; }
 
         public int? UCapacity { get; set; }

@@ -37,8 +37,18 @@ export function MQTTConfigSourceToggle({
 }: MQTTConfigSourceToggleProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const isUsingDatabase = activeConfiguration && !activeConfiguration.useEnvironmentConfig;
-  const isUsingEnvironment = !activeConfiguration || activeConfiguration.useEnvironmentConfig;
+  // Check the effective configuration to determine what's actually being used
+  const isUsingDatabase = effectiveConfiguration && effectiveConfiguration.Source === "Database";
+  const isUsingEnvironment = !isUsingDatabase;
+
+  // Log the configuration state for debugging
+  console.log("MQTT Source Toggle Debug:", {
+    effectiveSource: effectiveConfiguration?.Source,
+    activeConfigExists: !!activeConfiguration,
+    useEnvironmentConfig: activeConfiguration?.useEnvironmentConfig,
+    isUsingDatabase,
+    isUsingEnvironment
+  });
 
   const handleToggleSource = async (useDatabase: boolean) => {
     if (isUpdating) return;
@@ -115,17 +125,17 @@ export function MQTTConfigSourceToggle({
   const getSourceInfo = () => {
     if (isUsingDatabase) {
       return {
-        icon: <Database className="h-4 w-4 text-blue-500" />,
+        icon: <Database className="h-4 w-4 text-blue-500 dark:text-blue-400" />,
         title: "Database Configuration",
         description: "Using stored database configuration",
-        color: "bg-blue-50 border-blue-200"
+        color: "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800/70"
       };
     } else {
       return {
-        icon: <FileText className="h-4 w-4 text-green-500" />,
-        title: "Environment Configuration", 
+        icon: <FileText className="h-4 w-4 text-green-500 dark:text-green-400" />,
+        title: "Environment Configuration",
         description: "Using environment variables or defaults",
-        color: "bg-green-50 border-green-200"
+        color: "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800/70"
       };
     }
   };
@@ -151,12 +161,12 @@ export function MQTTConfigSourceToggle({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Current Source Info */}
-          <Alert className={sourceInfo.color}>
+          <Alert className={`${sourceInfo.color} dark:text-current`}>
             <div className="flex items-center gap-2">
               {sourceInfo.icon}
               <div>
-                <div className="font-semibold text-sm">{sourceInfo.title}</div>
-                <div className="text-sm text-muted-foreground">{sourceInfo.description}</div>
+                <div className="font-semibold text-sm dark:text-foreground">{sourceInfo.title}</div>
+                <div className="text-sm text-muted-foreground dark:text-muted-foreground">{sourceInfo.description}</div>
               </div>
             </div>
           </Alert>
@@ -164,18 +174,18 @@ export function MQTTConfigSourceToggle({
           {/* Source Selection */}
           <div className="space-y-3">
             {/* Environment Option */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-3 border rounded-lg dark:border-border">
               <div className="flex items-center gap-3">
-                <FileText className="h-4 w-4 text-green-500" />
+                <FileText className="h-4 w-4 text-green-500 dark:text-green-400" />
                 <div>
-                  <div className="font-medium text-sm">Environment Variables</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="font-medium text-sm dark:text-foreground">Environment Variables</div>
+                  <div className="text-xs text-muted-foreground dark:text-muted-foreground">
                     Static configuration from .env files or system environment
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isUsingEnvironment && <CheckCircle className="h-4 w-4 text-green-500" />}
+                {isUsingEnvironment && <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -195,18 +205,18 @@ export function MQTTConfigSourceToggle({
             </div>
 
             {/* Database Option */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-3 border rounded-lg dark:border-border">
               <div className="flex items-center gap-3">
-                <Database className="h-4 w-4 text-blue-500" />
+                <Database className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                 <div>
-                  <div className="font-medium text-sm">Database Configuration</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="font-medium text-sm dark:text-foreground">Database Configuration</div>
+                  <div className="text-xs text-muted-foreground dark:text-muted-foreground">
                     Dynamic configuration stored in database (requires active config)
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isUsingDatabase && <CheckCircle className="h-4 w-4 text-green-500" />}
+                {isUsingDatabase && <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -219,8 +229,8 @@ export function MQTTConfigSourceToggle({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {!activeConfiguration 
-                      ? "No active database configuration available" 
+                    {!activeConfiguration
+                      ? "No active database configuration available"
                       : "Switch to using database-stored MQTT configuration"}
                   </TooltipContent>
                 </Tooltip>
@@ -230,9 +240,9 @@ export function MQTTConfigSourceToggle({
 
           {/* Warning for no database config */}
           {!activeConfiguration && (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
+            <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800/70 dark:bg-yellow-950/20">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
                 No database configuration is available. Create and activate an MQTT configuration to enable database mode.
               </AlertDescription>
             </Alert>
@@ -251,27 +261,37 @@ export function MQTTConfigSourceToggle({
 
           {/* Current Effective Values Preview */}
           {effectiveConfiguration && (
-            <div className="mt-4 p-3 border rounded-lg bg-gray-50">
+            <div className="mt-4 p-3 border rounded-lg bg-gray-50 dark:bg-accent dark:border-accent">
               <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-4 w-4 text-purple-500" />
-                <span className="font-medium text-sm">Current Effective Configuration</span>
+                <Zap className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                <span className="font-medium text-sm dark:text-foreground">Current Effective Configuration</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Broker:</span> 
-                  <span className="ml-1 font-mono">{effectiveConfiguration.BrokerHost}:{effectiveConfiguration.BrokerPort}</span>
+                <div className="dark:text-foreground">
+                  <span className="text-muted-foreground dark:text-muted-foreground">Broker:</span>
+                  <span className="ml-1 font-mono dark:text-foreground">
+                    {effectiveConfiguration.BrokerHost && effectiveConfiguration.BrokerPort
+                      ? `${effectiveConfiguration.BrokerHost}:${effectiveConfiguration.BrokerPort}`
+                      : "Not configured"}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">SSL:</span> 
-                  <span className="ml-1">{effectiveConfiguration.UseSsl ? "Yes" : "No"}</span>
+                <div className="dark:text-foreground">
+                  <span className="text-muted-foreground dark:text-muted-foreground">SSL:</span>
+                  <span className="ml-1 dark:text-foreground">
+                    {effectiveConfiguration.UseSsl ?? false ? "Yes" : "No"}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Client ID:</span> 
-                  <span className="ml-1 font-mono truncate">{effectiveConfiguration.ClientId}</span>
+                <div className="dark:text-foreground">
+                  <span className="text-muted-foreground dark:text-muted-foreground">Client ID:</span>
+                  <span className="ml-1 font-mono truncate dark:text-foreground">
+                    {effectiveConfiguration.ClientId || "Not set"}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Enabled:</span> 
-                  <span className="ml-1">{effectiveConfiguration.IsEnabled ? "Yes" : "No"}</span>
+                <div className="dark:text-foreground">
+                  <span className="text-muted-foreground dark:text-muted-foreground">Enabled:</span>
+                  <span className="ml-1 dark:text-foreground">
+                    {effectiveConfiguration.IsEnabled ?? false ? "Yes" : "No"}
+                  </span>
                 </div>
               </div>
             </div>

@@ -20,22 +20,26 @@ const CCTVMonitoring = React.lazy(
   () => import("@/components/dashboard-cctv-section")
 );
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 
 export default function ContainmentDashboard() {
   const appName =
     process.env.NEXT_PUBLIC_APP_DESC || "IOT Containment Dashboard";
 
-  // Define dashboard components
-  const dashboardComponents =
-    process.env.NODE_ENV === "development"
-      ? [ContainmentStatusTabs, ContainmentRacks, CCTVMonitoring]
-      : [ContainmentStatusTabs, ContainmentRacks, CCTVMonitoring];
+  const { preferences } = useDashboardPreferences();
 
-  // Component names for carousel indicators
-  const componentNames =
-    process.env.NODE_ENV === "development"
-      ? ["Containment Status Overview", "Rack Management", "CCTV Monitoring"]
-      : ["Containment Status Overview", "Rack Management", "CCTV Monitoring"];
+  // Define dashboard components - conditionally include CCTV based on settings
+  const baseComponents = [ContainmentStatusTabs, ContainmentRacks];
+  const baseComponentNames = ["Containment Status Overview", "Rack Management"];
+
+  // Add CCTV component only if enabled
+  const dashboardComponents = preferences.cctvSettings?.enabled
+    ? [...baseComponents, CCTVMonitoring]
+    : baseComponents;
+
+  const componentNames = preferences.cctvSettings?.enabled
+    ? [...baseComponentNames, "CCTV Monitoring"]
+    : baseComponentNames;
 
   return (
     <SidebarInset>

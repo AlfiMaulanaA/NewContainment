@@ -28,6 +28,7 @@ import { CardSkeleton } from "@/components/loading-skeleton";
 interface MQTTOverviewProps {
   activeConfiguration: MqttConfiguration | null;
   effectiveConfiguration: Record<string, any>;
+  connectionStatuses?: Record<string, boolean>;
   isLoading?: boolean;
   onEdit?: (config: MqttConfiguration) => void;
   onView?: (config: MqttConfiguration) => void;
@@ -39,6 +40,7 @@ interface MQTTOverviewProps {
 const MQTTOverview: React.FC<MQTTOverviewProps> = ({
   activeConfiguration,
   effectiveConfiguration,
+  connectionStatuses = {},
   isLoading = false,
   onEdit,
   onView,
@@ -96,7 +98,7 @@ const MQTTOverview: React.FC<MQTTOverviewProps> = ({
             </div>
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
-                {getStatusBadge(effectiveConfiguration.IsEnabled)}
+                {getStatusBadge(effectiveConfiguration.IsEnabled ?? false)}
               </div>
               {activeConfiguration && (
                 <div className="flex items-center gap-2">
@@ -115,7 +117,7 @@ const MQTTOverview: React.FC<MQTTOverviewProps> = ({
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -123,13 +125,13 @@ const MQTTOverview: React.FC<MQTTOverviewProps> = ({
               <span className="text-sm font-medium text-muted-foreground">Configuration Source</span>
             </div>
             <div className="flex items-center gap-2 mt-2">
-              {effectiveConfiguration.Source === "Database" ? (
+              {(effectiveConfiguration.Source === "Database" || activeConfiguration?.useEnvironmentConfig === false) ? (
                 <Database className="h-4 w-4" />
               ) : (
                 <FileText className="h-4 w-4" />
               )}
               <p className="text-lg font-bold">
-                {effectiveConfiguration.Source || "Environment"}
+                {effectiveConfiguration.Source || (activeConfiguration ? "Database" : "Environment")}
               </p>
             </div>
           </CardContent>
@@ -142,7 +144,12 @@ const MQTTOverview: React.FC<MQTTOverviewProps> = ({
               <span className="text-sm font-medium text-muted-foreground">Broker</span>
             </div>
             <p className="text-lg font-bold mt-2">
-              {effectiveConfiguration.BrokerHost}:{effectiveConfiguration.BrokerPort}
+              {effectiveConfiguration.BrokerHost && effectiveConfiguration.BrokerPort
+                ? `${effectiveConfiguration.BrokerHost}:${effectiveConfiguration.BrokerPort}`
+                : (activeConfiguration?.brokerHost && activeConfiguration?.brokerPort
+                    ? `${activeConfiguration.brokerHost}:${activeConfiguration.brokerPort}`
+                    : "Not Configured")
+              }
             </p>
           </CardContent>
         </Card>
@@ -190,10 +197,10 @@ const MQTTOverview: React.FC<MQTTOverviewProps> = ({
                 </Button>
               )}
               {onTest && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => onTest(activeConfiguration)}
-                  disabled={testingConnection}
+                  disabled={testingConnection || !activeConfiguration}
                 >
                   <TestTube className="h-4 w-4 mr-2" />
                   {testingConnection ? "Testing..." : "Test Connection"}
@@ -213,18 +220,26 @@ const MQTTOverview: React.FC<MQTTOverviewProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(effectiveConfiguration).map(([key, value]) => (
-              <div key={key} className="p-3 border rounded">
-                <div className="font-medium text-sm text-muted-foreground">{key}</div>
-                <div className="mt-1 font-mono text-sm">
-                  {key === "Username" && value ? "••••••" : 
-                   typeof value === "boolean" ? (value ? "true" : "false") : 
-                   String(value)}
+          {Object.keys(effectiveConfiguration).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(effectiveConfiguration).map(([key, value]) => (
+                <div key={key} className="p-3 border rounded">
+                  <div className="font-medium text-sm text-muted-foreground">{key}</div>
+                  <div className="mt-1 font-mono text-sm">
+                    {key === "Username" && value ? "••••••" :
+                     typeof value === "boolean" ? (value ? "true" : "false") :
+                     value !== null && value !== undefined ? String(value) : "Not set"}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Wifi className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p>No configuration data available</p>
+              <p className="text-sm mt-2">Effective configuration will appear here once loaded</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

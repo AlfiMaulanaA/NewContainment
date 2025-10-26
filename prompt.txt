@@ -1,251 +1,120 @@
-git clone https://github.com/AlfiMaulanaA/NewContainment.git
-Cloning into 'NewContainment'...
-remote: Enumerating objects: 2940, done.
-remote: Counting objects: 100% (2025/2025), done.
-remote: Compressing objects: 100% (1079/1079), done.
-remote: Total 2940 (delta 1096), reused 1590 (delta 730), pack-reused 915 (from 1)
-Receiving objects: 100% (2940/2940), 46.23 MiB | 4.96 MiB/s, done.
-Resolving deltas: 100% (1417/1417), done.
-containment@containment:~$ cd NewContainment/
-containment@containment:~/NewContainment$ cd script/
-containment@containment:~/NewContainment/script$ sudo chmod +x deploy.sh
-containment@containment:~/NewContainment/script$ sudo ./deploy.sh
-[2025-09-24 08:36:18] === NewContainment Deployment Script ===
-[2025-09-24 08:36:18] Project Root: /home/containment/NewContainment
-[2025-09-24 08:36:18] Current User: root
-[2025-09-24 08:36:18] === Checking Dependencies ===
-[2025-09-24 08:36:18] Checking Node.js installation...
-[SUCCESS] Node.js v22.18.0 and npm 10.9.3 are installed
-[2025-09-24 08:36:18] Checking .NET 9 installation...
-[SUCCESS] .NET 9.0.203 is installed
-[2025-09-24 08:36:18] Checking Nginx installation...
-[SUCCESS] Nginx 1.18.0 is installed
-[2025-09-24 08:36:18] Checking PM2 installation...
-[SUCCESS] PM2 6.0.8 is installed
-[SUCCESS] All dependencies are installed
-[2025-09-24 08:36:18] Checking Node.js installation...
-[SUCCESS] Node.js v22.18.0 and npm 10.9.3 are installed
-[SUCCESS] Frontend deployment prerequisites met
-[2025-09-24 08:36:18] Checking .NET 9 installation...
-[SUCCESS] .NET 9.0.203 is installed
-[SUCCESS] Backend deployment prerequisites met
-[2025-09-24 08:36:18] === Attempting Frontend Deployment ===
-[2025-09-24 08:36:18] === Deploying Frontend ===
-[2025-09-24 08:36:18] Installing frontend dependencies...
+=================================
+2025-10-25 00:41:30 warn: Backend.Services.MqttDeviceSubscriptionService[0]
+      MQTT client disconnected: UnspecifiedError
+2025-10-25 00:41:30 warn: Backend.Services.MqttService[0]
+      MQTT client disconnected: UnspecifiedError
+2025-10-25 00:41:30 warn: Backend.Services.MqttService[0]
+      MQTT client disconnected: UnspecifiedError
+2025-10-25 00:41:30 fail: Backend.Services.MqttDeviceSubscriptionService[0]
+      Failed to connect to MQTT broker
+2025-10-25 00:41:30 fail: Backend.Services.MqttDeviceSubscriptionService[0]
+      Failed to connect and subscribe to device topics
+      MQTTnet.Adapter.MqttConnectingFailedException: Error while authenticating. Connection closed.
+       ---> MQTTnet.Exceptions.MqttCommunicationException: Connection closed.
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectInternal(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at Backend.Services.MqttDeviceSubscriptionService.ConnectToMqttBroker(Dictionary`2 config, CancellationToken cancellationToken) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/MqttDeviceSubscriptionService.cs:line 117
+         at Backend.Services.MqttDeviceSubscriptionService.ConnectAndSubscribeToDeviceTopics(CancellationToken cancellationToken) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/MqttDeviceSubscriptionService.cs:line 82
+2025-10-25 00:41:30 fail: Backend.Services.MqttService[0]
+      ❌ CRITICAL: Failed to connect to MQTT broker
+      MQTTnet.Adapter.MqttConnectingFailedException: Error while authenticating. Connection closed.
+       ---> MQTTnet.Exceptions.MqttCommunicationException: Connection closed.
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectInternal(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at Backend.Services.MqttService.ConnectAsync() in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/MqttService.cs:line 150
+2025-10-25 00:41:30 fail: Backend.Services.MqttService[0]
+      ❌ CRITICAL: Failed to connect to MQTT broker
+      MQTTnet.Adapter.MqttConnectingFailedException: Error while authenticating. Connection closed.
+       ---> MQTTnet.Exceptions.MqttCommunicationException: Connection closed.
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectInternal(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at Backend.Services.MqttService.ConnectAsync() in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/MqttService.cs:line 150
+2025-10-25 00:41:30 fail: Backend.Services.MqttService[0]
+      Error Details: Error while authenticating. Connection closed.
+2025-10-25 00:41:30 fail: Backend.Services.MqttService[0]
+      Error Details: Error while authenticating. Connection closed.
+2025-10-25 00:41:30 fail: Backend.Services.MqttService[0]
+      Inner Exception: Connection closed.
+2025-10-25 00:41:30 fail: Backend.Services.MqttService[0]
+      Inner Exception: Connection closed.
+2025-10-25 00:41:30 warn: Backend.Services.ContainmentDataRetrievalHostedService[0]
+      Failed to connect to MQTT broker on attempt 1
+      MQTTnet.Adapter.MqttConnectingFailedException: Error while authenticating. Connection closed.
+       ---> MQTTnet.Exceptions.MqttCommunicationException: Connection closed.
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectInternal(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at Backend.Services.MqttService.ConnectAsync() in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/MqttService.cs:line 150
+         at Backend.Services.ContainmentDataRetrievalHostedService.WaitForMqttConnectionAsync(CancellationToken stoppingToken) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentDataRetrievalHostedService.cs:line 72
+2025-10-25 00:41:30 warn: Backend.Services.ContainmentMqttHostedService[0]
+      Failed to connect to MQTT broker on attempt 1
+      MQTTnet.Adapter.MqttConnectingFailedException: Error while authenticating. Connection closed.
+       ---> MQTTnet.Exceptions.MqttCommunicationException: Connection closed.
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at MQTTnet.MqttClient.Authenticate(IMqttChannelAdapter channelAdapter, MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectInternal(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at MQTTnet.MqttClient.ConnectAsync(MqttClientOptions options, CancellationToken cancellationToken)
+         at Backend.Services.MqttService.ConnectAsync() in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/MqttService.cs:line 150
+         at Backend.Services.ContainmentMqttHostedService.WaitForMqttConnectionAsync(CancellationToken stoppingToken) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentMqttHostedService.cs:line 124
 
-added 402 packages, and audited 403 packages in 10s
-
-67 packages are looking for funding
-  run `npm fund` for details
-
-1 high severity vulnerability
-
-Some issues need review, and may require choosing
-a different dependency.
-
-Run `npm audit` for details.
-[2025-09-24 08:36:28] Building frontend...
-
-> iot-containment-monitoring-system@0.1.0 build
-> next build
-
-  ▲ Next.js 14.2.32
-  - Environments: .env.production, .env
-  - Experiments (use with caution):
-    · webpackBuildWorker
-
-   Creating an optimized production build ...
-Failed to compile.
-
-./app/access-control/attendance/page.tsx
-Module not found: Can't resolve '@/hooks/useMQTT'
-
-https://nextjs.org/docs/messages/module-not-found
-
-./app/access-control/attendance/page.tsx
-Module not found: Can't resolve '@/components/ui/card'
-
-https://nextjs.org/docs/messages/module-not-found
-
-./app/access-control/attendance/page.tsx
-Module not found: Can't resolve '@/components/ui/button'
-
-https://nextjs.org/docs/messages/module-not-found
-
-./app/access-control/attendance/page.tsx
-Module not found: Can't resolve '@/components/ui/badge'
-
-https://nextjs.org/docs/messages/module-not-found
-
-./app/access-control/attendance/page.tsx
-Module not found: Can't resolve '@/components/ui/table'
-
-https://nextjs.org/docs/messages/module-not-found
-
-
-> Build failed because of webpack errors
-[ERROR] Frontend build failed
-[ERROR] Frontend deployment failed - continuing with backend if possible
-[2025-09-24 08:36:41] === Attempting Backend Deployment ===
-[2025-09-24 08:36:41] === Deploying Backend ===
-[2025-09-24 08:36:41] Detected target architecture: linux-x64
-[2025-09-24 08:36:41] Restoring packages...
-Restore complete (4.1s)
-
-Build succeeded in 4.5s
-[2025-09-24 08:36:46] Building backend for linux-x64 (framework-dependent)...
-
-Build succeeded in 0.7s
-[2025-09-24 08:36:47] Restoring packages for linux-x64...
-Restore complete (1.0s)
-
-Build succeeded in 1.4s
-Restore complete (1.2s)
-  Backend succeeded (9.2s) → publish/
-
-Build succeeded in 10.9s
-[2025-09-24 08:36:59] Setting executable permissions...
-[SUCCESS] Backend built successfully
-[SUCCESS] Backend deployment completed successfully
-[2025-09-24 08:36:59] === Setting Up Database ===
-[2025-09-24 08:36:59] Backing up existing database: app.db
-[2025-09-24 08:37:00] Running database migrations...
-Using project '/home/containment/NewContainment/Backend/Backend.csproj'.
-Using startup project '/home/containment/NewContainment/Backend/Backend.csproj'.
-Writing '/home/containment/NewContainment/Backend/obj/Backend.csproj.EntityFrameworkCore.targets'...
-dotnet msbuild /target:GetEFProjectMetadata /property:EFProjectMetadataFile=/tmp/tmpl2fdeC.tmp /verbosity:quiet /nologo /home/containment/NewContainment/Backend/Backend.csproj
-dotnet msbuild /target:GetEFProjectMetadata /property:EFProjectMetadataFile=/tmp/tmpd3JW80.tmp /verbosity:quiet /nologo /home/containment/NewContainment/Backend/Backend.csproj
-dotnet exec --depsfile /home/containment/NewContainment/Backend/bin/Debug/net9.0/Backend.deps.json --additionalprobingpath /root/.nuget/packages --runtimeconfig /home/containment/NewContainment/Backend/bin/Debug/net9.0/Backend.runtimeconfig.json /root/.dotnet/tools/.store/dotnet-ef/9.0.9/dotnet-ef/9.0.9/tools/net8.0/any/tools/netcoreapp2.0/any/ef.dll database update --assembly /home/containment/NewContainment/Backend/bin/Debug/net9.0/Backend.dll --project /home/containment/NewContainment/Backend/Backend.csproj --startup-assembly /home/containment/NewContainment/Backend/bin/Debug/net9.0/Backend.dll --startup-project /home/containment/NewContainment/Backend/Backend.csproj --project-dir /home/containment/NewContainment/Backend/ --root-namespace Backend --language C# --framework net9.0 --nullable --working-dir /home/containment/NewContainment/Backend --verbose
-Using assembly 'Backend'.
-Using startup assembly 'Backend'.
-Using application base '/home/containment/NewContainment/Backend/bin/Debug/net9.0'.
-Using working directory '/home/containment/NewContainment/Backend'.
-Using root namespace 'Backend'.
-Using project directory '/home/containment/NewContainment/Backend/'.
-Remaining arguments: .
-Finding DbContext classes...
-Using environment 'Production'.
-Finding IDesignTimeDbContextFactory implementations...
-Finding DbContext classes in the project...
-Found DbContext 'AppDbContext'.
-Finding application service provider in assembly 'Backend'...
-Finding Microsoft.Extensions.Hosting service provider...
-Using application service provider from Microsoft.Extensions.Hosting.
-Using context 'AppDbContext'.
-Finding design-time services referenced by assembly 'Backend'...
-Finding design-time services referenced by assembly 'Backend'...
-No referenced design-time services were found.
-Finding design-time services for provider 'Microsoft.EntityFrameworkCore.Sqlite'...
-Using design-time services from provider 'Microsoft.EntityFrameworkCore.Sqlite'.
-Finding IDesignTimeServices implementations in assembly 'Backend'...
-No design-time services were found.
-Done.
-[SUCCESS] Database migrations completed
-[2025-09-24 08:37:03] Database tables count: 25 (in containment.db)
-[SUCCESS] Database setup completed
-[2025-09-24 08:37:03] === Installing Systemd Service ===
-[2025-09-24 08:37:03] Creating NewContainmentWeb.service file...
-[2025-09-24 08:37:03] Using dotnet path: /root/.dotnet/dotnet
-[2025-09-24 08:37:03] Using existing service template from root directory...
-cp: '/home/containment/NewContainment/NewContainmentWeb.service' and '/home/containment/NewContainment/NewContainmentWeb.service' are the same file
-[2025-09-24 08:37:03] Updated dotnet path in service file to: /root/.dotnet/dotnet
-[SUCCESS] Service file created: /home/containment/NewContainment/NewContainmentWeb.service
-[2025-09-24 08:37:03] Service configuration:
-    Description=Containment service
-    ExecStart=/root/.dotnet/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
-    WorkingDirectory=/home/containment/NewContainment/Backend/publish
-[2025-09-24 08:37:03] Copying service file to systemd...
-[2025-09-24 08:37:03] Setting correct permissions on backend files...
-[2025-09-24 08:37:03] Reloading systemd daemon...
-[2025-09-24 08:37:04] Enabling NewContainmentWeb service...
-[SUCCESS] Systemd service installed successfully
-[2025-09-24 08:37:04] === Starting Services ===
-[2025-09-24 08:37:04] Starting NewContainmentWeb backend service...
-[2025-09-24 08:37:09] Checking service status...
-[ERROR] Backend service failed to start
-Sep 24 08:37:06 containment systemd[1]: Stopped Containment service.
-Sep 24 08:37:06 containment systemd[1]: Started Containment service.
-Sep 24 08:37:06 containment systemd[2060238]: NewContainmentWeb.service: Failed to execute /root/.dotnet/dotnet: Permission denied
-Sep 24 08:37:06 containment systemd[2060238]: NewContainmentWeb.service: Failed at step EXEC spawning /root/.dotnet/dotnet: Permission denied
-Sep 24 08:37:06 containment systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=203/EXEC
-Sep 24 08:37:06 containment systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-Sep 24 08:37:08 containment systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 3.
-Sep 24 08:37:08 containment systemd[1]: Stopped Containment service.
-Sep 24 08:37:08 containment systemd[1]: Started Containment service.
-Sep 24 08:37:08 containment systemd[2060242]: NewContainmentWeb.service: Failed to execute /root/.dotnet/dotnet: Permission denied
-Sep 24 08:37:08 containment systemd[2060242]: NewContainmentWeb.service: Failed at step EXEC spawning /root/.dotnet/dotnet: Permission denied
-Sep 24 08:37:08 containment systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=203/EXEC
-Sep 24 08:37:08 containment systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-Sep 24 08:37:09 containment systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 4.
-Sep 24 08:37:09 containment systemd[1]: Stopped Containment service.
-Sep 24 08:37:09 containment systemd[1]: Started Containment service.
-Sep 24 08:37:09 containment systemd[2060245]: NewContainmentWeb.service: Failed to execute /root/.dotnet/dotnet: Permission denied
-Sep 24 08:37:09 containment systemd[2060245]: NewContainmentWeb.service: Failed at step EXEC spawning /root/.dotnet/dotnet: Permission denied
-Sep 24 08:37:09 containment systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=203/EXEC
-Sep 24 08:37:09 containment systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-containment@containment:~/NewContainment/script$ which dotnet
-/usr/bin/dotnet
-containment@containment:~/NewContainment/script$
-
-beda dengan yang ini 
- sudo ./pull_github.sh
-========================================
-  IoT Containment Deployment Script
-========================================
-
-2025-09-24 08:41:08 - Deployment script started
-ℹ Checking dependencies...
-2025-09-24 08:41:08 - INFO: Checking dependencies...
-✓ All dependencies are available
-2025-09-24 08:41:08 - SUCCESS: All dependencies are available
-ℹ Creating backup of current installation...
-2025-09-24 08:41:08 - INFO: Creating backup of current installation...
-✓ Backup created at: /opt/containment_backups/20250924_084108
-2025-09-24 08:41:10 - SUCCESS: Backup created at: /opt/containment_backups/20250924_084108
-ℹ Stopping services...
-2025-09-24 08:41:10 - INFO: Stopping services...
-[PM2][WARN] No process found
-⚠ No PM2 processes to stop
-2025-09-24 08:41:11 - WARNING: No PM2 processes to stop
-✓ Services stopped
-2025-09-24 08:41:11 - SUCCESS: Services stopped
-ℹ Pulling latest code from GitHub...
-2025-09-24 08:41:11 - INFO: Pulling latest code from GitHub...
-✓ Code pulled from GitHub successfully
-2025-09-24 08:41:13 - SUCCESS: Code pulled from GitHub successfully
-ℹ Building frontend...
-2025-09-24 08:41:13 - INFO: Building frontend...
-ℹ Installing frontend dependencies...
-2025-09-24 08:41:13 - INFO: Installing frontend dependencies...
-ℹ Running frontend linting...
-2025-09-24 08:41:18 - INFO: Running frontend linting...
-⚠ Linting completed with warnings
-2025-09-24 08:41:26 - WARNING: Linting completed with warnings
-ℹ Building frontend for production...
-2025-09-24 08:41:26 - INFO: Building frontend for production...
-✓ Frontend built successfully
-2025-09-24 08:42:20 - SUCCESS: Frontend built successfully
-ℹ Building backend...
-2025-09-24 08:42:20 - INFO: Building backend...
-ℹ Restoring backend packages...
-2025-09-24 08:42:20 - INFO: Restoring backend packages...
-ℹ Building backend...
-2025-09-24 08:42:22 - INFO: Building backend...
-ℹ Running database migrations...
-2025-09-24 08:42:31 - INFO: Running database migrations...
-⚠ No migrations to apply
-2025-09-24 08:42:31 - WARNING: No migrations to apply
-✓ Backend built successfully
-2025-09-24 08:42:31 - SUCCESS: Backend built successfully
-ℹ Starting frontend with PM2...
-2025-09-24 08:42:31 - INFO: Starting frontend with PM2...
-✓ Frontend started with PM2
-2025-09-24 08:42:32 - SUCCESS: Frontend started with PM2
-ℹ Starting backend...
-2025-09-24 08:42:32 - INFO: Starting backend...
-Created symlink /etc/systemd/system/multi-user.target.wants/containment-backend.service → /etc/systemd/system/containment-backend.service.
-✓ Backend service created
-2025-09-24 08:42:33 - SUCCESS: Backend service created
-Job for containment-backend.service failed because the control process exited with error code.
-See "systemctl status containment-backend.service" and "journalctl -xeu containment-backend.service" for details.
-containment@containment:~/NewContainment/script$
+ MQTT connection established for ContainmentDataRetrievalHostedService
+2025-10-25 00:41:50 fail: Backend.Services.ContainmentMqttHostedService[0]
+      Error checking dynamic interval for device 1, falling back to legacy method
+      System.InvalidOperationException: The LINQ expression 'DbSet<DeviceSensorData>()
+          .Where(d => d.DeviceId == __deviceId_0)
+          .Any(d => Math.Abs((d.Timestamp - __roundedTimestamp_1).TotalSeconds) <= __timeTolerance_TotalSeconds_2)' could not be translated. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutorExpression[TResult](Expression query)
+         at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+         at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass11_0`1.<ExecuteCore>b__0()
+         at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteCore[TResult](Expression query, Boolean async, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, Expression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, LambdaExpression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync[TSource](IQueryable`1 source, Expression`1 predicate, CancellationToken cancellationToken)
+         at Backend.Services.SensorDataIntervalService.ShouldSaveByIntervalAsync(Int32 deviceId, DateTime timestamp, Nullable`1 containmentId) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/SensorDataIntervalService.cs:line 211
+         at Backend.Services.ContainmentMqttHostedService.ShouldSaveWithDynamicInterval(Int32 deviceId, DateTime timestamp) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentMqttHostedService.cs:line 297
+2025-10-25 00:41:50 info: Backend.Services.ContainmentMqttHostedService[0]
+      Successfully stored sensor data for device 1 from topic Containment/Sensor/Temperature_1
+2025-10-25 00:41:50 fail: Backend.Services.ContainmentMqttHostedService[0]
+      Error checking dynamic interval for device 5, falling back to legacy method
+      System.InvalidOperationException: The LINQ expression 'DbSet<DeviceSensorData>()
+          .Where(d => d.DeviceId == __deviceId_0)
+          .Any(d => Math.Abs((d.Timestamp - __roundedTimestamp_1).TotalSeconds) <= __timeTolerance_TotalSeconds_2)' could not be translated. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutorExpression[TResult](Expression query)
+         at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+         at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass11_0`1.<ExecuteCore>b__0()
+         at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteCore[TResult](Expression query, Boolean async, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, Expression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, LambdaExpression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync[TSource](IQueryable`1 source, Expression`1 predicate, CancellationToken cancellationToken)
+         at Backend.Services.SensorDataIntervalService.ShouldSaveByIntervalAsync(Int32 deviceId, DateTime timestamp, Nullable`1 containmentId) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/SensorDataIntervalService.cs:line 211
+         at Backend.Services.ContainmentMqttHostedService.ShouldSaveWithDynamicInterval(Int32 deviceId, DateTime timestamp) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentMqttHostedService.cs:line 297
+2025-10-25 00:41:50 info: Backend.Services.ContainmentMqttHostedService[0]

@@ -80,9 +80,9 @@ export default function Dashboard1({
     }
   }, [carouselMode, preferences.carouselInterval]);
 
-  // Section components
-  const sections = useMemo(
-    () => [
+  // Section components - conditionally include CCTV section
+  const sections = useMemo(() => {
+    const baseSections = [
       {
         id: "section-1",
         title: "Status & Control",
@@ -115,11 +115,15 @@ export default function Dashboard1({
           </div>
         ),
       },
-      {
+    ];
+
+    // Only add CCTV section if enabled
+    if (preferences.cctvSettings.enabled) {
+      baseSections.push({
         id: "section-3",
         title: "CCTV Monitoring",
         icon: <Eye className="h-5 w-5" />,
-        component: preferences.cctvSettings.enabled ? (
+        component: (
           <div className="sec-3">
             <div className="flex items-center gap-2 mb-4">
               <Eye className="h-5 w-5" />
@@ -127,39 +131,12 @@ export default function Dashboard1({
             </div>
             <CCTVWrapperCard />
           </div>
-        ) : (
-          <div className="sec-3">
-            <div className="flex items-center gap-2 mb-4">
-              <Eye className="h-5 w-5" />
-              <h2 className="text-xl font-semibold">CCTV Monitoring</h2>
-            </div>
-            <div className="flex items-center justify-center min-h-[300px] p-8">
-              <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                  <Eye className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">CCTV Monitoring Disabled</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    CCTV monitoring is currently disabled. Enable it in dashboard settings to view security camera feeds.
-                  </p>
-                </div>
-                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-4 max-w-sm mx-auto">
-                  <p className="font-medium mb-2">To enable CCTV:</p>
-                  <ol className="text-left space-y-1">
-                    <li>1. Go to Settings → CCTV Settings</li>
-                    <li>2. Enable CCTV monitoring</li>
-                    <li>3. Configure your preferred grid layout</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          </div>
         ),
-      },
-    ],
-    [shouldShowInfo, preferences.cctvSettings.enabled]
-  );
+      });
+    }
+
+    return baseSections;
+  }, [shouldShowInfo, preferences.cctvSettings.enabled]);
 
   // Carousel initialization
   useEffect(() => {

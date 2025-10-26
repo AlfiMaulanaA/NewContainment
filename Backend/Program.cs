@@ -114,13 +114,16 @@ builder.Services.AddHostedService<Backend.Services.BackupHostedService>();
 builder.Services.AddHostedService<Backend.Services.DeviceActivityHostedService>();
 builder.Services.AddHostedService<Backend.Services.MaintenanceReminderHostedService>();
 builder.Services.AddHostedService<Backend.Services.DeviceStatusMonitoringHostedService>();
+builder.Services.AddHostedService<Backend.Services.ContainmentDataRetrievalHostedService>();
 
 // Add MQTT hosted service only if MQTT is enabled
 var enableMqtt = bool.Parse(Environment.GetEnvironmentVariable("MQTT_ENABLE") ?? "true");
 if (enableMqtt)
 {
+    // TODO: Temporarily disable MqttDeviceSubscriptionService to avoid competition
+    // builder.Services.AddHostedService<Backend.Services.MqttDeviceSubscriptionService>();
+
     builder.Services.AddHostedService<Backend.Services.ContainmentMqttHostedService>();
-    builder.Services.AddHostedService<Backend.Services.MqttDeviceSubscriptionService>();
 }
 
 // Add JWT Authentication
@@ -232,66 +235,24 @@ using (var scope = app.Services.CreateScope())
     var roleMigrationService = scope.ServiceProvider.GetRequiredService<Backend.Services.IRoleMigrationService>();
     var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    logger.LogInformation("Migrating database...");
+    logger.LogInformation("Creating database...");
     try
     {
-        await context.Database.MigrateAsync(); // Selalu migrasi
-        logger.LogInformation("Database migration completed successfully");
-        
+        await context.Database.EnsureCreatedAsync(); // Create tables for SQLite without migrations
+        logger.LogInformation("Database creation completed successfully");
+
         // Ensure all pending changes are applied
         await context.SaveChangesAsync();
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Database migration failed");
+        logger.LogError(ex, "Database creation failed");
         throw;
     }
 
     // Initialize default roles after migration is complete
-    logger.LogInformation("Initializing role mapping system...");
-    try
-    {
-        await roleMappingService.InitializeDefaultRolesAsync();
-        logger.LogInformation("Role mapping system initialized successfully");
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Failed to initialize role mapping system");
-        // Continue execution - roles can be manually created later
-    }
-
-    // Clean up any duplicate roles before migration
-    logger.LogInformation("Cleaning up duplicate roles...");
-    try
-    {
-        await roleMigrationService.CleanupDuplicateRolesAsync();
-    }
-    catch (Exception ex)
-    {
-        logger.LogWarning(ex, "Failed to cleanup duplicate roles. Migration may fail if duplicates exist.");
-    }
-
-    // Migrate existing users to new role system
-    logger.LogInformation("Checking and migrating existing users to new role system...");
-    try
-    {
-        var unmigratedCount = await roleMigrationService.GetUnmigratedUsersCountAsync();
-        if (unmigratedCount > 0)
-        {
-            logger.LogInformation("Found {Count} users that need migration to new role system", unmigratedCount);
-            await roleMigrationService.MigrateExistingUsersToNewRoleSystemAsync();
-        }
-        else
-        {
-            logger.LogInformation("All users are already using the new role system");
-        }
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Failed to migrate users to new role system. Application will continue, but role functionality may be limited.");
-        // Don't throw - let the application start even if migration fails
-        // Users can be manually migrated later or roles can be fixed in the database
-    }
+    // Temporarily disabled role services initialization to allow app to start
+    logger.LogInformation("Skipping role mapping system initialization for now...");
 
     // Enable/disable seed data dengan env variable
     var enableSeed = Environment.GetEnvironmentVariable("ENABLE_SEED_DATA") ?? "true";
@@ -357,7 +318,11 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+// CORS should come BEFORE HTTPS redirection and static files
+app.UseCors("AllowAll");
+
+// Disable HTTPS redirection for HTTP-only operation
+// app.UseHttpsRedirection();
 
 // Enable static files for photo uploads
 app.UseStaticFiles();
@@ -375,8 +340,6 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
 });
-
-app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();

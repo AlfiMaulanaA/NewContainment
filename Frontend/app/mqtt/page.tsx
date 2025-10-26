@@ -81,6 +81,7 @@ export default function UnifiedMqttPage() {
   const [connectionStatuses, setConnectionStatuses] = useState<
     Record<string, boolean>
   >({});
+  const [dataLoaded, setDataLoaded] = useState(false); // Add this to prevent infinite loading
 
   // Form state
   const [formData, setFormData] = useState<CreateMqttConfigurationRequest>({
@@ -99,50 +100,137 @@ export default function UnifiedMqttPage() {
   });
 
   const loadData = useCallback(async () => {
+    if (dataLoaded) return; // Prevent multiple calls
+
+    console.log('[MQTT] ===== STARTING DATA LOAD =====');
     setLoading(true);
-    try {
-      // Load essential data first (fastest APIs)
-      const [effectiveConfigRes, activeConfigRes] = await Promise.all([
-        mqttConfigurationApi.getEffectiveConfiguration(),
-        mqttConfigurationApi.getActiveConfiguration(),
-      ]);
+    let loadedCount = 0;
+    const startTime = Date.now();
 
-      if (effectiveConfigRes.success)
-        setEffectiveConfiguration(effectiveConfigRes.data || {});
-      if (activeConfigRes.success)
-        setActiveConfiguration(activeConfigRes.data || null);
-
-      // Load secondary data in background (slower APIs)
-      Promise.all([
-        mqttConfigurationApi.getConfigurations(),
-        mqttConfigurationApi.getAllConnectionStatus(),
-      ])
-        .then(([configurationsRes, connectionStatusRes]) => {
-          if (configurationsRes.success)
-            setConfigurations(configurationsRes.data || []);
-          if (connectionStatusRes.success)
-            setConnectionStatuses(connectionStatusRes.data || {});
-        })
-        .catch(() => {
-          // Non-critical error, don't show toast
-          console.warn("Failed to load secondary MQTT data");
-        });
-    } catch (error) {
-      toast.error("Failed to load MQTT configurations");
-    } finally {
+    // Safety timeout: Force finish loading after 10 seconds
+    const timeoutId = setTimeout(() => {
+      console.warn('[MQTT] FORCE FINISH: Loading took too long, forcing completion');
       setLoading(false);
+      setDataLoaded(true);
+    }, 10000);
+
+    try {
+      // Simple approach: Load things sequentially with try-catch
+      // This is more reliable than Promise.allSettled for debugging
+
+      // 1. Load effective configuration first (most important)
+      try {
+        console.log('[MQTT] Loading effective configuration...');
+        const effectiveResult = await mqttConfigurationApi.getEffectiveConfiguration();
+        console.log('[MQTT] Effective config result:', effectiveResult);
+
+        if (effectiveResult.success) {
+          setEffectiveConfiguration(effectiveResult.data || {});
+          loadedCount++;
+          console.log('[MQTT] Effective config loaded successfully');
+        } else {
+          console.warn('[MQTT] Effective config API returned error:', effectiveResult.message);
+          setEffectiveConfiguration({});
+        }
+      } catch (error) {
+        console.error('[MQTT] Effective config API call failed:', error);
+        setEffectiveConfiguration({});
+      }
+
+      // 2. Load active configuration
+      try {
+        console.log('[MQTT] Loading active configuration...');
+        const activeResult = await mqttConfigurationApi.getActiveConfiguration();
+        console.log('[MQTT] Active config result:', activeResult);
+
+        if (activeResult.success) {
+          setActiveConfiguration(activeResult.data || null);
+          loadedCount++;
+          console.log('[MQTT] Active config loaded successfully');
+        } else {
+          console.warn('[MQTT] Active config API returned error:', activeResult.message);
+          setActiveConfiguration(null);
+        }
+      } catch (error) {
+        console.error('[MQTT] Active config API call failed:', error);
+        setActiveConfiguration(null);
+      }
+
+      // 3. Load configurations list
+      try {
+        console.log('[MQTT] Loading configurations list...');
+        const configsResult = await mqttConfigurationApi.getConfigurations();
+        console.log('[MQTT] Configurations result:', configsResult);
+
+        if (configsResult.success) {
+          setConfigurations(configsResult.data || []);
+          loadedCount++;
+          console.log('[MQTT] Configurations list loaded successfully');
+        } else {
+          console.warn('[MQTT] Configurations API returned error:', configsResult.message);
+          setConfigurations([]);
+        }
+      } catch (error) {
+        console.error('[MQTT] Configurations API call failed:', error);
+        setConfigurations([]);
+      }
+
+      // 4. Load connection statuses (least important, can fail) - with timeout
+      try {
+        console.log('[MQTT] Loading connection statuses...');
+        // Add timeout for this optional call
+        const connPromise = mqttConfigurationApi.getAllConnectionStatus();
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        );
+
+        const connResult = await Promise.race([connPromise, timeoutPromise]) as { success: boolean; data?: any; message?: string };
+        console.log('[MQTT] Connection statuses result:', connResult);
+
+        if (connResult.success) {
+          setConnectionStatuses(connResult.data || {});
+          console.log('[MQTT] Connection statuses loaded successfully');
+        } else {
+          console.warn('[MQTT] Connection statuses API returned error:', connResult.message);
+          setConnectionStatuses({});
+        }
+      } catch (error) {
+        console.warn('[MQTT] Connection statuses API call failed (non-critical):', error);
+        setConnectionStatuses({});
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`[MQTT] Data load completed in ${duration}ms: ${loadedCount}/3 APIs successful`);
+      setDataLoaded(true); // Mark as loaded
+
+    } catch (error) {
+      console.error('[MQTT] CRITICAL ERROR in loadData:', error);
+      // Set fallback data and mark as loaded even on error
+      setEffectiveConfiguration({});
+      setActiveConfiguration(null);
+      setConfigurations([]);
+      setConnectionStatuses({});
+      setDataLoaded(true);
+      console.log('[MQTT] Set fallback data due to critical error');
+    } finally {
+      const finalDuration = Date.now() - startTime;
+      console.log('[MQTT] ===== DATA LOAD FINISHED (${finalDuration}ms) =====');
+      setLoading(false);
+      clearTimeout(timeoutId);
     }
-  }, []);
+  }, [dataLoaded]);
 
   // Enhanced reload config function for all MQTT operations
   const reloadMqttConfig = useCallback(async (showToast = true) => {
     try {
+      setReloadingConfig(true);
       const response = await mqttConfigurationApi.reloadConfiguration();
       if (response.success) {
         if (showToast) {
           toast.success("MQTT configuration reloaded successfully");
         }
         // Refresh data after successful reload
+        setDataLoaded(false); // Reset so data will reload
         setTimeout(() => {
           loadData();
         }, 500);
@@ -159,12 +247,23 @@ export default function UnifiedMqttPage() {
       }
       console.warn("Failed to reload MQTT configuration:", error);
       return false;
+    } finally {
+      setReloadingConfig(false);
     }
   }, [loadData]);
 
-  useEffect(() => {
-    loadData();
+  // Manual refresh function for user
+  const handleRefresh = useCallback(() => {
+    setDataLoaded(false);
+    setLoading(true);
+    setTimeout(() => loadData(), 0); // Small delay to allow state update
   }, [loadData]);
+
+  useEffect(() => {
+    if (!dataLoaded) {
+      loadData();
+    }
+  }, [dataLoaded, loadData]);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -485,7 +584,7 @@ export default function UnifiedMqttPage() {
           <h1 className="text-lg font-semibold">MQTT Configuration</h1>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button onClick={loadData} variant="outline" size="sm">
+          <Button onClick={handleRefresh} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -776,6 +875,7 @@ export default function UnifiedMqttPage() {
               <MQTTOverview
                 activeConfiguration={activeConfiguration}
                 effectiveConfiguration={effectiveConfiguration}
+                connectionStatuses={connectionStatuses}
                 isLoading={loading}
                 onEdit={openEditDialog}
                 onView={openViewDialog}
@@ -1061,50 +1161,50 @@ export default function UnifiedMqttPage() {
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
                   {/* Status Information */}
-                  <div className="p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                  <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                    <h4 className="font-semibold text-sm text-muted-foreground dark:text-gray-300 mb-3">
                       Status Information
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">
+                        <Label className="text-xs font-medium text-muted-foreground dark:text-gray-400">
                           Status
                         </Label>
                         <div className="mt-1">
                           {selectedConfiguration.isEnabled ? (
-                            <Badge className="bg-green-500">Enabled</Badge>
+                            <Badge className="bg-green-500 dark:bg-green-600">Enabled</Badge>
                           ) : (
-                            <Badge variant="destructive">Disabled</Badge>
+                            <Badge variant="destructive" className="dark:bg-red-900 dark:text-red-200">Disabled</Badge>
                           )}
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">
+                        <Label className="text-xs font-medium text-muted-foreground dark:text-gray-400">
                           Active
                         </Label>
                         <div className="mt-1">
                           {selectedConfiguration.isActive ? (
-                            <Badge className="bg-blue-500">Active</Badge>
+                            <Badge className="bg-blue-500 dark:bg-blue-600">Active</Badge>
                           ) : (
-                            <Badge variant="outline">Inactive</Badge>
+                            <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">Inactive</Badge>
                           )}
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">
+                        <Label className="text-xs font-medium text-muted-foreground dark:text-gray-400">
                           Config Source
                         </Label>
-                        <p className="text-sm mt-1">
+                        <p className="text-sm mt-1 dark:text-gray-200">
                           {selectedConfiguration.useEnvironmentConfig
                             ? "Environment"
                             : "Database"}
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-muted-foreground">
+                        <Label className="text-xs font-medium text-muted-foreground dark:text-gray-400">
                           ID
                         </Label>
-                        <p className="text-sm mt-1 font-mono">
+                        <p className="text-sm mt-1 font-mono dark:text-gray-200">
                           #{selectedConfiguration.id}
                         </p>
                       </div>

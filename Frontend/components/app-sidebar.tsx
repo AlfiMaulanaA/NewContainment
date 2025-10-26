@@ -30,7 +30,8 @@ import {
   Settings,
   BarChart3,
   Users,
-  Archive, // Use Archive instead of Container
+  Archive,
+  Container, // Updated to use Container for header icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -182,7 +183,7 @@ export function AppSidebar() {
     <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
       <div className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Archive className="h-6 w-6" />
+          <Container className="h-6 w-6" />
         </div>
         <div>
           <h1 className="text-lg font-semibold text-sidebar-foreground">
@@ -287,7 +288,7 @@ export function AppSidebar() {
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
-              <Archive className="h-6 w-6 text-sidebar-primary-foreground" />
+              <Container className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">
@@ -324,8 +325,8 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="border-b border-sidebar-border px-6 py-4 bg-background">
           <div className="flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary shadow-lg">
-              <Archive className="h-6 w-6 text-sidebar-primary-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary shadow-lg">
+              <Container className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-sidebar-foreground">

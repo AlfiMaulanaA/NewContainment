@@ -220,5 +220,43 @@ namespace Backend.Services
 
             return summaries;
         }
+
+        // Delete emergency report by ID
+        public async Task<bool> DeleteEmergencyReportAsync(int id)
+        {
+            var report = await _context.EmergencyReports.FindAsync(id);
+            if (report == null)
+            {
+                return false;
+            }
+
+            _context.EmergencyReports.Remove(report);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted emergency report {Id} of type {EmergencyType}",
+                id, report.EmergencyType);
+
+            return true;
+        }
+
+        // Delete all emergency reports
+        public async Task<int> DeleteAllEmergencyReportsAsync()
+        {
+            var allReports = await _context.EmergencyReports.ToListAsync();
+            var count = allReports.Count;
+
+            if (count > 0)
+            {
+                _context.EmergencyReports.RemoveRange(allReports);
+                await _context.SaveChangesAsync();
+                _logger.LogWarning("Deleted all emergency reports - {Count} records removed", count);
+            }
+            else
+            {
+                _logger.LogInformation("No emergency reports to delete");
+            }
+
+            return count;
+        }
     }
 }

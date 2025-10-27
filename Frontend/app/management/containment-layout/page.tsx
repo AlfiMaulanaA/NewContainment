@@ -1214,7 +1214,7 @@ export default function ContainmentLayoutPage() {
                     ) : (
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
                     )}
-                    <span className="font-semibold text-sm">
+                    <span className={`font-semibold text-sm ${containmentStatus.emergencyStatus?"text-red-600":"text-green-600"}`}>
                       {containmentStatus.emergencyStatus
                         ? "EMERGENCY ACTIVE"
                         : "SYSTEM NORMAL"}

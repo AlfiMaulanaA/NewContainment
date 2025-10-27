@@ -2481,6 +2481,38 @@ export const emergencyReportsApi = {
       };
     }
   },
+
+  async deleteEmergencyReport(id: number): Promise<ApiResponse<any>> {
+    try {
+      const data = await client.delete<any>(`/emergencyreport/${id}`);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete emergency report",
+      };
+    }
+  },
+
+  async deleteAllEmergencyReports(): Promise<ApiResponse<any>> {
+    try {
+      const data = await client.delete<any>("/emergencyreport/all");
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete all emergency reports",
+      };
+    }
+  },
 };
 
 // ZKTeco Access Control Types

@@ -47,6 +47,7 @@ import {
   XCircle,
   Eye,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import {
   emergencyReportsApi,
@@ -55,6 +56,7 @@ import {
   EmergencyReportFilter,
 } from "@/lib/api-service";
 import { toast } from "sonner";
+import { ConfirmationDialog, ConfirmationDialogConfig } from "@/components/confirmation-dialog";
 
 export default function EmergencyReportsPage() {
   const [reports, setReports] = useState<EmergencyReport[]>([]);
@@ -68,6 +70,16 @@ export default function EmergencyReportsPage() {
   );
   const [currentTime, setCurrentTime] = useState(new Date()); // New state for current time
   const [criticalEmergencies, setCriticalEmergencies] = useState<EmergencyReport[]>([]); // Emergencies > 7 hours
+
+  // Confirmation dialog states
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteDialogConfig, setDeleteDialogConfig] = useState<ConfirmationDialogConfig>({
+    title: '',
+    description: '',
+    confirmText: 'Delete',
+    onConfirm: () => {},
+    variant: 'danger'
+  });
 
   // Filter states
   const [filter, setFilter] = useState<EmergencyReportFilter>({
@@ -323,6 +335,80 @@ export default function EmergencyReportsPage() {
     toast.success("Emergency reports exported successfully");
   };
 
+  // Helper function to open confirmation dialog
+  const openConfirmationDialog = (config: typeof deleteDialogConfig) => {
+    setDeleteDialogConfig(config);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteEmergencyReport = (id: number) => {
+    openConfirmationDialog({
+      title: "Delete Emergency Report",
+      description: `Are you sure you want to delete emergency report #${id}? This action cannot be undone.`,
+      confirmText: "Delete Report",
+      variant: 'danger',
+      onConfirm: async () => {
+        setDeleteDialogConfig(prev => ({ ...prev, loading: true }));
+
+        try {
+          const result = await emergencyReportsApi.deleteEmergencyReport(id);
+          if (result.success) {
+            setShowDeleteDialog(false);
+            toast.success(`Emergency report #${id} deleted successfully`);
+            await loadInitialData(); // Reload data after deletion
+          } else {
+            toast.error(result.message || "Failed to delete emergency report");
+          }
+        } catch (error) {
+          toast.error("Failed to delete emergency report");
+        } finally {
+          setDeleteDialogConfig(prev => ({ ...prev, loading: false }));
+        }
+      }
+    });
+  };
+
+  const handleDeleteAllEmergencyReports = () => {
+    // First confirmation dialog
+    openConfirmationDialog({
+      title: " Delete All Emergency Reports",
+      description: `Are you sure you want to delete ALL emergency reports? This will permanently remove ${reports.length} records and cannot be undone!`,
+      confirmText: "Continue",
+      cancelText: "Cancel",
+      variant: 'danger',
+      onConfirm: () => {
+        // Second confirmation dialog (fatal warning)
+        setTimeout(() => {
+          openConfirmationDialog({
+            title: " FINAL WARNING",
+            description: "This is your FINAL WARNING: This action cannot be reversed. Are you absolutely sure you want to delete all emergency reports?",
+            confirmText: "Yes, Delete All",
+            cancelText: "Abort",
+            variant: 'danger',
+            onConfirm: async () => {
+              setDeleteDialogConfig(prev => ({ ...prev, loading: true }));
+
+              try {
+                const result = await emergencyReportsApi.deleteAllEmergencyReports();
+                if (result.success) {
+                  setShowDeleteDialog(false);
+                  toast.success(`Successfully deleted ${result.data.deletedCount} emergency reports`);
+                  await loadInitialData(); // Reload data after deletion
+                } else {
+                  toast.error(result.message || "Failed to delete all emergency reports");
+                }
+              } catch (error) {
+                toast.error("Failed to delete all emergency reports");
+              } finally {
+                setDeleteDialogConfig(prev => ({ ...prev, loading: false }));
+              }
+            }
+          });
+        }, 100);
+      }
+    });
+  };
+
   const getEmergencyTypeConfig = (type: string) => {
     return (
       emergencyTypes.find((t) => t.value === type) || {
@@ -523,6 +609,15 @@ export default function EmergencyReportsPage() {
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
+          <Button
+            onClick={handleDeleteAllEmergencyReports}
+            variant="destructive"
+            size="sm"
+            disabled={reports.length === 0}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete All ({reports.length})
+          </Button>
           <Button onClick={loadInitialData} disabled={loading} size="sm">
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
@@ -593,9 +688,9 @@ export default function EmergencyReportsPage() {
 
         {/* Active Emergencies Alert */}
         {activeEmergencies.length > 0 && (
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
             <CardHeader>
-              <CardTitle className="text-red-700 flex items-center gap-2">
+              <CardTitle className="text-red-700 dark:text-red-300 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
                 Active Emergencies ({activeEmergencies.length})
               </CardTitle>
@@ -609,15 +704,15 @@ export default function EmergencyReportsPage() {
                   return (
                     <div
                       key={emergency.id}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
                       <div className="flex items-center gap-2">
                         {config.icon}
                         <div>
-                          <div className="font-medium">{config.label}</div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{config.label}</div>
                           <div className="text-sm text-muted-foreground">
                             Active since{" "}
-                            {convertToWIB(emergency.startTime).toLocaleString('id-ID', { 
+                            {convertToWIB(emergency.startTime).toLocaleString('id-ID', {
                               year: 'numeric',
                               month: '2-digit',
                               day: '2-digit',
@@ -627,9 +722,9 @@ export default function EmergencyReportsPage() {
                             })} WIB
                           </div>
                           <div className={`text-sm font-semibold flex items-center gap-1 ${
-                            getEmergencyDurationHours(emergency.startTime) > 7 
-                              ? 'text-red-700 animate-pulse' 
-                              : 'text-red-600'
+                            getEmergencyDurationHours(emergency.startTime) > 7
+                              ? 'text-red-700 dark:text-red-400 animate-pulse'
+                              : 'text-red-600 dark:text-red-500'
                           }`}>
                             <Clock className="h-3 w-3" />
                             Duration:{" "}
@@ -639,7 +734,7 @@ export default function EmergencyReportsPage() {
                               currentTime
                             )}
                             {getEmergencyDurationHours(emergency.startTime) > 7 && (
-                              <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full ml-2">
+                              <span className="text-xs bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded-full ml-2">
                                 CRITICAL!
                               </span>
                             )}
@@ -850,14 +945,14 @@ export default function EmergencyReportsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredAndSortedReports.map((report) => {
+                    filteredAndSortedReports.map((report, index) => {
                       const config = getEmergencyTypeConfig(
                         report.emergencyType
                       );
                       return (
                         <TableRow key={report.id}>
                           <TableCell className="font-mono">
-                            {report.id}
+                            {`#${index + 1}`}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -945,128 +1040,151 @@ export default function EmergencyReportsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setSelectedReport(report)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    Emergency Report Details
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    Detailed information about emergency report
-                                    #{report.id}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <Label>Emergency Type</Label>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        {config.icon}
-                                        {config.label}
+                            <div className="flex gap-1">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSelectedReport(report)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      Emergency Report Details
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                      Detailed information about emergency report
+                                      #{report.id}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <Label>Emergency Type</Label>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          {config.icon}
+                                          {config.label}
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div>
-                                      <Label>Status</Label>
-                                      <div className="mt-1">
-                                        <Badge
-                                          variant={
-                                            report.isActive
-                                              ? "destructive"
-                                              : "secondary"
-                                          }
-                                        >
+                                      <div>
+                                        <Label>Status</Label>
+                                        <div className="mt-1">
+                                          <Badge
+                                            variant={
+                                              report.isActive
+                                                ? "destructive"
+                                                : "secondary"
+                                            }
+                                          >
+                                            {report.isActive
+                                              ? "Active"
+                                              : "Resolved"}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <Label>Start Time (WIB)</Label>
+                                        <div className="mt-1">
+                                          {convertToWIB(report.startTime).toLocaleString('id-ID', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit'
+                                          })} WIB
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <Label>End Time (WIB)</Label>
+                                        <div className="mt-1">
+                                          {report.endTime
+                                            ? convertToWIB(report.endTime).toLocaleString('id-ID', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit'
+                                              }) + ' WIB'
+                                            : "Ongoing"}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <Label>Duration</Label>
+                                        <div className="mt-1">
                                           {report.isActive
-                                            ? "Active"
-                                            : "Resolved"}
-                                        </Badge>
+                                            ? getLiveDurationString(
+                                                report.startTime,
+                                                null,
+                                                currentTime
+                                              )
+                                            : formatApiDurationString(
+                                                report.duration
+                                              )}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <Label>Created (WIB)</Label>
+                                        <div className="mt-1">
+                                          {convertToWIB(report.createdAt).toLocaleString('id-ID', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit'
+                                          })} WIB
+                                        </div>
                                       </div>
                                     </div>
-                                    <div>
-                                      <Label>Start Time (WIB)</Label>
-                                      <div className="mt-1">
-                                        {convertToWIB(report.startTime).toLocaleString('id-ID', { 
-                                          weekday: 'long',
-                                          year: 'numeric',
-                                          month: 'long',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                          second: '2-digit'
-                                        })} WIB
+                                    {report.notes && (
+                                      <div>
+                                        <Label>Notes</Label>
+                                        <div className="mt-1 p-3 bg-muted rounded-md">
+                                          {report.notes}
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div>
-                                      <Label>End Time (WIB)</Label>
-                                      <div className="mt-1">
-                                        {report.endTime
-                                          ? convertToWIB(report.endTime).toLocaleString('id-ID', { 
-                                              weekday: 'long',
-                                              year: 'numeric',
-                                              month: 'long',
-                                              day: 'numeric',
-                                              hour: '2-digit',
-                                              minute: '2-digit',
-                                              second: '2-digit'
-                                            }) + ' WIB'
-                                          : "Ongoing"}
+                                    )}
+                                    {report.rawMqttPayload && (
+                                      <div>
+                                        <Label>Raw MQTT Payload</Label>
+                                        <div className="mt-1 p-3 bg-muted rounded-md font-mono text-sm overflow-x-auto">
+                                          {report.rawMqttPayload}
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div>
-                                      <Label>Duration</Label>
-                                      <div className="mt-1">
-                                        {report.isActive
-                                          ? getLiveDurationString(
-                                              report.startTime,
-                                              null,
-                                              currentTime
-                                            )
-                                          : formatApiDurationString(
-                                              report.duration
-                                            )}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <Label>Created (WIB)</Label>
-                                      <div className="mt-1">
-                                        {convertToWIB(report.createdAt).toLocaleString('id-ID', { 
-                                          year: 'numeric',
-                                          month: 'long',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                          second: '2-digit'
-                                        })} WIB
-                                      </div>
+                                    )}
+                                    <div className="flex justify-end pt-4">
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => {
+                                          handleDeleteEmergencyReport(report.id);
+                                          setSelectedReport(null);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Report
+                                      </Button>
                                     </div>
                                   </div>
-                                  {report.notes && (
-                                    <div>
-                                      <Label>Notes</Label>
-                                      <div className="mt-1 p-3 bg-muted rounded-md">
-                                        {report.notes}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {report.rawMqttPayload && (
-                                    <div>
-                                      <Label>Raw MQTT Payload</Label>
-                                      <div className="mt-1 p-3 bg-muted rounded-md font-mono text-sm overflow-x-auto">
-                                        {report.rawMqttPayload}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                                </DialogContent>
+                              </Dialog>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteEmergencyReport(report.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -1105,6 +1223,19 @@ export default function EmergencyReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={deleteDialogConfig.onConfirm}
+        title={deleteDialogConfig.title}
+        description={deleteDialogConfig.description}
+        confirmText={deleteDialogConfig.confirmText}
+        cancelText={deleteDialogConfig.cancelText}
+        variant={deleteDialogConfig.variant}
+        loading={deleteDialogConfig.loading}
+      />
     </SidebarInset>
   );
 }

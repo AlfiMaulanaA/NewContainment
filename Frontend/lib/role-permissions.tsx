@@ -347,6 +347,7 @@ export const ROLE_PERMISSIONS = {
       } as UiPermissions,
     },
   },
+
 } as const;
 
 // Utility functions to check permissions

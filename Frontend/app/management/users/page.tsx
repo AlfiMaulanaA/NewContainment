@@ -51,14 +51,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -70,8 +62,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   usersApi,
   userPhotoApi,
+  mqttApi,
   User,
   UserRole,
   CreateUserRequest,
@@ -105,10 +106,14 @@ export default function UserManagementPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState<
-    CreateUserRequest | UpdateUserRequest
-  >({
+  // Form state - use a flexible type that can handle both create and edit
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    password?: string;
+    phoneNumber?: string;
+    role: UserRole;
+  }>({
     name: "",
     email: "",
     password: "",
@@ -225,13 +230,13 @@ export default function UserManagementPage() {
       toast.error("Email is required");
       return;
     }
-    if (!formData.password.trim()) {
+    if (!formData.password?.trim()) {
       toast.error("Password is required");
       return;
     }
 
     // Validate password strength and confirmation
-    const isPasswordValid = validatePassword(formData.password, passwordConfirm);
+    const isPasswordValid = validatePassword(formData.password || "", passwordConfirm);
     if (!isPasswordValid) {
       toast.error("Please ensure password meets all requirements and passwords match");
       return;
@@ -389,7 +394,19 @@ export default function UserManagementPage() {
     setUploadingPhoto(true);
     try {
       const result = await userPhotoApi.deletePhoto(userId);
-
+[{
+	"resource": "/home/ubuntu/Alfi/RnD/Development/NewContainment/Frontend/app/management/users/page.tsx",
+	"owner": "typescript",
+	"code": "2322",
+	"severity": 8,
+	"message": "Type 'null' is not assignable to type 'string | undefined'.",
+	"source": "ts",
+	"startLineNumber": 406,
+	"startColumn": 13,
+	"endLineNumber": 406,
+	"endColumn": 22,
+	"origin": "extHost1"
+}]
       if (result.success) {
         toast.success(result.message || "Photo deleted successfully");
 
@@ -397,7 +414,7 @@ export default function UserManagementPage() {
         if (editingUser && editingUser.id === userId) {
           setEditingUser({
             ...editingUser,
-            photoPath: null,
+            photoPath: undefined,
           });
         }
 
@@ -439,6 +456,8 @@ export default function UserManagementPage() {
         return "user";
     }
   };
+
+
 
   return (
     <SidebarInset>
@@ -510,7 +529,7 @@ export default function UserManagementPage() {
                         value={formData.password}
                         onChange={(e) => {
                           setFormData({ ...formData, password: e.target.value });
-                          validatePassword(e.target.value, passwordConfirm);
+                          validatePassword(e.target.value || "", passwordConfirm);
                         }}
                         placeholder="Enter password"
                       />
@@ -526,7 +545,7 @@ export default function UserManagementPage() {
                         value={passwordConfirm}
                         onChange={(e) => {
                           setPasswordConfirm(e.target.value);
-                          validatePassword(formData.password, e.target.value);
+                          validatePassword(formData.password || "", e.target.value);
                         }}
                         placeholder="Confirm password"
                       />
@@ -750,17 +769,11 @@ export default function UserManagementPage() {
                     </TableHead>
                     <TableHead
                       className="cursor-pointer"
-                      onClick={() => handleSort("email")}
-                    >
-                      Email <ArrowUpDown className="inline ml-1 h-4 w-4" />
-                    </TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead
-                      className="cursor-pointer"
                       onClick={() => handleSort("role")}
                     >
                       Role <ArrowUpDown className="inline ml-1 h-4 w-4" />
                     </TableHead>
+                    <TableHead>Phone</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <PermissionWrapper
@@ -789,11 +802,14 @@ export default function UserManagementPage() {
                               width={32}
                               height={32}
                             />
-                            {user.name}
+                            <div className="flex flex-col">
+                              <span>{user.name}</span>
+                              <span className="text-sm text-muted-foreground mt-0.5">
+                                {user.email}
+                              </span>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.phoneNumber || "-"}</TableCell>
                         <TableCell>
                           <Badge
                             className={getRoleColor(getRoleString(user.role))}
@@ -801,6 +817,7 @@ export default function UserManagementPage() {
                             {getRoleDisplayName(getRoleString(user.role))}
                           </Badge>
                         </TableCell>
+                        <TableCell>{user.phoneNumber || "-"}</TableCell>
                         <TableCell>
                           <Badge variant={user.isActive ? "success" : "danger"}>
                             {user.isActive ? "Active" : "Inactive"}
@@ -880,8 +897,8 @@ export default function UserManagementPage() {
                         colSpan={
                           permissions.user.canUpdate ||
                           permissions.user.canDelete
-                            ? 8
-                            : 7
+                            ? 7
+                            : 6
                         }
                         className="text-center py-8 text-muted-foreground"
                       >
@@ -1120,6 +1137,8 @@ export default function UserManagementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
     </SidebarInset>
   );
 }

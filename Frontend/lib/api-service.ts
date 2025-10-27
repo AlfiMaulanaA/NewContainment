@@ -4670,8 +4670,156 @@ export interface SystemInfoDisplay {
 export const accessLogApi = accessLogService;
 export const cameraConfigApi = cameraConfig;
 
+// Palm Recognition Device types and interfaces
+export interface PalmRecognitionDevice {
+  id: number;
+  name: string;
+  ipAddress: string;
+  timestamp: string;
+  isActive: boolean;
+}
+
+export interface CreatePalmRecognitionDeviceRequest {
+  name: string;
+  ipAddress: string;
+  isActive: boolean;
+}
+
+export interface UpdatePalmRecognitionDeviceRequest {
+  name: string;
+  ipAddress: string;
+  isActive: boolean;
+}
+
+// Palm Recognition Device API methods
+export const palmRecognitionDeviceApi = {
+  async getAllPalmRecognitionDevices(): Promise<ApiResponse<PalmRecognitionDevice[]>> {
+    try {
+      const data = await client.get<PalmRecognitionDevice[]>("/palm-recognition-devices");
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get palm recognition devices",
+      };
+    }
+  },
+
+  async getPalmRecognitionDevice(id: number): Promise<ApiResponse<PalmRecognitionDevice>> {
+    try {
+      const data = await client.get<PalmRecognitionDevice>(`/palm-recognition-devices/${id}`);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to get palm recognition device",
+      };
+    }
+  },
+
+  async createPalmRecognitionDevice(
+    request: CreatePalmRecognitionDeviceRequest
+  ): Promise<ApiResponse<PalmRecognitionDevice>> {
+    try {
+      const data = await client.post<PalmRecognitionDevice>("/palm-recognition-devices", request);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to create palm recognition device",
+      };
+    }
+  },
+
+  async updatePalmRecognitionDevice(
+    id: number,
+    request: UpdatePalmRecognitionDeviceRequest
+  ): Promise<ApiResponse<PalmRecognitionDevice>> {
+    try {
+      const data = await client.put<PalmRecognitionDevice>(`/palm-recognition-devices/${id}`, request);
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to update palm recognition device",
+      };
+    }
+  },
+
+  async deletePalmRecognitionDevice(id: number): Promise<ApiResponse> {
+    try {
+      await client.delete(`/palm-recognition-devices/${id}`);
+
+      return {
+        success: true,
+        message: "Palm recognition device deleted successfully",
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to delete palm recognition device",
+      };
+    }
+  },
+
+  async palmRecognitionDeviceExists(id: number): Promise<ApiResponse<boolean>> {
+    try {
+      const data = await client.get<boolean>(`/palm-recognition-devices/${id}/exists`);
+      return {
+        success: true,
+        data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to check if palm recognition device exists",
+        data: false,
+      };
+    }
+  },
+};
+
 // Export capacity API
 export { capacityApi } from './api/capacity';
+
+// MQTT API methods
+export const mqttApi = {
+  async publish(topic: string, payload: string): Promise<ApiResponse<string>> {
+    try {
+      const data = await client.post<{ message: string }>("/mqtt/publish", {
+        Topic: topic,
+        Payload: payload,
+      });
+
+      return {
+        success: true,
+        data: data.message || "Message published successfully",
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to publish MQTT message",
+      };
+    }
+  },
+};
+
 export const apiService = api;
 
 export default api;

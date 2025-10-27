@@ -18,7 +18,7 @@ const PORTS = {
 export function getAppConfig(): AppConfig {
   const isProduction = process.env.NODE_ENV === "production";
   const isBrowser = typeof window !== "undefined";
-  
+
   let mqttBrokerUrl: string;
   let apiBaseUrl: string;
 
@@ -28,15 +28,23 @@ export function getAppConfig(): AppConfig {
     return `${protocol}://${host}:${port}`;
   };
 
-  // Simplified configuration - Single HTTP port for all environments
-  const host = process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
-  const port = process.env.NEXT_PUBLIC_MQTT_PORT || PORTS.MQTT_WS_PORT.toString();
+  if (isProduction && isBrowser) {
+    // In production, use window.location.hostname for both API and MQTT hosts (HTTP only)
+    const host = window.location.hostname;
+    const port = process.env.NEXT_PUBLIC_MQTT_PORT || PORTS.MQTT_WS_PORT.toString();
+    mqttBrokerUrl = buildMqttUrl(host, port, false); // Use WS in production (not WSS)
+    apiBaseUrl = `http://${host}:${PORTS.API_PORT}`; // HTTP only, no HTTPS
+  } else {
+    // Simplified configuration - Always use localhost since backend runs locally
+    const host = process.env.NEXT_PUBLIC_MQTT_HOST || "localhost";
+    const port = process.env.NEXT_PUBLIC_MQTT_PORT || PORTS.MQTT_WS_PORT.toString();
 
-  // Always use HTTP for API calls
-  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || `http://localhost:${PORTS.API_PORT}`;
+    // Always use localhost for API calls - NEVER "backend" hostname
+    apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || `http://localhost:${PORTS.API_PORT}`;
 
-  // MQTT broker URL (WebSocket)
-  mqttBrokerUrl = buildMqttUrl(host, port);
+    // MQTT broker URL (WebSocket)
+    mqttBrokerUrl = buildMqttUrl(host, port);
+  }
 
   // Validation
   if (!mqttBrokerUrl) {
@@ -46,8 +54,8 @@ export function getAppConfig(): AppConfig {
     throw new Error("API base URL is not defined.");
   }
 
-  return { 
-    mqttBrokerUrl, 
+  return {
+    mqttBrokerUrl,
     apiBaseUrl,
     environment: isProduction ? 'production' : 'development'
   };

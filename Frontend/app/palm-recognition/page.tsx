@@ -8,8 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import MqttStatus from "@/components/mqtt-status";
 import { toast } from "sonner";
+import { usePalmRecognitionDeviceMQTT } from "@/hooks/usePalmRecognitionDevicesMQTT";
+import {
+  palmRecognitionDeviceApi,
+  PalmRecognitionDevice,
+} from "@/lib/api-service";
 import {
   Loader2,
   Hand,
@@ -43,6 +56,20 @@ interface PalmStatus {
 export default function PalmRecognitionPage() {
   const { isConnected, isConnecting, publish, subscribe, unsubscribe, reconnect } = useMQTT();
 
+  // Multi-device MQTT hook
+  const {
+    connections: deviceConnections,
+    connectDevice: connectToDevice,
+    disconnectDevice: disconnectFromDevice,
+    publishToDevice,
+    subscribeToDevice,
+    getDeviceConnection,
+  } = usePalmRecognitionDeviceMQTT();
+
+  // Device management state (automatically use active device)
+  const [devices, setDevices] = useState<PalmRecognitionDevice[]>([]);
+  const [activeDevice, setActiveDevice] = useState<PalmRecognitionDevice | null>(null);
+
   // States (converted from Vue.js refs)
   const [compareResults, setCompareResults] = useState<PalmCompareResult[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
@@ -52,9 +79,9 @@ export default function PalmRecognitionPage() {
   const [openDoorStatus, setOpenDoorStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Image URLs with timestamp for refresh (like Vue.js)
-  const [imageUrl1, setImageUrl1] = useState(`http://192.168.2.110:8080/1.ir.png?${Date.now()}`);
-  const [imageUrl2, setImageUrl2] = useState(`http://192.168.2.110:8080/1.rgb.png?${Date.now()}`);
+  // Image URLs with selected device IP (initially use first device)
+  const [imageUrl1, setImageUrl1] = useState("");
+  const [imageUrl2, setImageUrl2] = useState("");
   const [imageError, setImageError] = useState({ IR: false, RGB: false });
 
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -103,70 +130,57 @@ export default function PalmRecognitionPage() {
     });
   }, []);
 
-  // Publish Open Door function (like Vue.js)
-  const publishOpenDoor = useCallback(async () => {
-    if (!isConnected) {
-      addLog('Cannot publish Open Front Door: MQTT not connected.');
-      return;
-    }
+  // Active device status UI
+  const renderActiveDeviceStatus = () => (
+    <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+      <div className="flex items-center gap-2">
+        <Hand className="h-5 w-5" />
+        <div className="text-sm font-medium">Active Device:</div>
+        {activeDevice ? (
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="px-2 py-1">
+              {activeDevice.name} ({activeDevice.ipAddress})
+            </Badge>
+          </div>
+        ) : (
+          <Badge variant="secondary" className="px-2 py-1">
+            No Active Device
+          </Badge>
+        )}
+      </div>
 
-    const payload = JSON.stringify({ data: 'Open front door' });
-    const success = await publish('IOT/Containment/Control', payload);
+      {/* Device connection status */}
+      {activeDevice && (
+        <div className="flex items-center gap-2">
+          {(() => {
+            const connection = getDeviceConnection(activeDevice.id);
+            let statusIcon = <WifiOff className="h-4 w-4 text-red-500" />;
+            let statusText = "Disconnected";
+            let statusColor = "text-red-600";
 
-    if (success) {
-      addLog('Published Open Front Door command to IOT/Containment/Control');
-      setOpenDoorStatus(`Success Open Door to broker`);
+            if (connection?.isConnecting) {
+              statusIcon = <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />;
+              statusText = "Connecting";
+              statusColor = "text-yellow-600";
+            } else if (connection?.isConnected) {
+              statusIcon = <Wifi className="h-4 w-4 text-green-500" />;
+              statusText = "Connected";
+              statusColor = "text-green-600";
+            }
 
-      // Clear door status after 5 seconds
-      setTimeout(() => setOpenDoorStatus(""), 5000);
-    } else {
-      addLog('Failed to publish Open Front Door command');
-    }
-  }, [isConnected, publish, addLog]);
-
-  // Handle MQTT messages (like Vue.js onMessageArrived)
-  const handlePalmStatus = useCallback((topic: string, payload: string) => {
-    try {
-      const data: PalmStatus = JSON.parse(payload);
-      showBootstrapAlert(
-        `[Status] ${data.status.toUpperCase()}: ${data.message}`,
-        data.status === 'ok' ? 'success' : 'danger'
-      );
-    } catch {
-      addLog(`[${topic}] ${payload}`);
-    }
-  }, [showBootstrapAlert, addLog]);
-
-  const handleCompareResult = useCallback((topic: string, payload: string) => {
-    try {
-      const data: PalmCompareResult = JSON.parse(payload);
-
-      addLog(`[Compare Result] User: ${data.user}, Score: ${data.score.toFixed(4)}, Time: ${data.timestamp}`);
-
-      // Add to compare results (like Vue.js)
-      setCompareResults(prev => {
-        const newResults = [data, ...prev];
-        return newResults.length > 10 ? newResults.slice(0, 10) : newResults;
-      });
-
-      // If score >= 0.8, publish open door (like Vue.js)
-      if (data.score >= 0.8) {
-        addLog('Score is high, publishing open door...');
-        publishOpenDoor();
-        showSuccessToast('Success recognize, Open Front Door');
-      }
-    } catch {
-      addLog(`[${topic}] ${payload}`);
-    }
-  }, [addLog, publishOpenDoor, showSuccessToast]);
-
-  // Refresh images function (like Vue.js)
-  const refreshImages = useCallback(() => {
-    const timestamp = Date.now();
-    setImageUrl1(`http://192.168.2.110:8080/1.ir.png?${timestamp}`);
-    setImageUrl2(`http://192.168.2.110:8080/1.rgb.png?${timestamp}`);
-    setImageError({ IR: false, RGB: false });
-  }, []);
+            return (
+              <>
+                {statusIcon}
+                <span className={`text-sm font-medium ${statusColor}`}>
+                  {statusText}
+                </span>
+              </>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
 
   // Image error handler (like Vue.js)
   const onImageError = useCallback((type: 'IR' | 'RGB') => {
@@ -188,17 +202,153 @@ export default function PalmRecognitionPage() {
     }
   }, [isConnected, reconnect]);
 
-  // MQTT subscription setup (like Vue.js onMounted)
+  // Load palm recognition devices
+  const loadDevices = useCallback(async () => {
+    try {
+      const result = await palmRecognitionDeviceApi.getAllPalmRecognitionDevices();
+      if (result.success && result.data) {
+        setDevices(result.data);
+        // Auto-select active device (where isActive = true)
+        const activeDevice = result.data.find(device => device.isActive);
+        if (activeDevice) {
+          setActiveDevice(activeDevice);
+          addLog(`Active palm recognition device loaded: ${activeDevice.name}`);
+        } else {
+          setActiveDevice(null);
+          addLog("No active palm recognition device found");
+        }
+      } else {
+        addLog("Failed to load palm recognition devices");
+      }
+    } catch (error) {
+      addLog(`Error loading devices: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [addLog]);
+
+  // Update image URLs when active device changes
   useEffect(() => {
-    if (isConnected) {
-      // Subscribe to topics (like Vue.js)
-      subscribe('palm/status', handlePalmStatus);
-      subscribe('palm/compare/result', handleCompareResult);
+    if (activeDevice) {
+      const timestamp = Date.now();
+      setImageUrl1(`http://${activeDevice.ipAddress}:8080/1.ir.png?${timestamp}`);
+      setImageUrl2(`http://${activeDevice.ipAddress}:8080/1.rgb.png?${timestamp}`);
+      setImageError({ IR: false, RGB: false });
+    }
+  }, [activeDevice]);
 
-      addLog('Subscribed to palm/status and palm/compare/result');
-      showBootstrapAlert('Connected to MQTT broker', 'success');
+  // Auto-connect to active devices when devices list changes
+  useEffect(() => {
+    if (!loading && devices.length > 0) {
+      const activeDevices = devices.filter(device => device.isActive);
+      activeDevices.forEach(device => {
+        const connection = getDeviceConnection(device.id);
+        // Auto-connect if not already connected or connecting
+        if (!connection?.isConnected && !connection?.isConnecting) {
+          console.log(`🔗 Auto-connecting palm recognition to active device: ${device.name} (${device.ipAddress})`);
+          connectToDevice(device.id, device.ipAddress)
+            .then(success => {
+              if (!success) {
+                console.warn(`Failed to auto-connect palm recognition to ${device.name} after 15 seconds`);
+              }
+            })
+            .catch(error => {
+              console.error(`Auto-connect error for palm recognition ${device.name}:`, error);
+            });
+        }
+      });
+    }
+  }, [devices, loading, connectToDevice, getDeviceConnection]);
 
-      // Start image refresh interval (like Vue.js)
+  // Initialize - load devices
+  useEffect(() => {
+    loadDevices();
+  }, [loadDevices]);
+
+  // Update publishOpenDoor to use active device
+  const publishOpenDoor = useCallback(async () => {
+    if (!activeDevice) {
+      addLog('No active device found for door operation.');
+      return;
+    }
+
+    const connection = getDeviceConnection(activeDevice.id);
+    if (!connection?.isConnected) {
+      addLog('Cannot publish Open Door: Device not connected.');
+      return;
+    }
+
+    const payload = JSON.stringify({ data: 'Open front door' });
+    const success = await publishToDevice(activeDevice.id, 'IOT/Containment/Control', payload);
+
+    if (success) {
+      addLog(`Published Open Front Door command to ${activeDevice.name}`);
+      setOpenDoorStatus(`Success Open Door on ${activeDevice.name}`);
+
+      // Clear door status after 5 seconds
+      setTimeout(() => setOpenDoorStatus(""), 3000);
+    } else {
+      addLog(`Failed to publish Open Front Door command to ${activeDevice.name}`);
+    }
+  }, [activeDevice, getDeviceConnection, publishToDevice, addLog]);
+
+  // Update refresh images to use active device
+  const refreshImages = useCallback(() => {
+    if (!activeDevice) return;
+
+    const timestamp = Date.now();
+    setImageUrl1(`http://${activeDevice.ipAddress}:8080/1.ir.png?${timestamp}`);
+    setImageUrl2(`http://${activeDevice.ipAddress}:8080/1.rgb.png?${timestamp}`);
+    setImageError({ IR: false, RGB: false });
+  }, [activeDevice]);
+
+  // Update handleCompareResult to include device info
+  const handleCompareResult = useCallback((topic: string, payload: string) => {
+    try {
+      const data: PalmCompareResult = JSON.parse(payload);
+
+      addLog(`[${activeDevice?.name || 'Unknown'} - Compare Result] User: ${data.user}, Score: ${data.score.toFixed(4)}, Time: ${data.timestamp}`);
+
+      // Add to compare results (like Vue.js)
+      setCompareResults(prev => {
+        const newResults = [data, ...prev];
+        return newResults.length > 10 ? newResults.slice(0, 10) : newResults;
+      });
+
+      // If score >= 0.8, publish open door (like Vue.js)
+      if (data.score >= 0.8) {
+        addLog('Score is high, publishing open door...');
+        publishOpenDoor();
+        showSuccessToast('Success recognize, Open Front Door');
+      }
+    } catch {
+      addLog(`[${activeDevice?.name || 'Unknown'} - ${topic}] ${payload}`);
+    }
+  }, [activeDevice?.name, addLog, publishOpenDoor, showSuccessToast]);
+
+  // Update handlePalmStatus to include device info
+  const handlePalmStatus = useCallback((topic: string, payload: string) => {
+    try {
+      const data: PalmStatus = JSON.parse(payload);
+      addLog(`[${activeDevice?.name || 'Unknown'} - Status] ${data.status.toUpperCase()}: ${data.message}`);
+      showBootstrapAlert(
+        `[${activeDevice?.name || 'Unknown'} - Status] ${data.status.toUpperCase()}: ${data.message}`,
+        data.status === 'ok' ? 'success' : 'danger'
+      );
+    } catch {
+      addLog(`[${activeDevice?.name || 'Unknown'} - ${topic}] ${payload}`);
+    }
+  }, [activeDevice?.name, showBootstrapAlert, addLog]);
+
+  // MQTT subscription setup using active device
+  useEffect(() => {
+    if (activeDevice && getDeviceConnection(activeDevice.id)?.isConnected) {
+      // Subscribe to palm topics on active device
+      subscribeToDevice(activeDevice.id, 'palm/status', handlePalmStatus);
+      subscribeToDevice(activeDevice.id, 'palm/compare/result', handleCompareResult);
+
+      addLog(`Subscribed to palm topics on ${activeDevice.name}`);
+      showBootstrapAlert(`Connected to palm recognition device: ${activeDevice.name}`, 'success');
+
+      // Start image refresh interval
       refreshIntervalRef.current = setInterval(refreshImages, 2000);
     } else {
       // Clear interval when disconnected
@@ -209,14 +359,13 @@ export default function PalmRecognitionPage() {
     }
 
     return () => {
-      unsubscribe('palm/status');
-      unsubscribe('palm/compare/result');
+      // Clear subscriptions and intervals
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
         refreshIntervalRef.current = null;
       }
     };
-  }, [isConnected, subscribe, unsubscribe, handlePalmStatus, handleCompareResult, refreshImages, showBootstrapAlert, addLog]);
+  }, [activeDevice, getDeviceConnection, subscribeToDevice, handlePalmStatus, handleCompareResult, refreshImages, showBootstrapAlert, addLog]);
 
   // Cleanup on unmount (like Vue.js onUnmounted)
   useEffect(() => {
@@ -244,44 +393,8 @@ export default function PalmRecognitionPage() {
           <h2 className="text-2xl font-bold tracking-tight">Palm Vein Recognition Panel</h2>
         </div>
 
-        {/* MQTT Status and Reconnect */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <Badge
-            variant={isConnected ? "default" : "destructive"}
-            className="text-base px-3 py-1"
-          >
-            {isConnected ? (
-              <>
-                <Wifi className="h-4 w-4 mr-2" />
-                MQTT Status: Connected
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-4 w-4 mr-2" />
-                MQTT Status: Disconnected
-              </>
-            )}
-          </Badge>
-
-          <Button
-            onClick={connectClient}
-            disabled={isConnected || loading}
-            variant="outline"
-            size="sm"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Reconnect
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Active Device Status */}
+        {renderActiveDeviceStatus()}
 
         {/* Bootstrap-style Alert */}
         {showAlert && (
@@ -402,6 +515,7 @@ export default function PalmRecognitionPage() {
             </div>
           </CardContent>
         </Card>
+
 
         {/* MQTT Logs */}
         <Card className="border shadow-sm">

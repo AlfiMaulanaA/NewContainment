@@ -322,7 +322,8 @@ export default function SensorAverageComponent() {
           value = mqttData[dataKey] || 0;
         }
 
-        if (value > 0) {
+        // Allow 0 values for dust sensors, but filter negative values and NaN
+        if (value >= 0 && !isNaN(value)) {
           // Calculate status based on thresholds
           const status = calculateDataKeyStatus(
             dataKey,
@@ -339,8 +340,8 @@ export default function SensorAverageComponent() {
             timestamp: deviceData.timestamp,
             status,
           });
-        } else {
-          console.log(`❌ Value is 0 or invalid for ${dataKey}:`, value);
+        } else if (value < 0 || isNaN(value)) {
+          console.log(`❌ Value is negative or invalid for ${dataKey}:`, value);
         }
       });
     });
@@ -539,6 +540,8 @@ export default function SensorAverageComponent() {
   const averageCards = Array.from(sensorAverages.values()).map((average) => {
     return {
       title: average.displayName,
+      averageValue: average.averageValue,
+      unit: average.unit,
       value:
         average.averageValue > 0
           ? `${average.averageValue.toFixed(1)}${average.unit}`
@@ -640,8 +643,21 @@ export default function SensorAverageComponent() {
                             {card.title}
                           </div>
                         </div>
-                        <div className="text-sm sm:text-xl lg:text-2xl font-bold text-foreground mb-0.5 sm:mb-1 truncate">
-                          {card.value}
+                        <div className="flex items-baseline gap-1 mb-0.5 sm:mb-1">
+                          {card.averageValue > 0 ? (
+                            <>
+                              <div className="text-sm sm:text-xl lg:text-2xl font-bold text-foreground">
+                                {card.averageValue.toFixed(1)}
+                              </div>
+                              <div className="text-xs sm:text-sm lg:text-lg text-muted-foreground font-medium">
+                                {card.unit}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-sm sm:text-xl lg:text-2xl font-bold text-muted-foreground">
+                              -- --
+                            </div>
+                          )}
                         </div>
                         <div
                           className={`text-[10px] sm:text-xs font-medium capitalize ${statusStyles.text}`}

@@ -188,5 +188,61 @@ namespace Backend.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        /// <summary>
+        /// Delete a specific emergency report by ID (emergency use only)
+        /// </summary>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteEmergencyReport(int id)
+        {
+            try
+            {
+                var result = await _emergencyReportService.DeleteEmergencyReportAsync(id);
+                if (!result)
+                {
+                    return NotFound($"Emergency report with ID {id} not found");
+                }
+
+                _logger.LogWarning("Emergency report {Id} deleted via API", id);
+
+                return Ok(new
+                {
+                    message = $"Emergency report {id} has been deleted",
+                    deletedId = id,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting emergency report {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Delete all emergency reports (emergency use only - DANGER: This will delete all records)
+        /// </summary>
+        [HttpDelete("all")]
+        public async Task<ActionResult> DeleteAllEmergencyReports()
+        {
+            try
+            {
+                var deletedCount = await _emergencyReportService.DeleteAllEmergencyReportsAsync();
+
+                _logger.LogCritical("ALL EMERGENCY REPORTS DELETED via API - {Count} records removed", deletedCount);
+
+                return Ok(new
+                {
+                    message = $"All emergency reports deleted successfully",
+                    deletedCount = deletedCount,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting all emergency reports");
+                return StatusCode(500, "Internal server error");
+            }
+        }
     }
 }

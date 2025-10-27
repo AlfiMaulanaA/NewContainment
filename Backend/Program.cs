@@ -39,6 +39,7 @@ builder.Logging.AddFilter("Backend", LogLevel.Information);
 builder.Logging.AddFilter("Backend.Services.ContainmentMqttHostedService", LogLevel.Information);
 builder.Logging.AddFilter("Backend.Services.MqttService", LogLevel.Information);
 builder.Logging.AddFilter("Backend.Services.MqttConfigurationService", LogLevel.Information);
+builder.Logging.AddFilter("Backend.Services.SensorDataIntervalService", LogLevel.Warning);
 
 // Add debug logging in development
 if (builder.Environment.IsDevelopment())

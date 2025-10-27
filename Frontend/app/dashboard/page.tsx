@@ -11,8 +11,11 @@ import { DashboardSettingsShortcut } from "@/components/dashboard-settings-short
 
 // Lazy load heavy components for better performance
 const ContainmentStatusTabs = React.lazy(
-  () => import("@/components/containment-status-tabs")
+  () => import("@/app/dashboard-overview/components/containment-status-realtime-tabs")
 );
+// const ContainmentStatusTabs = React.lazy( // OLD: Database-polled status
+//   () => import("@/components/containment-status-tabs")
+// );
 const ContainmentRacks = React.lazy(
   () => import("@/components/containment-card-racks-tabs")
 );

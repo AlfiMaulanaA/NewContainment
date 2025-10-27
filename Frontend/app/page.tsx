@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { containmentsApi } from "@/lib/api";
-import Status from "./dashboard-overview/components/containment-status-tabs";
+import Status from "./dashboard-overview/components/containment-status-realtime-tabs";
+// import Status from "./dashboard-overview/components/containment-status-tabs"; // OLD: Database-polled status
 import Racks from "./dashboard-overview/components/containment-racks-tabs";
 import Users from "./dashboard-overview/components/containment-user-tabs";
 import Info from "./dashboard-overview/components/containment-info-tabs";

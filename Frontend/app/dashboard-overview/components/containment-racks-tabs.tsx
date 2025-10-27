@@ -101,7 +101,7 @@ const SENSOR_TYPE_VISUALS = {
     bgColor: "bg-blue-100 dark:bg-blue-900",
     borderColor: "border-blue-200 dark:border-blue-800",
     name: "Humidity",
-    shortName: "HUM",
+    shortName: "Humidity",
     unit: "%",
   },
   Pressure: {
@@ -821,9 +821,28 @@ export default function RackManagementPage({
                                 {(() => {
                                   const sensorDevices = rackDevices[
                                     rack.id
-                                  ].filter(
-                                    (device) => device.type === "Sensor"
-                                  );
+                                  ]
+                                    .filter(
+                                      (device) => device.type === "Sensor"
+                                    )
+                                    .sort((a, b) => {
+                                      // Define priority order: Temperature (1), Air Flow (2), others (3)
+                                      const getPriority = (sensorType: string) => {
+                                        switch (sensorType) {
+                                          case "Temperature":
+                                            return 1;
+                                          case "Air Flow":
+                                            return 2;
+                                          default:
+                                            return 3;
+                                        }
+                                      };
+
+                                      const priorityA = getPriority(a.sensorType || "");
+                                      const priorityB = getPriority(b.sensorType || "");
+
+                                      return priorityA - priorityB;
+                                    });
                                   const displayDevices = sensorDevices.slice(
                                     0,
                                     2

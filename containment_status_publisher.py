@@ -15,10 +15,10 @@ def publish_containment_status():
     # Create payload with all status fields set to false
     payload = {
         "Lighting status": False,
-        "Emergency status": False,
-        "Smoke Detector status": False,
+        "Emergency status": True,
+        "Smoke Detector status": True,
         "FSS status": False,
-        "Emergency Button State": False,
+        "Emergency Button State": True,
         "selenoid status": False,
         "limit switch front door status": False,
         "limit switch back door status": False,

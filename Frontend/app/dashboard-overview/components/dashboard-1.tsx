@@ -3,13 +3,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { containmentsApi } from "@/lib/api";
-import Status from "./containment-status-tabs";
+import Status from "./containment-status-realtime-tabs";
+// import Status from "./containment-status-tabs"; // OLD: Database-polled status
 import Racks from "./containment-racks-tabs";
 import Users from "./containment-user-tabs";
 import Info from "./containment-info-tabs";
 import Control from "./containment-control-tabs";
 import InfoUser from "./containment-user-login-tabs";
 import Sensor from "./containment-average-sensor-tabs";
+import PowerManagement from "./containment-power-management-tabs";
 import CCTVWrapperCard from "@/components/cctv-wrapper-card";
 
 import { Separator } from "@/components/ui/separator";
@@ -80,7 +82,7 @@ export default function Dashboard1({
     }
   }, [carouselMode, preferences.carouselInterval]);
 
-  // Section components - conditionally include CCTV section
+  // Section components - rearranged: Power Management (3), CCTV (4)
   const sections = useMemo(() => {
     const baseSections = [
       {
@@ -115,16 +117,30 @@ export default function Dashboard1({
           </div>
         ),
       },
+      {
+        id: "section-3",
+        title: "Power Management",
+        icon: <Play className="h-5 w-5" />,
+        component: (
+          <div className="sec-3">
+            <div className="flex items-center gap-2 mb-4">
+              <Play className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">Power Distribution Unit (PDU)</h2>
+            </div>
+            <PowerManagement />
+          </div>
+        ),
+      },
     ];
 
-    // Only add CCTV section if enabled
+    // Only add CCTV section if enabled - now section 4
     if (preferences.cctvSettings.enabled) {
       baseSections.push({
-        id: "section-3",
+        id: "section-4",
         title: "CCTV Monitoring",
         icon: <Eye className="h-5 w-5" />,
         component: (
-          <div className="sec-3">
+          <div className="sec-4">
             <div className="flex items-center gap-2 mb-4">
               <Eye className="h-5 w-5" />
               <h2 className="text-xl font-semibold">CCTV Monitoring</h2>

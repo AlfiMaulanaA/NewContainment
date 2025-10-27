@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Status from "./containment-status-tabs";
+import Status from "./containment-status-realtime-tabs";
+// import Status from "./containment-status-tabs"; // OLD: Database-polled status
 import Sensor from "./containment-average-sensor-tabs";
 import Control from "./containment-control-tabs";
 import Racks from "./containment-racks-tabs";

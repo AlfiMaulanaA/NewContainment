@@ -101,7 +101,7 @@ namespace Backend.Data
                     Name = "System Administrator",
                     Email = "admin@gmail.com",
                     PhoneNumber = "+1234567890",
-                    PasswordHash = authService.HashPassword("pass123"),
+                    PasswordHash = authService.HashPassword("admin123"),
                     Role = UserRole.Admin,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -112,7 +112,7 @@ namespace Backend.Data
                     Name = "Lead Developer",
                     Email = "developer@gmail.com",
                     PhoneNumber = "+1234567891",
-                    PasswordHash = authService.HashPassword("pass123"),
+                    PasswordHash = authService.HashPassword("dev123"),
                     Role = UserRole.Developer,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -123,18 +123,7 @@ namespace Backend.Data
                     Name = "Operations User",
                     Email = "user@gmail.com",
                     PhoneNumber = "+1234567892",
-                    PasswordHash = authService.HashPassword("pass123"),
-                    Role = UserRole.User,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    IsActive = true
-                },
-                new User
-                {
-                    Name = "Demo User",
-                    Email = "demo@gmail.com",
-                    PhoneNumber = "+1234567893",
-                    PasswordHash = authService.HashPassword("pass123"),
+                    PasswordHash = authService.HashPassword("user123"),
                     Role = UserRole.User,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -164,7 +153,7 @@ namespace Backend.Data
                 new Containment
                 {
                     Name = "Data Center",
-                    Type = ContainmentType.HotAisleContainment,
+                    Type = ContainmentType.ColdAisleContainment,
                     Description = "Main production data center with hot aisle containment for optimal cooling efficiency",
                     Location = "Building A - Floor 1 - Room DC-01",
                     CreatedBy = adminUser.Id,
@@ -568,7 +557,7 @@ new MenuItem {
                 {
                     IsEnabled = true,
                     UseEnvironmentConfig = false,
-                    BrokerHost = "192.168.0.151",
+                    BrokerHost = "localhost",
                     BrokerPort = 1883,
                     Username = "",
                     Password = "",

@@ -11,18 +11,18 @@ MQTT_PORT = 1883
 # Dictionary of MQTT topics separated by sensor type
 # Modified to remove "_Rack" and leading zeros from topic numbers
 MQTT_TOPICS = {
-    "Temperature": [f"Containment/Sensor/Temperature_{i}" for i in range(1, 9)],
-    "AirFlow": [f"Containment/Sensor/AirFlow_{i}" for i in range(1, 9)],
-    "Dust": [f"Containment/Sensor/Dust_{i}" for i in range(1, 9)],
-    "Vibration": [f"Containment/Sensor/Vibration_{i}" for i in range(1, 9)],
-    "PDU_Power": [f"Containment/PDU/Power_{i}" for i in range(1, 9)],
-    "Device_Power_Meter": [f"Containment/Power_Meter/Device_{i}" for i in range(1, 9)]
+    "Temperature": [f"Containment/Sensor/Temperature_{i}" for i in range(1, 5)],
+    "AirFlow": [f"Containment/Sensor/Air Flow_{i}" for i in range(1, 5)],
+    "Dust": [f"Containment/Sensor/Dust Sensor_{i}" for i in range(1, 5)],
+    "Vibration": [f"Containment/Sensor/Vibration_{i}" for i in range(1, 5)],
+    "PDU_Power": [f"Containment/PDU/Power_{i}" for i in range(1, 5)],
+    "Device_Power_Meter": [f"Containment/Power_Meter/Device_{i}" for i in range(1, 5)]
 }
 
 def on_connect(client, userdata, flags, rc):
     """Callback function when the client connects to the broker."""
     if rc == 0:
-        print("Connected to MQTT Broker! 👍")
+        print("Connected to MQTT Broker!")
     else:
         print(f"Failed to connect, return code: {rc}")
 

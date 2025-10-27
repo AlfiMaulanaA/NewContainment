@@ -104,6 +104,9 @@ builder.Services.AddHttpClient<Backend.Services.IWhatsAppService, Backend.Servic
 builder.Services.AddScoped<Backend.Services.ICapacityService, Backend.Services.CapacityService>();
 builder.Services.AddSingleton<Backend.Services.IMqttConfigurationChangeNotificationService, Backend.Services.MqttConfigurationChangeNotificationService>();
 
+// Palm Recognition Device Service
+builder.Services.AddScoped<Backend.Services.IPalmRecognitionDeviceService, Backend.Services.PalmRecognitionDeviceService>();
+
 // Add Role Mapping and Migration Services
 builder.Services.AddScoped<Backend.Services.IRoleMappingService, Backend.Services.RoleMappingService>();
 builder.Services.AddScoped<Backend.Services.IRoleMigrationService, Backend.Services.RoleMigrationService>();

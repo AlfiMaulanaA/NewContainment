@@ -1,10 +1,10 @@
 module.exports = {
   apps: [
     {
-      name: "containment-dashboard",
+      name: "newcontainment-frontend",
       script: "npm",
       args: "start",
-      cwd: process.cwd(),
+      cwd: "./",
       env: {
         NODE_ENV: "production",
         PORT: 3000,

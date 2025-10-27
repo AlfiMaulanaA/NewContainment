@@ -24,9 +24,12 @@ namespace Backend.Data
         public DbSet<DeviceSensorData> DeviceSensorData { get; set; }
         public DbSet<AccessLog> AccessLogs { get; set; }
         public DbSet<DeviceActivityStatus> DeviceActivityStatuses { get; set; }
-        
+
         // Simplified interval-only configuration
         public DbSet<SensorDataIntervalConfig> SensorDataIntervalConfigs { get; set; }
+
+        // Palm Recognition Device
+        public DbSet<PalmRecognitionDevice> PalmRecognitionDevices { get; set; }
 
         // Menu Management tables
         public DbSet<Role> Roles { get; set; }
@@ -609,6 +612,20 @@ namespace Backend.Data
                 entity.HasIndex(e => new { e.IsGlobalConfiguration, e.IsActive })
                       .IsUnique()
                       .HasFilter("[IsGlobalConfiguration] = 1 AND [IsActive] = 1");
+            });
+
+            // Palm Recognition Device configuration
+            modelBuilder.Entity<PalmRecognitionDevice>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.IpAddress).IsRequired().HasMaxLength(45); // IPv6 compatible
+                entity.Property(e => e.Timestamp).IsRequired().HasDefaultValueSql("datetime('now')");
+
+                // Indexes for performance
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.IpAddress);
+                entity.HasIndex(e => e.Timestamp);
             });
 
 

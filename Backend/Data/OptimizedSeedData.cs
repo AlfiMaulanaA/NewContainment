@@ -27,7 +27,8 @@ namespace Backend.Data
             {"NetworkConfiguration", true},
             {"MenuManagement", true},
             {"AccessLog", true}, // Enabled for complete seed demo
-            {"DeviceSensorData", true} // Enabled for complete seed demo
+            {"DeviceSensorData", true}, // Enabled for complete seed demo
+            {"PalmRecognitionDevices", true} // Newly added palm recognition device seeding
         };
 
         public static async Task InitializeAsync(AppDbContext context, IAuthService authService, ILogger logger, Dictionary<string, bool>? customConfig = null)
@@ -67,6 +68,10 @@ namespace Backend.Data
 
                 // Activity and reporting seeding
                 await SeedEmergencyReportsAsync(context, logger);
+
+                // Palm Recognition Device seeding (new)
+                if (_seedConfig["PalmRecognitionDevices"])
+                    await SeedPalmRecognitionDevicesAsync(context, logger);
 
                 // Optional data seeding (performance intensive)
                 if (_seedConfig["AccessLog"])
@@ -339,27 +344,49 @@ namespace Backend.Data
 
                     // Security items
 // Assuming menuGroups[3] is for "Access Control"
-new MenuItem { 
-    Title = "Overview", 
-    Url = "/access-control", 
-    Icon = "Layout", 
-    SortOrder = 1, 
-    MinRoleLevel = 2, 
-    RequiresDeveloperMode = false, 
-    IsActive = true, 
-    MenuGroupId = menuGroups[2].Id, 
-    CreatedAt = DateTime.UtcNow 
+new MenuItem {
+    Title = "Overview",
+    Url = "/access-control",
+    Icon = "Layout",
+    SortOrder = 1,
+    MinRoleLevel = 2,
+    RequiresDeveloperMode = false,
+    IsActive = true,
+    MenuGroupId = menuGroups[2].Id,
+    CreatedAt = DateTime.UtcNow
 },
-new MenuItem { 
-    Title = "Camera Setup", 
-    Url = "/management/camera", 
-    Icon = "Video", 
-    SortOrder = 6, 
-    MinRoleLevel = 2, 
+new MenuItem {
+    Title = "Palm Recognition",
+    Url = "/palm-recognition",
+    Icon = "Fingerprint",
+    SortOrder = 2,
+    MinRoleLevel = 1,
+    RequiresDeveloperMode = false,
+    IsActive = true,
+    MenuGroupId = menuGroups[2].Id,
+    CreatedAt = DateTime.UtcNow
+},
+new MenuItem {
+    Title = "Palm Recognition Devices",
+    Url = "/management/palm-recognition-devices",
+    Icon = "Hand",
+    SortOrder = 3,
+    MinRoleLevel = 2,
+    RequiresDeveloperMode = false,
+    IsActive = true,
+    MenuGroupId = menuGroups[2].Id,
+    CreatedAt = DateTime.UtcNow
+},
+new MenuItem {
+    Title = "Camera Setup",
+    Url = "/management/camera",
+    Icon = "Video",
+    SortOrder = 6,
+    MinRoleLevel = 2,
     RequiresDeveloperMode = false, // MODIFIED to false
-    IsActive = true, 
-    MenuGroupId = menuGroups[2].Id, 
-    CreatedAt = DateTime.UtcNow 
+    IsActive = true,
+    MenuGroupId = menuGroups[2].Id,
+    CreatedAt = DateTime.UtcNow
 },
 
                     // Analytics items
@@ -773,6 +800,37 @@ new MenuItem {
             }
 
             logger.LogInformation($"Seeded {sensorDataList.Count} sensor data records");
+        }
+
+        private static async Task SeedPalmRecognitionDevicesAsync(AppDbContext context, ILogger logger)
+        {
+            if (!_seedConfig["PalmRecognitionDevices"] || await context.PalmRecognitionDevices.AnyAsync())
+                return;
+
+            logger.LogInformation("Seeding palm recognition devices...");
+
+            var palmRecognitionDevices = new List<PalmRecognitionDevice>
+            {
+                new PalmRecognitionDevice
+                {
+                    Name = "Main Entrance Palm Scanner",
+                    IpAddress = "192.168.0.105",
+                    IsActive = true,
+                    Timestamp = DateTime.UtcNow
+                },
+                new PalmRecognitionDevice
+                {
+                    Name = "Secondary Entrance Palm Scanner",
+                    IpAddress = "192.168.0.138",
+                    IsActive = false,
+                    Timestamp = DateTime.UtcNow
+                }
+            };
+
+            await context.PalmRecognitionDevices.AddRangeAsync(palmRecognitionDevices);
+            await context.SaveChangesAsync();
+
+            logger.LogInformation($"Seeded {palmRecognitionDevices.Count} palm recognition devices");
         }
 
         /// <summary>

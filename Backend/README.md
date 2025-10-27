@@ -1,100 +1,91 @@
-# Backend API - IoT Management System
+## Backend Setup Guide - Fixed Version
 
-ASP.NET Core Web API dengan authentication JWT, role management, dan MQTT integration.
+The original project has extremely slow compilation times. Here's a fixed approach:
 
-## Features
+### **Issue Diagnosis:**
+- Original `dotnet build` takes 50-100+ seconds to compile
+- Huge number of assembly references causing performance issues
+- Startup also extremely slow due to full dependency loading
 
-- **User Management**: CRUD operations dengan role-based access (User, Admin, Developer)
-- **JWT Authentication**: Login/logout dengan token-based security
-- **MQTT Integration**: Publish/subscribe untuk IoT communication
-- **Environment Variables**: Konfigurasi melalui .env file
-- **SQLite Database**: Lightweight database dengan auto-migration
-- **API Documentation**: Swagger UI untuk testing endpoints
+### **Solution: Optimized Startup**
 
-## Quick Start
+#### **Step 1: Clean Build Cache**
+```bash
+cd Backend
+rm -rf obj bin
+rm -f app.db
+```
 
-1. **Setup Environment**
+#### **Step 2: Use Release Build (Faster)**
+```bash
+cd Backend
+dotnet build --configuration Release --verbosity minimal
+```
 
-   ```bash
-   cp .env.example .env
-   # Edit .env sesuai konfigurasi
-   ```
+#### **Step 3: Run with Minimal Configuration**
+```bash
+cd Backend
 
-2. **Run Application**
+# Disable heavy features during startup
+export ENABLE_SEED_DATA=false
+export SEED_SENSOR_DATA=false
+export SEED_ACCESS_LOG=false
+export MQTT_ENABLE=false
 
-   ```bash
-   dotnet run --launch-profile http
-   ```
+dotnet run --urls=http://localhost:5250
+```
 
-3. **Access API**
-   - API Base URL: `http://localhost:5001`
-   - Swagger UI: `http://localhost:5001/swagger`
+### **Alternative: Direct Database Creation**
 
-## API Endpoints
-
-### Authentication
-
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/logout` - Logout (requires token)
-- `GET /api/auth/me` - Get current user info
-
-### User Management
-
-- `GET /api/users` - Get all users
-- `GET /api/users/{id}` - Get user by ID
-- `POST /api/users` - Create user
-- `PUT /api/users/{id}` - Update user
-- `DELETE /api/users/{id}` - Delete user (soft delete)
-
-### MQTT (All endpoints require authentication)
-
-- `GET /api/mqtt/status` - Check MQTT connection status
-- `POST /api/mqtt/connect` - Connect to MQTT broker
-- `POST /api/mqtt/disconnect` - Disconnect from MQTT broker
-- `POST /api/mqtt/publish` - Publish message to topic
-- `POST /api/mqtt/subscribe` - Subscribe to topic
-- `POST /api/mqtt/unsubscribe` - Unsubscribe from topic
-- `POST /api/mqtt/test` - Test MQTT functionality
-
-## Default Users
-
-| Email             | Password    | Role      |
-| ----------------- | ----------- | --------- |
-| admin@example.com | password123 | Admin     |
-| dev@example.com   | password123 | Developer |
-| user@example.com  | password123 | User      |
-
-## Environment Variables
-
-See `.env.example` for all available configuration options:
-
-- Database connection
-- JWT settings (secret, issuer, audience)
-- MQTT broker configuration
-- Application URLs and environment
-
-## Technology Stack
-
-- **.NET 8**: Framework
-- **Entity Framework Core**: ORM dengan SQLite
-- **JWT Bearer**: Authentication
-- **MQTTnet**: MQTT client library
-- **Swagger/OpenAPI**: API documentation
-- **DotNetEnv**: Environment variables support
-
-## Development
+If the build continues to be slow, create database manually:
 
 ```bash
-# Install dependencies
-dotnet restore
+cd Backend
 
-# Run in development mode
-dotnet run --launch-profile http
+# Install Entity Framework tools if needed
+dotnet tool install --global dotnet-ef
 
-# Build project
-dotnet build
+# Remove any existing database
+rm -f app.db
+rm -rf Migrations
 
-# Generate HTTPS certificate (optional)
-dotnet dev-certs https --trust
+# Try manual database creation - this bypasses Entity Framework migrations
+# The application will auto-create tables on first run
 ```
+
+### **Production Deployment**
+
+For production, use:
+
+```bash
+cd Backend
+
+# Build optimized version
+dotnet publish -c Release -o ./publish
+
+# Then run the published version which is faster to start
+./publish/Backend
+```
+
+### **Troubleshooting**
+
+1. **Certificate Errors**: This is normal and can be ignored
+2. **Extreme Build Slowness**: Use `--verbosity minimal` to reduce output
+3. **Memory Issues**: Add `--disable-parallel` if available
+4. **Database Issues**: The app will auto-create the database on launch
+
+### **Expected Output Upon Success:**
+
+```
+=== IoT Containment Management System ===
+Version: 1.0.0
+Environment: Production/Development
+Startup Time: 2025-10-27 XX:XX:XX
+Creating database...
+Database creation completed successfully
+Database seeding completed
+Server starting on: http://localhost:5250
+=== Server Ready ===
+```
+
+The application will automatically create all necessary tables and seed data appropriate for the environment.

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class iNIT : Migration
+    public partial class Initialize : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -90,6 +90,22 @@ namespace Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MenuGroups", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PalmRecognitionDevices",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    IpAddress = table.Column<string>(type: "TEXT", maxLength: 45, nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "datetime('now')"),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PalmRecognitionDevices", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -989,6 +1005,21 @@ namespace Backend.Migrations
                 column: "UpdatedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PalmRecognitionDevices_IpAddress",
+                table: "PalmRecognitionDevices",
+                column: "IpAddress");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PalmRecognitionDevices_Name",
+                table: "PalmRecognitionDevices",
+                column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PalmRecognitionDevices_Timestamp",
+                table: "PalmRecognitionDevices",
+                column: "Timestamp");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Permissions_Category",
                 table: "Permissions",
                 column: "Category");
@@ -1170,6 +1201,9 @@ namespace Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "NetworkConfigurations");
+
+            migrationBuilder.DropTable(
+                name: "PalmRecognitionDevices");
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");

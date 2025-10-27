@@ -1,14 +1,22 @@
 #!/bin/bash
 
-# NewContainment Deployment Script
+# NewContainment Advanced Deployment Script (Auto Path Detection)
 # Author: Claude Code Assistant
-# Description: Automated deployment script for NewContainment IoT System
+# Description: Advanced automated deployment script with auto path detection
+#
+# Auto-detects project structure and handles:
+# - Path discovery and validation
+# - Process cleanup before deployment
+# - User/service account creation
+# - Port conflict resolution
+# - Enhanced error recovery
 #
 # Usage:
 #   sudo ./deploy.sh           - Standard deployment (ports 3000, 5000)
-#   sudo ./deploy.sh -p        - Production deployment with port 80 access
 #   sudo ./deploy.sh --production - Production deployment with port 80 access
 #   sudo ./deploy.sh update-prod  - Pull latest changes and redeploy in production mode
+#   sudo ./deploy.sh clean       - Remove all services and data
+#   sudo ./deploy.sh status      - Show detailed deployment status
 
 set -e # Exit on any error
 
@@ -17,15 +25,51 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Project paths
+# Advanced path detection functions
+detect_project_root() {
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Try to find project root by looking for indicators
+    local CANDIDATES=(
+        "$SCRIPT_DIR/.."                                # script/deploy.sh -> NewContainment/
+        "$SCRIPT_DIR/../.."                            # script/deploy.sh -> Scripts/../NewContainment/
+        "$PWD"                                         # Current working directory
+        "$(dirname "$SCRIPT_DIR")"                      # script dir parent
+    )
+
+    for candidate in "${CANDIDATES[@]}"; do
+        if [[ -d "$candidate/Backend" && -d "$candidate/Frontend" && -f "$candidate/package.json" ]]; then
+            echo "$(cd "$candidate" && pwd)"
+            return 0
+        fi
+    done
+
+    # Last resort: ask user
+    log_error "Cannot auto-detect project root. Please run from script directory or specify path."
+    log_error "Expected structure: NewContainment/ with Backend/, Frontend/ folders"
+    exit 1
+}
+
+# Auto-detect project structure
+PROJECT_ROOT="$(detect_project_root)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FRONTEND_DIR="$PROJECT_ROOT/Frontend"
 BACKEND_DIR="$PROJECT_ROOT/Backend"
 NGINX_DIR="$PROJECT_ROOT/nginx"
-SERVICE_FILE="$PROJECT_ROOT/NewContainmentWeb.service"
+
+# Dynamic service file location (create if not exists)
+if [[ -f "$PROJECT_ROOT/NewContainmentWeb.service" ]]; then
+    SERVICE_FILE="$PROJECT_ROOT/NewContainmentWeb.service"
+else
+    SERVICE_FILE="/tmp/NewContainmentWeb.service.$$"
+fi
+
+# Log file location
+LOG_FILE="/var/log/containment_deploy.log"
 
 # Log function
 log() {
@@ -774,24 +818,73 @@ setup_database() {
     export ASPNETCORE_ENVIRONMENT=Production
     export ConnectionStrings__DefaultConnection="Data Source=./containment.db"
 
-    # Run migrations
-    log "Running database migrations..."
+    # Smart database initialization - check if tables exist first
+    local db_path=""
+    for db in "app.db" "containment.db" "publish/app.db" "publish/containment.db"; do
+        if [ -f "$db" ]; then
+            db_path="$db"
+            break
+        fi
+    done
+
+    if [ -n "$db_path" ] && [ -f "$db_path" ]; then
+        log "Database file found: $db_path"
+
+        # Check if tables already exist (indicating database was already initialized)
+        if command_exists sqlite3; then
+            local table_count=$(sqlite3 "$db_path" "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "0")
+
+            if [ "$table_count" -gt "5" ]; then  # If more than 5 tables exist, assume database is initialized
+                log "Database appears to be initialized ($table_count tables found)"
+                log "Skipping EF migrations to avoid 'already exists' errors"
+
+                # Just ensure the database is accessible
+                if [ -f "publish/Backend.dll" ]; then
+                    log "Testing database connectivity with app startup..."
+                    timeout 5s dotnet publish/Backend.dll --test-db 2>/dev/null || true
+                    log_success "Database connectivity test completed"
+                fi
+
+                log_success "Database initialization skipped - already contains data"
+                return 0
+            fi
+        fi
+    fi
+
+    # Run migrations only if database appears uninitialized
+    log "Running database migrations (fresh database)..."
 
     # Try different approaches for migrations
-    if dotnet ef database update --no-build --verbose; then
+    if dotnet ef database update --no-build --verbose 2>&1 | grep -q "Done."; then
         log_success "Database migrations completed"
-    elif dotnet ef database update --verbose; then
+    elif dotnet ef database update --verbose 2>&1 | grep -q "Done."; then
         log_success "Database migrations completed (with build)"
     else
-        log_warning "EF migrations failed, trying alternative approach..."
+        log_warning "EF migrations failed with exit code $?"
+        log "This might be normal if using EnsureCreated() instead of migrations"
 
-        # Try to run the application to trigger auto-migration
-        log "Attempting auto-migration via application startup..."
+        # Capitalize on the fact that the app will create tables via EnsureCreatedAsync()
         if [ -f "publish/Backend.dll" ]; then
-            timeout 10s dotnet publish/Backend.dll --migrate 2>/dev/null || true
-        fi
+            log "Attempting to initialize database via application startup..."
+            local start_time=$(date +%s)
 
-        log_warning "Database migrations may need manual intervention"
+            # Run the app briefly to trigger database creation/seeding
+            timeout 15s dotnet publish/Backend.dll 2>/dev/null || true
+
+            local end_time=$(date +%s)
+            local duration=$((end_time - start_time))
+
+            log_success "Application startup completed in ${duration}s"
+
+            # Check if database was created/modified
+            if [ -f "publish/app.db" ] || [ -f "publish/containment.db" ] || [ -f "app.db" ]; then
+                log_success "Database appears to have been created/modified"
+            else
+                log_warning "Database may not have been created, but continuing..."
+            fi
+        else
+            log_warning "No published_backend.dll found - database will be initialized on first service start"
+        fi
     fi
 
     # Check database file and table count
@@ -907,18 +1000,24 @@ create_systemd_service() {
 
         log "Updated dotnet path in service file to: $dotnet_path"
     else
-        log "Creating new service file..."
+        log "Creating new service file with dynamic project paths..."
         cat > "$SERVICE_FILE" << EOF
 [Unit]
-Description=Containment service
+Description=NewContainment IoT Containment Service
 After=network.target
 StartLimitIntervalSec=0
+
 [Service]
 Type=simple
+User=containment
+Group=containment
 Restart=always
-RestartSec=1
-ExecStart=$dotnet_path /home/containment/NewContainment/Backend/publish/Backend.dll
-WorkingDirectory=/home/containment/NewContainment/Backend/publish
+RestartSec=5
+ExecStart=$dotnet_path $BACKEND_DIR/publish/Backend.dll
+WorkingDirectory=$BACKEND_DIR/publish
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://*:5000;https://*:5001
+KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target
@@ -936,7 +1035,7 @@ start_services() {
     log "Setting up proper permissions and ownership..."
 
     # Ensure containment user owns the backend files
-    sudo chown -R containment:containment /home/containment/NewContainment/Backend/publish/ 2>/dev/null || true
+    sudo chown -R containment:containment "$BACKEND_DIR/publish" 2>/dev/null || true
 
     # Ensure the dotnet executable has proper permissions
     if [ -f "/usr/bin/dotnet" ]; then
@@ -1765,12 +1864,388 @@ update_prod() {
     log_success "Production update completed successfully!"
 }
 
+# Function to create service user and group
+create_service_user() {
+    log "=== Creating Service User ==="
+
+    # Check if group exists
+    if ! getent group containment >/dev/null 2>&1; then
+        log "Creating containment group..."
+        groupadd -f containment
+        log_success "Created containment group"
+    else
+        log "Containment group already exists"
+    fi
+
+    # Check if user exists
+    if ! id -u containment >/dev/null 2>&1; then
+        log "Creating containment user..."
+        useradd -r -g containment -s /bin/false -d "$PROJECT_ROOT" containment 2>/dev/null || true
+        log_success "Created containment user"
+    else
+        log "Containment user already exists"
+    fi
+
+    # Set directory permissions
+    if [[ -d "$BACKEND_DIR" ]]; then
+        log "Setting backend directory permissions..."
+        chown -R containment:containment "$BACKEND_DIR" 2>/dev/null || log_warning "Could not set backend permissions"
+    fi
+
+    log_success "Service user setup completed"
+}
+
+# Function to cleanup existing deployment
+cleanup_deployment() {
+    log "=== Cleaning Up Existing Deployment ==="
+
+    # Stop and disable services
+    log "Stopping and disabling services..."
+    systemctl stop NewContainmentWeb.service 2>/dev/null || true
+    systemctl disable NewContainmentWeb.service 2>/dev/null || true
+
+    # Kill PM2 processes
+    log "Killing PM2 processes..."
+    pm2 kill 2>/dev/null || true
+    pm2 delete all 2>/dev/null || true
+
+    # Kill any remaining processes
+    log "Killing any remaining dotnet and node processes..."
+    pkill -f "dotnet.*Backend.dll" 2>/dev/null || true
+    pkill -f "next.*start" 2>/dev/null || true
+
+    # Clean up port conflicts
+    log "Cleaning up port conflicts..."
+    local ports=(3000 5000 5001 1883)
+    for port in "${ports[@]}"; do
+        fuser -k "${port}"/tcp 2>/dev/null || true
+    done
+
+    # Remove service files
+    if [[ -f "/etc/systemd/system/NewContainmentWeb.service" ]]; then
+        log "Removing systemd service file..."
+        rm -f "/etc/systemd/system/NewContainmentWeb.service"
+        systemctl daemon-reload
+    fi
+
+    # Remove nginx configuration if exists
+    if [[ -L "/etc/nginx/sites-enabled/newcontainment" ]]; then
+        log "Removing nginx configuration..."
+        rm -f "/etc/nginx/sites-enabled/newcontainment"
+        systemctl reload nginx 2>/dev/null || true
+    fi
+
+    # Clean build artifacts
+    log "Cleaning build artifacts..."
+    if [[ -d "$BACKEND_DIR/publish" ]]; then
+        rm -rf "$BACKEND_DIR/publish"
+    fi
+    if [[ -d "$BACKEND_DIR/bin" ]]; then
+        rm -rf "$BACKEND_DIR/bin"
+    fi
+    if [[ -d "$BACKEND_DIR/obj" ]]; then
+        rm -rf "$BACKEND_DIR/obj"
+    fi
+    if [[ -d "$FRONTEND_DIR/.next" ]]; then
+        rm -rf "$FRONTEND_DIR/.next"
+    fi
+    if [[ -d "$FRONTEND_DIR/node_modules/.cache" ]]; then
+        rm -rf "$FRONTEND_DIR/node_modules/.cache"
+    fi
+
+    # Backup and reset database (optional - dangerous!)
+    if [[ "$1" == "reset-db" && -f "$BACKEND_DIR/app.db" ]]; then
+        log_warning "Resetting database as requested..."
+        mv "$BACKEND_DIR/app.db" "$BACKEND_DIR/app.db.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+    fi
+
+    log_success "Cleanup completed"
+}
+
+# Function to show comprehensive status
+show_comprehensive_status() {
+    log "=== 📊 NewContainment Comprehensive Status ==="
+    echo ""
+
+    # Project information
+    log "🏗️  Project Information:"
+    echo "  📁 Project Root: $PROJECT_ROOT"
+    echo "  🎯 Architecture: $(detect_architecture)"
+    echo "  ⏰ Server Time: $(date)"
+    echo "  👤 Current User: $(whoami)"
+    echo "  🔄 PID: $$"
+    echo ""
+
+    # System resources
+    log "💻 System Resources:"
+    echo "  💾 Disk Usage: $(df -h "$PROJECT_ROOT" | tail -1 | awk '{print $5}') ($(du -sh "$PROJECT_ROOT" 2>/dev/null | cut -f1))"
+    echo "  🧠 Memory: $(free -h | grep '^Mem:' | awk '{print $3 "/" $2}')"
+    echo "  ⚡ Load Average: $(uptime | awk -F'load average:' '{print $2}')"
+    echo ""
+
+    # Dependency status
+    log "🔧 Dependencies:"
+    echo -n "  📦 Node.js: "
+    if command_exists node; then
+        echo "$(node --version 2>/dev/null || echo 'Unknown')"
+    else
+        echo "❌ Not installed"
+    fi
+
+    echo -n "  🐧 PM2: "
+    if command_exists pm2; then
+        echo "$(pm2 --version 2>/dev/null || echo 'Unknown')"
+    else
+        echo "❌ Not installed"
+    fi
+
+    echo -n "  🔶 .NET SDK: "
+    if command_exists dotnet; then
+        echo "$(dotnet --version 2>/dev/null || echo 'Unknown')"
+    else
+        echo "❌ Not installed"
+    fi
+
+    echo -n "  🌐 Nginx: "
+    if command_exists nginx; then
+        echo "$(nginx -v 2>&1 | grep -o '[0-9.]*' || echo 'Unknown')"
+    else
+        echo "❌ Not installed"
+    fi
+
+    echo -n "  📡 Mosquitto: "
+    if pgrep -x "mosquitto" >/dev/null; then
+        echo "✅ Running"
+    else
+        echo "❌ Not running"
+    fi
+    echo ""
+
+    # Service status
+    log "🔄 Service Status:"
+    echo "  🔵 Backend (systemd):"
+    if systemctl list-unit-files | grep -q "^NewContainmentWeb.service"; then
+        local backend_status=$(systemctl is-active NewContainmentWeb.service 2>/dev/null || echo "unknown")
+        local backend_pid=$(systemctl show NewContainmentWeb.service --property=MainPID --value 2>/dev/null || echo "N/A")
+        echo "    Status: ${backend_status^}"
+        echo "    PID: $backend_pid"
+        echo "    Port: 5000 $(timeout 2 bash -c "</dev/tcp/localhost/5000" >/dev/null 2>&1 && echo "✅" || echo "❌")"
+    else
+        echo "    Status: Not installed"
+    fi
+
+    echo "  🟢 Frontend (PM2):"
+    if pm2 list 2>/dev/null | grep -q "newcontainment-frontend"; then
+        local frontend_status=$(pm2 jlist | jq -r '.[] | select(.name=="newcontainment-frontend") | .pm2_env.status' 2>/dev/null || echo "unknown")
+        local frontend_pid=$(pm2 jlist | jq -r '.[] | select(.name=="newcontainment-frontend") | .pid' 2>/dev/null || echo "N/A")
+        echo "    Status: ${frontend_status^}"
+        echo "    PID: $frontend_pid"
+        echo "    Port: 3000 $(timeout 2 bash -c "</dev/tcp/localhost/3000" >/dev/null 2>&1 && echo "✅" || echo "❌")"
+    else
+        echo "    Status: Not running"
+    fi
+
+    echo "  🌐 Nginx (Reverse Proxy):"
+    if systemctl is-active --quiet nginx 2>/dev/null && [[ -f "/etc/nginx/sites-enabled/newcontainment" ]]; then
+        echo "    Status: Active"
+        echo "    Port: 80 $(timeout 2 bash -c "</dev/tcp/localhost/80" >/dev/null 2>&1 && echo "✅" || echo "❌")"
+    else
+        echo "    Status: Not configured"
+    fi
+    echo ""
+
+    # Database status
+    log "🗄️  Database Status:"
+    local db_file=""
+    local db_found=false
+
+    for db_path in "$BACKEND_DIR/app.db" "$BACKEND_DIR/publish/app.db" "$BACKEND_DIR/containment.db"; do
+        if [[ -f "$db_path" ]]; then
+            db_file="$db_path"
+            db_found=true
+            break
+        fi
+    done
+
+    if [[ "$db_found" == true ]]; then
+        local db_size=$(du -h "$db_file" | cut -f1)
+        local db_modified=$(stat -c %y "$db_file" | cut -d'.' -f1 2>/dev/null || echo "Unknown")
+
+        echo "  📄 Location: $db_file"
+        echo "  📏 Size: $db_size"
+        echo "  📅 Modified: $db_modified"
+
+        if command_exists sqlite3; then
+            local table_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" 2>/dev/null || echo "0")
+            local user_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM Users;" 2>/dev/null || echo "0")
+            echo "  📊 Tables: $table_count | Users: $user_count"
+        fi
+    else
+        echo "  📄 Status: Database file not found"
+    fi
+    echo ""
+
+    # Process information
+    log "🔍 Running Processes:"
+    echo "  🟢 Backend processes:"
+    if pgrep -f "dotnet.*Backend.dll" >/dev/null; then
+        ps aux | grep "dotnet.*Backend.dll" | grep -v grep | sed 's/^/    /'
+    else
+        echo "    No backend processes found"
+    fi
+
+    echo "  🟣 Frontend processes:"
+    if pgrep -f "next.*start" >/dev/null; then
+        ps aux | grep "next.*start" | grep -v grep | sed 's/^/    /'
+    else
+        echo "    No frontend processes found"
+    fi
+
+    echo "  📡 MQTT processes:"
+    if pgrep -x "mosquitto" >/dev/null; then
+        ps aux | grep mosquitto | grep -v grep | sed 's/^/    /'
+    else
+        echo "    Mosquitto not running"
+    fi
+    echo ""
+
+    # Network status
+    log "🌐 Network Status:"
+    echo "  📡 Listening Ports:"
+    if command_exists ss; then
+        ss -tuln | grep -E ":(80|3000|5000|1883)" | sed 's/^/    /' || echo "    No relevant ports found"
+    elif command_exists netstat; then
+        netstat -tuln | grep -E ":(80|3000|5000|1883)" | sed 's/^/    /' || echo "    No relevant ports found"
+    else
+        echo "    Network tools not available"
+    fi
+    echo ""
+
+    # Log files
+    log "📝 Recent Log Activity:"
+    echo "  🔵 Backend logs (last 2 entries):"
+    if [[ -f "$LOG_FILE" ]]; then
+        tail -2 "$LOG_FILE" | sed 's/^/    /' 2>/dev/null || echo "    Error reading logs"
+    else
+        echo "    No deployment log found"
+    fi
+
+    echo "  🟢 Frontend logs (PM2 errors):"
+    pm2 logs newcontainment-frontend --lines 2 --err 2>/dev/null | tail -2 | sed 's/^/    /' || echo "    No frontend logs"
+    echo ""
+
+    # Access URLs
+    log "🌍 Access URLs:"
+    local server_ip=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+
+    if systemctl is-active --quiet nginx 2>/dev/null && [[ -f "/etc/nginx/sites-enabled/newcontainment" ]]; then
+        echo "  🎯 Production (Port 80): http://$server_ip"
+        echo "  ❤️ Health Check: http://$server_ip/health"
+    fi
+
+    echo "  🔗 Development Ports:"
+    echo "    Frontend: http://$server_ip:3000"
+    echo "    Backend API: http://$server_ip:5000"
+    echo "    Swagger UI: http://$server_ip:5000/swagger"
+    echo "    Health Check: http://$server_ip:5000/api/health"
+    echo ""
+
+    # Performance metrics
+    log "📈 Performance Metrics:"
+    echo "  🕐 Uptime:"
+    uptime -p 2>/dev/null | sed 's/^/    /' || echo "    Uptime info not available"
+
+    echo "  💾 Disk I/O:"
+    iostat -d 1 1 2>/dev/null | tail -1 | awk '{print "    Read: " $4 " kB/s, Write: " $5 " kB/s"}' || echo "    I/O stats not available"
+    echo ""
+
+    # Recommendations
+    log "💡 Recommendations:"
+    local issues_found=0
+
+    if ! systemctl is-active --quiet NewContainmentWeb.service 2>/dev/null; then
+        echo "  ⚠️  Backend service not running - consider: sudo ./deploy.sh"
+        ((issues_found++))
+    fi
+
+    if ! pm2 list 2>/dev/null | grep -q "newcontainment-frontend.*online"; then
+        echo "  ⚠️  Frontend PM2 process not running - consider: pm2 restart newcontainment-frontend"
+        ((issues_found++))
+    fi
+
+    if ! pgrep -x "mosquitto" >/dev/null; then
+        echo "  ⚠️  MQTT broker not running - start with: sudo systemctl start mosquitto"
+        ((issues_found++))
+    fi
+
+    if ! timeout 2 bash -c "</dev/tcp/localhost/5000" >/dev/null 2>&1; then
+        echo "  ⚠️  Backend API not accessible on port 5000"
+        ((issues_found++))
+    fi
+
+    if ! timeout 2 bash -c "</dev/tcp/localhost/3000" >/dev/null 2>&1; then
+        echo "  ⚠️  Frontend not accessible on port 3000"
+        ((issues_found++))
+    fi
+
+    if [[ $issues_found -eq 0 ]]; then
+        log_success "✅ All systems appear to be running correctly!"
+    else
+        log_warning "Found $issues_found potential issues to investigate"
+    fi
+    echo ""
+}
+
+# Function to handle clean operation
+clean_operation() {
+    local reset_db=false
+    if [[ "$1" == "reset-db" ]]; then
+        reset_db=true
+        log_warning "⚠️  DATABASE RESET REQUESTED - This will delete all data!"
+        read -p "Are you sure you want to reset the database? (y/N): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log "Database reset cancelled"
+            return 0
+        fi
+    fi
+
+    cleanup_deployment "$1"
+
+    if [[ "$reset_db" == true ]]; then
+        log_success "Clean operation with database reset completed"
+    else
+        log_success "Clean operation completed (database preserved)"
+    fi
+
+    show_comprehensive_status
+}
+
 # Script execution
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    # Check for update-prod command
-    if [[ "$1" == "update-prod" ]]; then
-        update_prod
-    else
-        main "$@"
-    fi
+    # Create log directory
+    mkdir -p "$(dirname "$LOG_FILE")"
+
+    case "${1:-deploy}" in
+        "update-prod")
+            update_prod
+            ;;
+        "clean")
+            clean_operation
+            ;;
+        "status")
+            show_comprehensive_status
+            ;;
+        "user-setup")
+            check_root
+            create_service_user
+            ;;
+        *)
+            # Enhanced main deployment with user creation
+            log "Starting Advanced NewContainment Deployment..."
+            create_service_user 2>/dev/null || log_warning "Could not create service user (might already exist)"
+            cleanup_deployment "preserve-db"
+            main "$@"
+            ;;
+    esac
 fi

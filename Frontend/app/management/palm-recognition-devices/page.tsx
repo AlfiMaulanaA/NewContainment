@@ -82,18 +82,11 @@ import { useSortableTable } from "@/hooks/use-sort-table";
 import { useSearchFilter } from "@/hooks/use-search-filter";
 import { PageHeader } from "@/components/page-header";
 import { toast } from "sonner";
-import {
-  usePermissions,
-  PermissionWrapper,
-  CrudPermission,
-} from "@/lib/role-permissions";
 import { usePalmRecognitionDeviceMQTT } from "@/hooks/usePalmRecognitionDevicesMQTT";
 
 const ITEMS_PER_PAGE = 10;
 
 export default function PalmRecognitionDeviceManagementPage() {
-  const permissions = usePermissions();
-
   // MQTT hook for device connections
   const {
     connections: deviceConnections,
@@ -355,11 +348,6 @@ export default function PalmRecognitionDeviceManagementPage() {
 
   // Handle active device change (single selection logic)
   const handleActiveDeviceChange = async (deviceId: number, isChecked: boolean) => {
-    if (!permissions.device.canUpdate) {
-      toast.error("No permission to change device status");
-      return;
-    }
-
     if (isChecked) {
       // Immediate UI update for better UX
       const updatedDevices = devices.map(device => ({
@@ -516,74 +504,72 @@ export default function PalmRecognitionDeviceManagementPage() {
         title="Palm Recognition Device Management"
         subtitle="Manage palm recognition devices in the system"
         actions={
-          <CrudPermission module="deviceManagement" operation="create">
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Device
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Palm Recognition Device</DialogTitle>
-                  <DialogDescription>
-                    Create a new palm recognition device with basic configuration.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  {/* Device Name */}
-                  <div>
-                    <Label htmlFor="name">Device Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="Enter device name"
-                    />
-                  </div>
-
-                  {/* IP Address */}
-                  <div>
-                    <Label htmlFor="ipAddress">IP Address *</Label>
-                    <Input
-                      id="ipAddress"
-                      value={formData.ipAddress}
-                      onChange={(e) =>
-                        setFormData({ ...formData, ipAddress: e.target.value })
-                      }
-                      placeholder="192.168.1.100"
-                    />
-                  </div>
-
-                  {/* Is Active */}
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="isActive"
-                      checked={formData.isActive}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, isActive: checked })
-                      }
-                    />
-                    <Label htmlFor="isActive">Active Device</Label>
-                  </div>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Device
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Palm Recognition Device</DialogTitle>
+                <DialogDescription>
+                  Create a new palm recognition device with basic configuration.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                {/* Device Name */}
+                <div>
+                  <Label htmlFor="name">Device Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="Enter device name"
+                  />
                 </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCreateDialog(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateDevice} disabled={actionLoading}>
-                    {actionLoading ? "Creating..." : "Create Device"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CrudPermission>
+
+                {/* IP Address */}
+                <div>
+                  <Label htmlFor="ipAddress">IP Address *</Label>
+                  <Input
+                    id="ipAddress"
+                    value={formData.ipAddress}
+                    onChange={(e) =>
+                      setFormData({ ...formData, ipAddress: e.target.value })
+                    }
+                    placeholder="192.168.1.100"
+                  />
+                </div>
+
+                {/* Is Active */}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
+                  />
+                  <Label htmlFor="isActive">Active Device</Label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateDevice} disabled={actionLoading}>
+                  {actionLoading ? "Creating..." : "Create Device"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         }
       />
 
@@ -679,14 +665,7 @@ export default function PalmRecognitionDeviceManagementPage() {
                     <TableHead>Active</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <PermissionWrapper
-                      condition={
-                        permissions.device.canUpdate ||
-                        permissions.device.canDelete
-                      }
-                    >
-                      <TableHead className="text-right">Actions</TableHead>
-                    </PermissionWrapper>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -708,8 +687,7 @@ export default function PalmRecognitionDeviceManagementPage() {
                             checked={device.isActive}
                             onChange={(e) => handleActiveDeviceChange(device.id, e.target.checked)}
                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                            disabled={!permissions.device.canUpdate}
-                            title={permissions.device.canUpdate ? "Toggle device active status" : "No permission to change device status"}
+                            title="Toggle device active status"
                           />
                         </TableCell>
                         <TableCell>
@@ -775,91 +753,68 @@ export default function PalmRecognitionDeviceManagementPage() {
                             }
                           })()}
 
-                          {/* Edit and Delete controls for authorized users */}
-                          <PermissionWrapper
-                            condition={
-                              permissions.device.canUpdate ||
-                              permissions.device.canDelete
-                            }
+                          {/* Action buttons */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                            onClick={() => handlePalmUserRegistration(device)}
+                            title="Register Palm User"
+                            disabled={!getDeviceConnectionStatus(device.id)?.isConnected}
                           >
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-purple-600 border-purple-600 hover:bg-purple-50"
-                              onClick={() => handlePalmUserRegistration(device)}
-                              title="Register Palm User"
-                              disabled={!getDeviceConnectionStatus(device.id)?.isConnected}
-                            >
-                              <Fingerprint className="h-4 w-4" />
-                            </Button>
-                            <CrudPermission
-                              module="deviceManagement"
-                              operation="update"
-                            >
+                            <Fingerprint className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-600 hover:bg-purple-50"
+                            onClick={() => handleEditDevice(device)}
+                            title="Edit Device"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
                               <Button
                                 size="sm"
-                                variant="outline"
-                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                                onClick={() => handleEditDevice(device)}
-                                title="Edit Device"
+                                variant="destructive"
+                                className="text-red-600 bg-red-100 hover:bg-red-200"
                               >
-                                <Edit className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                            </CrudPermission>
-                            <CrudPermission
-                              module="deviceManagement"
-                              operation="delete"
-                            >
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="text-red-600 bg-red-100 hover:bg-red-200"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Delete Palm Recognition Device
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete "{device.name}"?
-                                      This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() =>
-                                        handleDeleteDevice(device.id)
-                                      }
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </CrudPermission>
-                          </PermissionWrapper>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Delete Palm Recognition Device
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{device.name}"?
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleDeleteDevice(device.id)
+                                  }
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={
-                          7 +
-                          (permissions.device.canUpdate ||
-                          permissions.device.canDelete
-                            ? 1
-                            : 0)
-                        }
+                        colSpan={7}
                         className="text-center py-8 text-muted-foreground"
                       >
                         {searchQuery

@@ -1,0 +1,263 @@
+Oke — berikut **panduan step-by-step** yang rapi dan lengkap untuk menginstal **.NET 9 runtime + ASP.NET Core 9 runtime** di **Debian 11 (bullseye) — arsitektur arm64**. Saya sertakan juga skrip otomatis yang bisa kamu jalankan sekali saja, plus langkah verifikasi dan opsi opsional (menjadikan global & systemd service). Ikuti dari atas ke bawah.
+
+---
+
+# 1) Cek arsitektur & info awal
+
+Jalankan ini dulu untuk konfirmasi:
+
+```bash
+uname -m
+cat /etc/os-release
+```
+
+Harus tampak `aarch64` atau `arm64` dan `Debian 11 (bullseye)`.
+
+---
+
+# 2) Membuat folder instalasi lokal (~/.dotnet atau ~/dotnet9)
+
+Saya sarankan pakai `~/dotnet9` (agar tidak menggangu instalasi lain).
+
+```bash
+mkdir -p ~/dotnet9
+cd ~/dotnet9
+```
+
+---
+
+# 3) Download & ekstrak .NET Runtime 9 (Microsoft.NETCore.App)
+
+```bash
+# pindah ke folder instalasi
+cd ~/dotnet9
+
+# hapus file lama jika ada
+rm -f dotnet-runtime-9.0.0-linux-arm64.tar.gz*
+
+# download runtime core
+wget https://dotnetcli.azureedge.net/dotnet/Runtime/9.0.0/dotnet-runtime-9.0.0-linux-arm64.tar.gz
+
+# verifikasi ukuran file (sekitar 31MB)
+ls -lh dotnet-runtime-9.0.0-linux-arm64.tar.gz
+
+# ekstrak
+tar -zxf dotnet-runtime-9.0.0-linux-arm64.tar.gz
+```
+
+Jika `tar` berjalan tanpa error, folder `shared/Microsoft.NETCore.App/9.0.0/` akan tersedia.
+
+---
+
+# 4) Download & ekstrak ASP.NET Core Runtime 9 (Microsoft.AspNetCore.App)
+
+(Aplikasi ASP.NET Core memerlukan runtime ini juga)
+
+```bash
+# hapus file lama jika ada
+rm -f aspnetcore-runtime-9.0.0-linux-arm64.tar.gz*
+
+# download aspnetcore runtime
+wget https://dotnetcli.azureedge.net/dotnet/aspnetcore/Runtime/9.0.0/aspnetcore-runtime-9.0.0-linux-arm64.tar.gz
+
+# verifikasi ukuran file (sekitar 40MB)
+ls -lh aspnetcore-runtime-9.0.0-linux-arm64.tar.gz
+
+# ekstrak (ke folder yang sama sehingga berdampingan dengan dotnet runtime)
+tar -zxf aspnetcore-runtime-9.0.0-linux-arm64.tar.gz
+```
+
+Setelah ini kamu harus lihat dua folder runtime di `~/dotnet9/shared/`.
+
+---
+
+# 5) Set environment agar `dotnet` merujuk ke runtime ini (permanen untuk user)
+
+Tambahkan ke `~/.bashrc` (atau `~/.profile` / shell startup lain jika perlu):
+
+```bash
+echo 'export DOTNET_ROOT=$HOME/dotnet9' >> ~/.bashrc
+echo 'export PATH=$HOME/dotnet9:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Verifikasi:
+
+```bash
+dotnet --info
+dotnet --list-runtimes
+```
+
+Output yang diharapkan menunjukkan `Host Version: 9.0.0` dan kedua runtime:
+
+```
+Microsoft.NETCore.App 9.0.0 [/home/containment/dotnet9/shared/Microsoft.NETCore.App]
+Microsoft.AspNetCore.App 9.0.0 [/home/containment/dotnet9/shared/Microsoft.AspNetCore.App]
+```
+
+---
+
+# 6) Jalankan aplikasi
+
+Pergi ke folder aplikasi dan jalankan:
+
+```bash
+cd ~/Backend
+dotnet Backend.dll
+```
+
+Kalau arsitektur app cocok (app dibangun untuk `linux-arm64`), server seharusnya start.
+
+Jika aplikasi masih menunjukkan error arsitektur, berarti `Backend.dll` di-build untuk `x64`. Solusinya ada di bagian **Catatan penting** di bawah.
+
+---
+
+# 7) (Opsional) Buat systemd service supaya auto-start saat boot
+
+Buat file `/etc/systemd/system/backend.service` (butuh sudo):
+
+```bash
+sudo tee /etc/systemd/system/backend.service > /dev/null <<'SERVICE'
+[Unit]
+Description=Backend .NET 9 Service
+After=network.target
+
+[Service]
+WorkingDirectory=/home/containment/Backend
+ExecStart=/home/containment/dotnet9/dotnet /home/containment/Backend/Backend.dll
+Restart=always
+RestartSec=5
+User=containment
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_ROOT=/home/containment/dotnet9
+# jika ingin PATH diperluas:
+Environment=PATH=/home/containment/dotnet9:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+```
+
+Aktifkan dan mulai:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable backend
+sudo systemctl start backend
+sudo systemctl status backend
+# lihat log:
+sudo journalctl -u backend -f
+```
+
+---
+
+# 8) (Opsional) Jadikan runtime tersedia system-wide (global)
+
+Jika ingin agar `dotnet` tersedia untuk semua user di `/usr/share/dotnet`, copy isi folder:
+
+> **Catatan**: ini butuh hak `sudo` dan akan menimpa instalasi lain jika ada.
+
+```bash
+sudo mkdir -p /usr/share/dotnet
+sudo cp -r ~/dotnet9/* /usr/share/dotnet/
+sudo ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
+```
+
+Setelah itu `dotnet --info` harus menunjuk ke `/usr/share/dotnet`.
+
+---
+
+# 9) Script otomatis (jalankan jika mau semua langkah di atas otomatis)
+
+Simpan sebagai `install_dotnet9_arm64.sh`, lalu jalankan `bash install_dotnet9_arm64.sh`.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+INSTALL_DIR="$HOME/dotnet9"
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR"
+
+echo "Cleaning old tarballs..."
+rm -f dotnet-runtime-9.0.0-linux-arm64.tar.gz* aspnetcore-runtime-9.0.0-linux-arm64.tar.gz*
+
+echo "Downloading dotnet runtime..."
+wget -q --show-progress https://dotnetcli.azureedge.net/dotnet/Runtime/9.0.0/dotnet-runtime-9.0.0-linux-arm64.tar.gz
+
+echo "Extracting dotnet runtime..."
+tar -zxf dotnet-runtime-9.0.0-linux-arm64.tar.gz
+
+echo "Downloading aspnetcore runtime..."
+wget -q --show-progress https://dotnetcli.azureedge.net/dotnet/aspnetcore/Runtime/9.0.0/aspnetcore-runtime-9.0.0-linux-arm64.tar.gz
+
+echo "Extracting aspnetcore runtime..."
+tar -zxf aspnetcore-runtime-9.0.0-linux-arm64.tar.gz
+
+echo "Adding env to ~/.bashrc (if not exists)..."
+grep -qxF 'export DOTNET_ROOT=$HOME/dotnet9' ~/.bashrc || echo 'export DOTNET_ROOT=$HOME/dotnet9' >> ~/.bashrc
+grep -qxF 'export PATH=$HOME/dotnet9:$PATH' ~/.bashrc || echo 'export PATH=$HOME/dotnet9:$PATH' >> ~/.bashrc
+
+source ~/.bashrc
+
+echo "Done. dotnet info:"
+dotnet --info
+```
+
+Beri izin dan jalankan:
+
+```bash
+chmod +x install_dotnet9_arm64.sh
+./install_dotnet9_arm64.sh
+```
+
+---
+
+# Catatan penting: masalah arsitektur assembly (jika masih error)
+
+Jika setelah semua langkah di atas kamu mendapat error:
+
+```
+The assembly architecture is not compatible with the current process architecture.
+```
+
+itu berarti `Backend.dll` tidak dibangun untuk `linux-arm64`. Solusi:
+
+1. **Rebuild untuk linux-arm64** (direkomendasikan):
+
+   * Di mesin development yang punya source:
+
+     ```bash
+     dotnet publish -c Release -r linux-arm64 --self-contained false -o publish
+     ```
+   * Upload isi folder `publish/` ke server (`~/Backend`).
+
+2. **Self-contained publish** (jika tidak ingin install runtime di server):
+
+   * Di dev:
+
+     ```bash
+     dotnet publish -c Release -r linux-arm64 --self-contained true -p:PublishTrimmed=false -o publish
+     ```
+   * Upload `publish/`, jalankan binari langsung (`./YourAppExecutable`).
+
+3. **Tidak disarankan:** Emulasi x64 dengan qemu (kompleks & lambat).
+
+---
+
+# Verifikasi akhir & troubleshooting singkat
+
+* `dotnet --info` → host 9.0.0 dan DOTNET_ROOT menunjuk ke `~/dotnet9`.
+* `dotnet --list-runtimes` → terlihat kedua runtime (Microsoft.NETCore.App & Microsoft.AspNetCore.App 9.0.0).
+* `uname -m` → `aarch64` (ARM64).
+* Jika `file Backend.dll` menunjukkan `PE32+` untuk x86_64, kamu harus rebuild.
+
+---
+
+Kalau mau, saya bisa:
+
+* Buatkan file `systemd` otomatis yang sudah disesuaikan dengan path (`/home/containment/dotnet9`), atau
+* Bantu kamu **rebuild** aplikasi untuk `linux-arm64` (berikan `csproj`/perintah publish yang kamu mau), atau
+* Cek output `file Backend.dll` / `uname -m` untuk memastikan arsitektur.
+
+Mau saya lanjutkan dengan salah satu opsi itu?

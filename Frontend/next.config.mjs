@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable standalone output for Docker
-  output: "standalone",
+  // Enable export output for static deployment
+  output: "export",
   trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,

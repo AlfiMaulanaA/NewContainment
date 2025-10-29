@@ -814,7 +814,7 @@ new MenuItem {
                 new PalmRecognitionDevice
                 {
                     Name = "Main Entrance Palm Scanner",
-                    IpAddress = "192.168.0.105",
+                    IpAddress = "192.168.2.110",
                     IsActive = true,
                     Timestamp = DateTime.UtcNow
                 },

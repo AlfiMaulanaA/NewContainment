@@ -56,7 +56,6 @@ export function middleware(request: NextRequest) {
     "/auth/login",
     "/auth/register",
     "/auth/forgot-password",
-    "/palm-recognition",
   ];
 
   // Developer mode protected routes - these require both developer role AND active developer mode

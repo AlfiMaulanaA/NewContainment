@@ -36,7 +36,7 @@ export default function RootLayout({
       <body className="font-sans">
         <ThemeProvider
           attribute="class" // Menggunakan class HTML untuk theme (misal: "dark")
-          defaultTheme="light" // Theme default
+          defaultTheme="dark" // Theme default
           enableSystem // Memungkinkan sistem OS menentukan theme
         >
           {/* Semua konten aplikasi dibungkus oleh ClientLayout */}

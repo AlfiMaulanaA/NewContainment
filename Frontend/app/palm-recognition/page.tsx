@@ -78,6 +78,8 @@ export default function PalmRecognitionPage() {
   const [alertType, setAlertType] = useState<"success" | "danger" | "warning" | "info">("info");
   const [openDoorStatus, setOpenDoorStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentScore, setCurrentScore] = useState<number | null>(null);
+  const [lastRecognitionTime, setLastRecognitionTime] = useState<string | null>(null);
 
   // Image URLs with selected device IP (initially use first device)
   const [imageUrl1, setImageUrl1] = useState("");
@@ -307,6 +309,10 @@ export default function PalmRecognitionPage() {
 
       addLog(`[${activeDevice?.name || 'Unknown'} - Compare Result] User: ${data.user}, Score: ${data.score.toFixed(4)}, Time: ${data.timestamp}`);
 
+      // Update current recognition score and timestamp
+      setCurrentScore(data.score);
+      setLastRecognitionTime(data.timestamp);
+
       // Add to compare results (like Vue.js)
       setCompareResults(prev => {
         const newResults = [data, ...prev];
@@ -349,7 +355,7 @@ export default function PalmRecognitionPage() {
       showBootstrapAlert(`Connected to palm recognition device: ${activeDevice.name}`, 'success');
 
       // Start image refresh interval
-      refreshIntervalRef.current = setInterval(refreshImages, 2000);
+      refreshIntervalRef.current = setInterval(refreshImages, 15000);
     } else {
       // Clear interval when disconnected
       if (refreshIntervalRef.current) {
@@ -395,6 +401,36 @@ export default function PalmRecognitionPage() {
 
         {/* Active Device Status */}
         {renderActiveDeviceStatus()}
+
+        {/* Recognition Score Display */}
+        {currentScore !== null && (
+          <Card className="border-2 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-primary mb-2">
+                  {(currentScore * 100).toFixed(1)}%
+                </div>
+                <div className="text-lg text-muted-foreground mb-1">Recognition Score</div>
+                <div className="text-sm text-muted-foreground">
+                  Raw Score: {currentScore.toFixed(4)}
+                </div>
+                {lastRecognitionTime && (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Last recognition: {new Date(lastRecognitionTime).toLocaleString()}
+                  </div>
+                )}
+                <div className="mt-3">
+                  <Badge
+                    variant={currentScore >= 0.8 ? "default" : currentScore >= 0.6 ? "secondary" : "destructive"}
+                    className="text-sm px-3 py-1"
+                  >
+                    {currentScore >= 0.8 ? "High Match" : currentScore >= 0.6 ? "Medium Match" : "Low Match"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Bootstrap-style Alert */}
         {showAlert && (
@@ -480,7 +516,7 @@ export default function PalmRecognitionPage() {
                   <img
                     src={imageUrl1}
                     alt="IR Image"
-                    className="w-full h-auto rounded-lg shadow-md border"
+                    className="w-3/4 h-auto rounded-lg shadow-md border rotate-90"
                     onError={() => onImageError('IR')}
                   />
                 ) : (
@@ -499,7 +535,7 @@ export default function PalmRecognitionPage() {
                   <img
                     src={imageUrl2}
                     alt="RGB Image"
-                    className="w-full h-auto rounded-lg shadow-md border"
+                    className="w-3/4 h-auto rounded-lg shadow-md border rotate-90"
                     onError={() => onImageError('RGB')}
                   />
                 ) : (

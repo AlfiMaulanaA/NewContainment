@@ -28,6 +28,9 @@ export default function ClientLayout({
   // Ini lebih robust terhadap trailing slashes atau sub-path
   const hideSidebar = pathname.startsWith("/auth/");
 
+  // Kontrol sidebar collapse untuk palm recognition page
+  const shouldCollapseSidebar = pathname.startsWith("/palm-recognition");
+
   // For auth pages, render minimal layout without RouteGuard to prevent conflicts
   if (hideSidebar) {
     return (
@@ -56,7 +59,7 @@ export default function ClientLayout({
       }>
         <DeveloperModeProvider>
           <SafeGlobalAttendanceProvider>
-            <SidebarProvider>
+            <SidebarProvider defaultOpen={!shouldCollapseSidebar}>
               <AppSidebar />
               <main className="flex-1 overflow-auto">{children}</main>
               <Toaster richColors position="top-right" />

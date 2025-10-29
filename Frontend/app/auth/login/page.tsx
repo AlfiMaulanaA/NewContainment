@@ -29,6 +29,8 @@ import {
   Database,
   HardDrive,
   Globe,
+  RefreshCw,
+  Hand,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { setCookie } from "cookies-next";
@@ -214,6 +216,16 @@ const LoginPage = () => {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => window.location.reload()}
+            aria-label="Refresh Page"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             aria-label="Toggle Theme"
             className="flex items-center gap-2"
@@ -310,24 +322,36 @@ const LoginPage = () => {
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-              disabled={loading}
-            >
-              {!loading && <ChevronRight className="h-4 w-4" />}
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                  <span className="text-sm">Authenticating...</span>
-                </>
-              ) : (
-                <span className="text-sm">Access System</span>
-              )}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                type="submit"
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                disabled={loading}
+              >
+                {!loading && <ChevronRight className="h-4 w-4" />}
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    <span className="text-sm">Authenticating...</span>
+                  </>
+                ) : (
+                  <span className="text-sm">Access System</span>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11 border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center"
+                onClick={() => router.push("/palm-recognition")}
+                disabled={loading}
+              >
+                <Hand className="h-5 w-5" />
+              </Button>
+            </div>
 
             {/* Footer Status */}
             <div className="pt-4 border-t border-gray-200 dark:border-slate-700">

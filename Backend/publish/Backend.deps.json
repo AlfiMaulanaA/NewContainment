@@ -1,12 +1,12 @@
 {
   "runtimeTarget": {
-    "name": ".NETCoreApp,Version=v9.0/linux-x64",
+    "name": ".NETCoreApp,Version=v9.0/linux-arm64",
     "signature": ""
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v9.0": {},
-    ".NETCoreApp,Version=v9.0/linux-x64": {
+    ".NETCoreApp,Version=v9.0/linux-arm64": {
       "Backend/1.0.0": {
         "dependencies": {
           "DotNetEnv": "3.1.1",
@@ -688,7 +688,7 @@
       },
       "SQLitePCLRaw.lib.e_sqlite3/2.1.10": {
         "native": {
-          "runtimes/linux-x64/native/libe_sqlite3.so": {
+          "runtimes/linux-arm64/native/libe_sqlite3.so": {
             "fileVersion": "0.0.0.0"
           }
         }

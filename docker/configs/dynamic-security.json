@@ -1,0 +1,183 @@
+{
+  "clients": [
+    {
+      "username": "containment",
+      "password": "secure_password",
+      "clientid": "",
+      "textname": "IoT Containment System Client",
+      "roles": ["admin"],
+      "groups": []
+    },
+    {
+      "username": "frontend",
+      "password": "frontend_password",
+      "clientid": "",
+      "textname": "Next.js Frontend Client",
+      "roles": ["frontend"],
+      "groups": []
+    },
+    {
+      "username": "backend",
+      "password": "backend_password",
+      "clientid": "",
+      "textname": ".NET Backend Client",
+      "roles": ["backend"],
+      "groups": []
+    },
+    {
+      "username": "middleware",
+      "password": "middleware_password",
+      "clientid": "",
+      "textname": "Python Middleware Client",
+      "roles": ["middleware"],
+      "groups": []
+    },
+    {
+      "username": "sensor-01",
+      "password": "sensor_password",
+      "clientid": "",
+      "textname": "IoT Sensor Device",
+      "roles": ["sensor"],
+      "groups": []
+    }
+  ],
+  "roles": [
+    {
+      "rolename": "admin",
+      "acls": [
+        {
+          "acltype": "publishClientSend",
+          "topic": "#",
+          "allow": true
+        },
+        {
+          "acltype": "publishClientReceive",
+          "topic": "#",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "#",
+          "allow": true
+        }
+      ]
+    },
+    {
+      "rolename": "frontend",
+      "acls": [
+        {
+          "acltype": "publishClientSend",
+          "topic": "accessControl/system/command",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "accessControl/+/response",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "IOT/Containment/Monitoring/+",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "sensor/+",
+          "allow": true
+        }
+      ]
+    },
+    {
+      "rolename": "backend",
+      "acls": [
+        {
+          "acltype": "publishClientSend",
+          "topic": "accessControl/+/response",
+          "allow": true
+        },
+        {
+          "acltype": "publishClientSend",
+          "topic": "IOT/Containment/Control/+",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "accessControl/+/command",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "IOT/Containment/Monitoring/+",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "sensor/+",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "palm/+",
+          "allow": true
+        },
+        {
+          "acltype": "publishClientSend",
+          "topic": "palm/compare/result",
+          "allow": true
+        }
+      ]
+    },
+    {
+      "rolename": "middleware",
+      "acls": [
+        {
+          "acltype": "publishClientSend",
+          "topic": "accessControl/+/response",
+          "allow": true
+        },
+        {
+          "acltype": "publishClientSend",
+          "topic": "accessControl/+/live",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "accessControl/+/command",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "palm/+",
+          "allow": true
+        },
+        {
+          "acltype": "publishClientSend",
+          "topic": "palm/status",
+          "allow": true
+        }
+      ]
+    },
+    {
+      "rolename": "sensor",
+      "acls": [
+        {
+          "acltype": "publishClientSend",
+          "topic": "IOT/Containment/Monitoring/#",
+          "allow": true
+        },
+        {
+          "acltype": "publishClientSend",
+          "topic": "sensor/#",
+          "allow": true
+        },
+        {
+          "acltype": "subscribePattern",
+          "topic": "IOT/Containment/Control/#",
+          "allow": true
+        }
+      ]
+    }
+  ],
+  "groups": [],
+  "anonymousGroup": {}
+}

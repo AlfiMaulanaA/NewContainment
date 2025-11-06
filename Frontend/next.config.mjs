@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable export output for static deployment
-  output: "export",
+  // Enable export output for static deployment (only in production)
+  ...(process.env.NODE_ENV === 'production' && { output: "export" }),
   trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,
@@ -9,22 +9,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Aggressive performance optimizations
+  // Reduced optimizations to prevent Fast Refresh issues
   experimental: {
-    optimizePackageImports: [
-      "lucide-react",
-      "@radix-ui/react-icons",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-dropdown-menu",
-      "@radix-ui/react-select",
-      "@radix-ui/react-tabs",
-      "chart.js",
-      "react-chartjs-2",
-      "recharts",
-      "three"
-    ],
-    webpackBuildWorker: true,
-    // Enable dynamic imports for better code splitting
+    // Temporarily disable aggressive optimizations
     esmExternals: true,
   },
   // Enhanced image optimization
@@ -39,6 +26,19 @@ const nextConfig = {
   compress: true,
   // Aggressive webpack optimizations for code splitting
   webpack: (config, { isServer, dev }) => {
+    // Ignore certain files to prevent excessive rebuilds
+    config.watchOptions = {
+      ignored: [
+        '**/node_modules/**',
+        '**/.next/**',
+        '**/logs/**',
+        '**/backups/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/build/**',
+      ],
+    };
+
     if (!isServer) {
       // Enhanced code splitting strategy
       config.optimization.splitChunks = {

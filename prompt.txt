@@ -1,36 +1,69 @@
-sudo script/deploy.sh 
-[2025-10-27 13:44:42] === NewContainment Deployment Script ===
-[2025-10-27 13:44:42] Project Root: /home/ubuntu/Alfi/RnD/Development/NewContainment
-[2025-10-27 13:44:42] Current User: root
-[2025-10-27 13:44:42] === Checking Dependencies ===
-[2025-10-27 13:44:42] Checking Node.js installation...
-npm warn cli npm v11.6.1 does not support Node.js v18.19.1. This version of npm supports the following node versions: `^20.17.0 || >=22.9.0`. You can find the latest version at https://nodejs.org/.
-[SUCCESS] Node.js v18.19.1 and npm 11.6.1 are installed
-[2025-10-27 13:44:42] Checking .NET 9 installation...
-[SUCCESS] .NET 9.0.203 is installed
-[2025-10-27 13:44:42] Checking Nginx installation...
-[SUCCESS] Nginx 1.24.0 is installed
-[2025-10-27 13:44:42] Checking PM2 installation...
-[SUCCESS] PM2 6.0.13 is installed
+git clone https://github.com/AlfiMaulanaA/NewContainment.git
+Cloning into 'NewContainment'...
+remote: Enumerating objects: 3302, done.
+remote: Counting objects: 100% (46/46), done.
+remote: Compressing objects: 100% (37/37), done.
+remote: Total 3302 (delta 0), reused 28 (delta 0), pack-reused 3256 (from 1)
+Receiving objects: 100% (3302/3302), 51.27 MiB | 3.03 MiB/s, done.
+Resolving deltas: 100% (1740/1740), done.
+containment@containment:~ $ cd NewContainment/script/
+containment@containment:~/NewContainment/script $ sudo chmod +x deploy.sh 
+containment@containment:~/NewContainment/script $ sudo ./deploy.sh 
+[2025-11-06 06:51:10] Starting Advanced NewContainment Deployment...
+[2025-11-06 06:51:10] === Creating Service User ===
+[2025-11-06 06:51:10] Containment group already exists
+[2025-11-06 06:51:10] Containment user already exists
+[2025-11-06 06:51:10] Setting backend directory permissions...
+[SUCCESS] Service user setup completed
+[2025-11-06 06:51:10] === Cleaning Up Existing Deployment ===
+[2025-11-06 06:51:10] Stopping and disabling services...
+[2025-11-06 06:51:11] Killing PM2 processes...
+[PM2] Applying action deleteProcessId on app [all](ids: [ 0 ])
+[PM2] [newcontainment-frontend](0) ✓
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[PM2] Spawning PM2 daemon with pm2_home=/root/.pm2
+[PM2] PM2 Successfully daemonized
+[2025-11-06 06:51:13] Killing any remaining dotnet and node processes...
+[2025-11-06 06:51:13] Cleaning up port conflicts...
+ 1956584[2025-11-06 06:51:13] Removing systemd service file...
+[2025-11-06 06:51:14] Cleaning build artifacts...
+[SUCCESS] Cleanup completed
+[2025-11-06 06:51:14] === NewContainment Deployment Script ===
+[2025-11-06 06:51:14] Project Root: /home/containment/NewContainment
+[2025-11-06 06:51:14] Current User: root
+[2025-11-06 06:51:14] === Checking Dependencies ===
+[2025-11-06 06:51:14] Checking Node.js installation...
+[SUCCESS] Node.js v22.19.0 and npm 10.9.3 are installed
+[2025-11-06 06:51:15] Checking .NET 9 installation...
+[SUCCESS] .NET 9.0.305 is installed
+[2025-11-06 06:51:15] Checking Nginx installation...
+[SUCCESS] Nginx 1.18.0 is installed
+[2025-11-06 06:51:15] Checking PM2 installation...
+[SUCCESS] PM2 6.0.11 is installed
 [SUCCESS] All dependencies are installed
-[2025-10-27 13:44:43] Checking Node.js installation...
-npm warn cli npm v11.6.1 does not support Node.js v18.19.1. This version of npm supports the following node versions: `^20.17.0 || >=22.9.0`. You can find the latest version at https://nodejs.org/.
-[SUCCESS] Node.js v18.19.1 and npm 11.6.1 are installed
+[2025-11-06 06:51:16] Checking Node.js installation...
+[SUCCESS] Node.js v22.19.0 and npm 10.9.3 are installed
 [SUCCESS] Frontend deployment prerequisites met
-[2025-10-27 13:44:43] Checking .NET 9 installation...
-[SUCCESS] .NET 9.0.203 is installed
+[2025-11-06 06:51:16] Checking .NET 9 installation...
+[SUCCESS] .NET 9.0.305 is installed
 [SUCCESS] Backend deployment prerequisites met
-[2025-10-27 13:44:43] === Attempting Frontend Deployment ===
-[2025-10-27 13:44:43] === Deploying Frontend ===
-[2025-10-27 13:44:43] === Frontend Build Fix Process ===
-[2025-10-27 13:44:43] Cleaning previous build artifacts...
-[2025-10-27 13:44:43] Clearing npm cache...
-[2025-10-27 13:44:44] Verifying critical files exist...
+[2025-11-06 06:51:17] === Attempting Frontend Deployment ===
+[2025-11-06 06:51:17] === Deploying Frontend ===
+[2025-11-06 06:51:17] === Frontend Build Fix Process ===
+[2025-11-06 06:51:17] Cleaning previous build artifacts...
+[2025-11-06 06:51:17] Clearing npm cache...
+[2025-11-06 06:51:18] Verifying critical files exist...
 [SUCCESS] All critical files verified
-[2025-10-27 13:44:44] Installing frontend dependencies (full install)...
-npm warn cli npm v11.6.1 does not support Node.js v18.19.1. This version of npm supports the following node versions: `^20.17.0 || >=22.9.0`. You can find the latest version at https://nodejs.org/.
+[2025-11-06 06:51:18] Installing frontend dependencies (full install)...
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported
+npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
 
-added 30 packages, and audited 688 packages in 2s
+added 657 packages, and audited 658 packages in 2m
 
 175 packages are looking for funding
   run `npm fund` for details
@@ -41,9 +74,8 @@ Some issues need review, and may require choosing
 a different dependency.
 
 Run `npm audit` for details.
-[2025-10-27 13:44:46] Creating simplified Next.js configuration for build...
-[2025-10-27 13:44:46] Building frontend with simplified configuration...
-npm warn cli npm v11.6.1 does not support Node.js v18.19.1. This version of npm supports the following node versions: `^20.17.0 || >=22.9.0`. You can find the latest version at https://nodejs.org/.
+[2025-11-06 06:53:02] Creating simplified Next.js configuration for build...
+[2025-11-06 06:53:02] Building frontend with simplified configuration...
 
 > iot-containment-monitoring-system@0.1.0 build
 > next build
@@ -61,785 +93,221 @@ npm warn cli npm v11.6.1 does not support Node.js v18.19.1. This version of npm 
  ✓ Finalizing page optimization    
 
 Route (app)                               Size     First Load JS
-┌ ○ /                                     3.11 kB         287 kB
-├ ○ /_not-found                           151 B          87.9 kB
-├ ○ /access-control                       9.72 kB         258 kB
-├ ○ /access-control/attendance            6.61 kB         255 kB
-├ ○ /access-control/configuration         9.69 kB         265 kB
-├ ○ /access-control/device                6.59 kB         258 kB
-├ ○ /access-control/palm                  7.33 kB         255 kB
-├ ○ /access-control/user                  9.9 kB          268 kB
-├ ○ /auth/forgot-password                 4.03 kB         137 kB
-├ ○ /auth/login                           11 kB           128 kB
-├ ○ /auth/register                        6.82 kB         120 kB
+┌ ○ /                                     3.12 kB         288 kB
+├ ○ /_not-found                           152 B          87.9 kB
+├ ○ /access-control                       9.79 kB         258 kB
+├ ○ /access-control/attendance            6.65 kB         255 kB
+├ ○ /access-control/configuration         9.72 kB         266 kB
+├ ○ /access-control/device                6.61 kB         258 kB
+├ ○ /access-control/palm                  7.37 kB         256 kB
+├ ○ /access-control/user                  9.94 kB         269 kB
+├ ○ /auth/forgot-password                 4.04 kB         137 kB
+├ ○ /auth/login                           11.5 kB         129 kB
+├ ○ /auth/register                        6.86 kB         121 kB
 ├ ○ /configuration/controller             19 kB           277 kB
-├ ○ /configuration/sensor-data            11 kB           145 kB
-├ ○ /configuration/sensor-intervals       8.64 kB         154 kB
-├ ○ /control/containment                  10 kB           258 kB
-├ ○ /dashboard                            4.83 kB         140 kB
-├ ○ /dashboard-overview                   20.5 kB         470 kB
+├ ○ /configuration/sensor-data            11.1 kB         145 kB
+├ ○ /configuration/sensor-intervals       8.68 kB         155 kB
+├ ○ /control/containment                  10 kB           259 kB
+├ ○ /dashboard                            4.85 kB         140 kB
+├ ○ /dashboard-overview                   20.6 kB         471 kB
 ├ ○ /developer                            13.2 kB         161 kB
-├ ○ /info                                 20.2 kB         155 kB
-├ ○ /management/camera                    15.3 kB         314 kB
+├ ○ /info                                 20.1 kB         155 kB
+├ ○ /management/camera                    15.3 kB         315 kB
 ├ ○ /management/capacity                  14.2 kB         165 kB
-├ ○ /management/containment-layout        10 kB           153 kB
-├ ○ /management/containments              9.49 kB         166 kB
+├ ○ /management/containment-layout        10.1 kB         153 kB
+├ ○ /management/containments              9.53 kB         166 kB
 ├ ○ /management/devices                   10.6 kB         167 kB
-├ ○ /management/devices/rack              8.24 kB         165 kB
-├ ○ /management/maintenance               13.4 kB         191 kB
+├ ○ /management/devices/rack              8.27 kB         165 kB
+├ ○ /management/maintenance               13.5 kB         191 kB
 ├ ○ /management/menu                      18.4 kB         184 kB
-├ ○ /management/palm-recognition-devices  12.2 kB         271 kB
+├ ○ /management/palm-recognition-devices  14 kB           267 kB
 ├ ○ /management/racks                     10.6 kB         167 kB
-├ ○ /management/users                     9.21 kB         172 kB
-├ ○ /management/whatsapp                  7.36 kB         151 kB
-├ ○ /monitoring/sensors                   77.9 kB         334 kB
-├ ○ /mqtt                                 10.5 kB         175 kB
-├ ○ /network                              4.06 kB         140 kB
+├ ○ /management/users                     9.24 kB         172 kB
+├ ○ /management/whatsapp                  7.38 kB         151 kB
+├ ○ /monitoring/sensors                   78.1 kB         334 kB
+├ ○ /mqtt                                 10.6 kB         175 kB
+├ ○ /network                              4.08 kB         140 kB
 ├ ○ /network/ip-address                   13.1 kB         175 kB
-├ ○ /network/ip-scanner                   4.27 kB         147 kB
-├ ○ /network/protocol/modbus              5.55 kB         274 kB
-├ ○ /network/protocol/snmp                7.38 kB         283 kB
-├ ○ /network/wifi                         8.59 kB         257 kB
-├ ○ /palm-recognition                     7.92 kB         256 kB
-├ ○ /reports/access-log                   7.66 kB         169 kB
-├ ○ /reports/emergency                    12.2 kB         163 kB
-├ ○ /reports/maintenance                  6.79 kB         179 kB
-├ ○ /reports/sensor-data                  127 kB          303 kB
-├ ○ /settings/setting                     15.7 kB         174 kB
-└ ○ /test                                 6.25 kB         237 kB
+├ ○ /network/ip-scanner                   4.28 kB         148 kB
+├ ○ /network/protocol/modbus              5.59 kB         274 kB
+├ ○ /network/protocol/snmp                7.43 kB         284 kB
+├ ○ /network/wifi                         8.61 kB         258 kB
+├ ○ /palm-recognition                     8.2 kB          257 kB
+├ ○ /reports/access-log                   7.7 kB          169 kB
+├ ○ /reports/emergency                    12.3 kB         163 kB
+├ ○ /reports/maintenance                  6.81 kB         179 kB
+├ ○ /reports/sensor-data                  128 kB          304 kB
+├ ○ /settings/setting                     15.8 kB         174 kB
+└ ○ /test                                 6.27 kB         237 kB
 + First Load JS shared by all             87.8 kB
   ├ chunks/2117-8e085317d8727936.js       31.8 kB
-  ├ chunks/fd9d1056-bb69bae87cb50104.js   53.7 kB
+  ├ chunks/fd9d1056-bb69bae87cb50104.js   53.6 kB
   └ other shared chunks (total)           2.33 kB
 
 
-ƒ Middleware                              26.7 kB
+ƒ Middleware                              26.9 kB
 
 ○  (Static)  prerendered as static content
 
-[2025-10-27 13:45:38] Restoring original Next.js configuration...
-[2025-10-27 13:45:38] Verifying build output...
-[2025-10-27 13:45:38] Stopping existing PM2 processes...
-[2025-10-27 13:45:39] Creating ecosystem.config.js...
-[2025-10-27 13:45:39] Starting frontend with PM2 using ecosystem file...
+[2025-11-06 06:57:06] Restoring original Next.js configuration...
+[2025-11-06 06:57:06] Verifying build output...
+[2025-11-06 06:57:06] Stopping existing PM2 processes...
+[2025-11-06 06:57:07] Creating ecosystem.config.js...
+[2025-11-06 06:57:07] Starting frontend with PM2 using ecosystem file...
 [PM2][WARN] Applications newcontainment-frontend not running, starting...
-[PM2][WARN] Folder does not exist: /home/ubuntu/Alfi/RnD/Development/NewContainment/Frontend/logs
-[PM2] Creating folder: /home/ubuntu/Alfi/RnD/Development/NewContainment/Frontend/logs
 [PM2] App [newcontainment-frontend] launched (1 instances)
-┌────┬─────────────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
-│ id │ name                            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
-├────┼─────────────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 1  │ mqtt-data-generator-frontend    │ default     │ N/A     │ cluster │ 0        │ 0      │ 16   │ errored   │ 0%       │ 0b       │ root     │ disabled │
-│ 2  │ newcontainment-frontend         │ default     │ N/A     │ cluster │ 827164   │ 0s     │ 0    │ online    │ 0%       │ 47.1mb   │ root     │ disabled │
-│ 0  │ nexus-dashboard-production      │ default     │ N/A     │ cluster │ 827100   │ 1s     │ 220… │ online    │ 0%       │ 70.6mb   │ root     │ disabled │
-└────┴─────────────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+┌────┬────────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                       │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ newcontainment-frontend    │ default     │ N/A     │ cluster │ 1997471  │ 0s     │ 0    │ online    │ 0%       │ 48.0mb   │ root     │ disabled │
+└────┴────────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
 [PM2] Saving current process list...
 [PM2] Successfully saved in /root/.pm2/dump.pm2
-[2025-10-27 13:45:40] Waiting for frontend to start...
-[2025-10-27 13:45:48] PM2 process is online, checking port accessibility...
+[2025-11-06 06:57:08] Waiting for frontend to start...
+[2025-11-06 06:57:17] PM2 process is online, checking port accessibility...
 [WARNING] Port 3000 not listening yet, waiting...
-[2025-10-27 13:45:50] PM2 process is online, checking port accessibility...
+[2025-11-06 06:57:20] PM2 process is online, checking port accessibility...
 [WARNING] Port 3000 not listening yet, waiting...
-[ERROR] Frontend failed to start properly
-[2025-10-27 13:46:11] Stopping errored PM2 process...
-[PM2] Applying action stopProcessId on app [newcontainment-frontend](ids: [ 2 ])
-[PM2] [newcontainment-frontend](2) ✓
-┌────┬─────────────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
-│ id │ name                            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
-├────┼─────────────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 1  │ mqtt-data-generator-frontend    │ default     │ N/A     │ cluster │ 0        │ 0      │ 16   │ errored   │ 0%       │ 0b       │ root     │ disabled │
-│ 2  │ newcontainment-frontend         │ default     │ N/A     │ cluster │ 0        │ 0      │ 16   │ stopped   │ 0%       │ 0b       │ root     │ disabled │
-│ 0  │ nexus-dashboard-production      │ default     │ N/A     │ cluster │ 829566   │ 0s     │ 221… │ online    │ 0%       │ 70.7mb   │ root     │ disabled │
-└────┴─────────────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
-[PM2] Applying action deleteProcessId on app [newcontainment-frontend](ids: [ 2 ])
-[PM2] [newcontainment-frontend](2) ✓
-┌────┬─────────────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
-│ id │ name                            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
-├────┼─────────────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 1  │ mqtt-data-generator-frontend    │ default     │ N/A     │ cluster │ 0        │ 0      │ 16   │ errored   │ 0%       │ 0b       │ root     │ disabled │
-│ 0  │ nexus-dashboard-production      │ default     │ N/A     │ cluster │ 829614   │ 0      │ 221… │ launching │ 0%       │ 0b       │ root     │ disabled │
-└────┴─────────────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
-[2025-10-27 13:46:13] Attempting to restart frontend with explicit configuration...
-[PM2][WARN] Applications newcontainment-frontend not running, starting...
-[PM2][WARN] Folder does not exist: /home/containment/NewContainment/Frontend/logs
-[PM2] Creating folder: /home/containment/NewContainment/Frontend/logs
-[PM2] App [newcontainment-frontend] launched (1 instances)
-┌────┬─────────────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
-│ id │ name                            │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
-├────┼─────────────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 1  │ mqtt-data-generator-frontend    │ default     │ N/A     │ cluster │ 0        │ 0      │ 16   │ errored   │ 0%       │ 0b       │ root     │ disabled │
-│ 3  │ newcontainment-frontend         │ default     │ N/A     │ fork    │ 829785   │ 0s     │ 0    │ online    │ 0%       │ 13.4mb   │ root     │ disabled │
-│ 0  │ nexus-dashboard-production      │ default     │ N/A     │ cluster │ 829745   │ 0s     │ 221… │ online    │ 0%       │ 70.2mb   │ root     │ disabled │
-└────┴─────────────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
-[ERROR] Frontend still failing to start - check build output
-[ERROR] Frontend deployment failed - continuing with backend if possible
-[2025-10-27 13:46:17] === Attempting Backend Deployment ===
-[2025-10-27 13:46:17] === Deploying Backend ===
-[2025-10-27 13:46:17] Detected target architecture: linux-x64
-[2025-10-27 13:46:17] Restoring packages...
-Restore complete (53.1s)
+[2025-11-06 06:57:23] PM2 process is online, checking port accessibility...
+[SUCCESS] Frontend is accessible on port 3000
+[SUCCESS] Frontend deployed successfully
+[SUCCESS] Frontend deployment completed successfully
+[2025-11-06 06:57:23] === Attempting Backend Deployment ===
+[2025-11-06 06:57:23] === Deploying Backend ===
+[2025-11-06 06:57:23] Detected target architecture: linux-arm64
+[2025-11-06 06:57:23] Restoring packages...
+Restore complete (7.6s)
 
-Build succeeded in 53.7s
-[2025-10-27 13:47:11] Building backend for linux-x64 (framework-dependent)...
+Build succeeded in 9.8s
+[2025-11-06 06:57:34] Building backend for linux-arm64 (framework-dependent)...
 
-Build succeeded in 1.1s
-[2025-10-27 13:47:12] Restoring packages for linux-x64...
-Restore complete (1.3s)
+Build succeeded in 3.7s
+[2025-11-06 06:57:39] Restoring packages for linux-arm64...
+Restore complete (5.4s)
 
-Build succeeded in 1.8s
-Restore complete (1.7s)
-  Backend succeeded (8.3s) → publish/
+Build succeeded in 7.7s
+Restore complete (7.0s)
+  Backend succeeded (57.6s) → publish/
 
-Build succeeded in 11.4s
-[2025-10-27 13:47:26] Setting executable permissions...
+Build succeeded in 68.5s
+[2025-11-06 06:58:58] Setting executable permissions...
 [SUCCESS] Backend built successfully
 [SUCCESS] Backend deployment completed successfully
-[2025-10-27 13:47:26] === Setting Up Database ===
-[2025-10-27 13:47:26] Backing up existing database: app.db
-[2025-10-27 13:47:26] Installing Entity Framework tools...
-Since you just installed the .NET SDK, you will need to logout or restart your session before running the tool you installed.
-You can invoke the tool using the following command: dotnet-ef
-Tool 'dotnet-ef' (version '9.0.10') was successfully installed.
-[2025-10-27 13:47:31] Running database migrations...
-Using project '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj'.
-Using startup project '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj'.
-dotnet msbuild /target:GetEFProjectMetadata /property:EFProjectMetadataFile=/tmp/tmpKO9Wrf.tmp /verbosity:quiet /nologo /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj
-dotnet msbuild /target:GetEFProjectMetadata /property:EFProjectMetadataFile=/tmp/tmpGf4tsg.tmp /verbosity:quiet /nologo /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj
-dotnet exec --depsfile /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend.deps.json --additionalprobingpath /root/.nuget/packages --runtimeconfig /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend.runtimeconfig.json /root/.dotnet/tools/.store/dotnet-ef/9.0.10/dotnet-ef/9.0.10/tools/net8.0/any/tools/netcoreapp2.0/any/ef.dll database update --assembly /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend.dll --project /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj --startup-assembly /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend.dll --startup-project /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj --project-dir /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/ --root-namespace Backend --language C# --framework net9.0 --nullable --working-dir /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend --verbose
-Using assembly 'Backend'.
-Using startup assembly 'Backend'.
-Using application base '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0'.
-Using working directory '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend'.
-Using root namespace 'Backend'.
-Using project directory '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/'.
-Remaining arguments: .
-Finding DbContext classes...
-Using environment 'Production'.
-Finding IDesignTimeDbContextFactory implementations...
-Finding DbContext classes in the project...
-Found DbContext 'AppDbContext'.
-Finding application service provider in assembly 'Backend'...
-Finding Microsoft.Extensions.Hosting service provider...
-Using application service provider from Microsoft.Extensions.Hosting.
-Using context 'AppDbContext'.
-Finding design-time services referenced by assembly 'Backend'...
-Finding design-time services referenced by assembly 'Backend'...
-No referenced design-time services were found.
-Finding design-time services for provider 'Microsoft.EntityFrameworkCore.Sqlite'...
-Using design-time services from provider 'Microsoft.EntityFrameworkCore.Sqlite'.
-Finding IDesignTimeServices implementations in assembly 'Backend'...
-No design-time services were found.
-2025-10-27 13:47:35 fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
-      Failed executing DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
-      CREATE TABLE "AccessLogs" (
-          "Id" INTEGER NOT NULL CONSTRAINT "PK_AccessLogs" PRIMARY KEY AUTOINCREMENT,
-          "User" TEXT NOT NULL,
-          "Via" INTEGER NOT NULL,
-          "Trigger" TEXT NOT NULL,
-          "Timestamp" TEXT NOT NULL,
-          "AdditionalData" TEXT NULL,
-          "Description" TEXT NULL,
-          "IsSuccess" INTEGER NOT NULL DEFAULT 1
-      );
-Failed executing DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
-CREATE TABLE "AccessLogs" (
-    "Id" INTEGER NOT NULL CONSTRAINT "PK_AccessLogs" PRIMARY KEY AUTOINCREMENT,
-    "User" TEXT NOT NULL,
-    "Via" INTEGER NOT NULL,
-    "Trigger" TEXT NOT NULL,
-    "Timestamp" TEXT NOT NULL,
-    "AdditionalData" TEXT NULL,
-    "Description" TEXT NULL,
-    "IsSuccess" INTEGER NOT NULL DEFAULT 1
-);
-Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 1: 'table "AccessLogs" already exists'.
-   at Microsoft.Data.Sqlite.SqliteException.ThrowExceptionForRC(Int32 rc, sqlite3 db)
-   at Microsoft.Data.Sqlite.SqliteCommand.PrepareAndEnumerateStatements()+MoveNext()
-   at Microsoft.Data.Sqlite.SqliteCommand.GetStatements()+MoveNext()
-   at Microsoft.Data.Sqlite.SqliteDataReader.NextResult()
-   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader(CommandBehavior behavior)
-   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteReader()
-   at Microsoft.Data.Sqlite.SqliteCommand.ExecuteNonQuery()
-   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteNonQuery(RelationalCommandParameterObject parameterObject)
-   at Microsoft.EntityFrameworkCore.Migrations.MigrationCommand.ExecuteNonQuery(IRelationalConnection connection, IReadOnlyDictionary`2 parameterValues)
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.Execute(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean beginTransaction, Boolean commitTransaction, Nullable`1 isolationLevel)
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.<>c.<ExecuteNonQuery>b__3_1(DbContext _, ValueTuple`6 s)
-   at Microsoft.EntityFrameworkCore.Storage.NonRetryingExecutionStrategy.Execute[TState,TResult](TState state, Func`3 operation, Func`3 verifySucceeded)
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.MigrationCommandExecutor.ExecuteNonQuery(IReadOnlyList`1 migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, Boolean commitTransaction, Nullable`1 isolationLevel)
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.MigrateImplementation(DbContext context, String targetMigration, MigrationExecutionState state, Boolean useTransaction)
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.<>c.<Migrate>b__20_1(DbContext c, ValueTuple`4 s)
-   at Microsoft.EntityFrameworkCore.Storage.NonRetryingExecutionStrategy.Execute[TState,TResult](TState state, Func`3 operation, Func`3 verifySucceeded)
-   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.Migrate(String targetMigration)
-   at Microsoft.EntityFrameworkCore.Design.Internal.MigrationsOperations.UpdateDatabase(String targetMigration, String connectionString, String contextType)
-   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.UpdateDatabaseImpl(String targetMigration, String connectionString, String contextType)
-   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.UpdateDatabase.<>c__DisplayClass0_0.<.ctor>b__0()
-   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.OperationBase.Execute(Action action)
-SQLite Error 1: 'table "AccessLogs" already exists'.
-Using project '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj'.
-Using startup project '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj'.
-dotnet msbuild /target:GetEFProjectMetadata /property:EFProjectMetadataFile=/tmp/tmpf05kzd.tmp /verbosity:quiet /nologo /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj
-dotnet msbuild /target:GetEFProjectMetadata /property:EFProjectMetadataFile=/tmp/tmpPQUrwV.tmp /verbosity:quiet /nologo /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj
-Build started...
-dotnet build /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj /verbosity:quiet /nologo /p:PublishAot=false
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 1 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 2 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 3 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 4 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 5 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 6 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 7 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 8 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 9 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 10 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): error MSB3027: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Exceeded retry count of 10. Failed.  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): error MSB3021: Unable to copy file "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend' [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-
-Build FAILED.
-
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 1 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 2 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 3 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 4 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 5 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 6 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 7 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 8 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 9 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): warning MSB3026: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Beginning retry 10 in 1000ms. Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend'  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): error MSB3027: Could not copy "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Exceeded retry count of 10. Failed.  [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-/usr/share/dotnet/sdk/9.0.203/Microsoft.Common.CurrentVersion.targets(5364,5): error MSB3021: Unable to copy file "/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/obj/Debug/net9.0/apphost" to "bin/Debug/net9.0/Backend". Text file busy : '/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/bin/Debug/net9.0/Backend' [/home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Backend.csproj]
-    10 Warning(s)
-    2 Error(s)
-
-Time Elapsed 00:00:15.47
-
-Microsoft.EntityFrameworkCore.Tools.CommandException: Build failed. Use dotnet build to see the errors.
-   at Microsoft.EntityFrameworkCore.Tools.Project.Build(IEnumerable`1 additionalArgs)
-   at Microsoft.EntityFrameworkCore.Tools.RootCommand.Execute(String[] _)
-   at Microsoft.EntityFrameworkCore.Tools.Commands.CommandBase.<>c__DisplayClass0_0.<Configure>b__0(String[] args)
-   at Microsoft.DotNet.Cli.CommandLine.CommandLineApplication.Execute(String[] args)
-   at Microsoft.EntityFrameworkCore.Tools.Program.Main(String[] args)
-Build failed. Use dotnet build to see the errors.
-[WARNING] EF migrations failed, trying alternative approach...
-[2025-10-27 13:47:54] Attempting auto-migration via application startup...
-2025-10-27 13:47:54 info: Program[0]
+[2025-11-06 06:58:58] === Setting Up Database ===
+[2025-11-06 06:58:59] Running database migrations (fresh database)...
+[WARNING] EF migrations failed with exit code 1
+[2025-11-06 06:59:07] This might be normal if using EnsureCreated() instead of migrations
+[2025-11-06 06:59:07] Attempting to initialize database via application startup...
+2025-11-06 06:59:09 info: Program[0]
       === IoT Containment Management System ===
-2025-10-27 13:47:54 info: Program[0]
+2025-11-06 06:59:09 info: Program[0]
       Version: 1.0.0.0
-2025-10-27 13:47:54 info: Program[0]
+2025-11-06 06:59:09 info: Program[0]
       Environment: Development
-2025-10-27 13:47:54 info: Program[0]
-      Startup Time: 10/27/2025 06:47:54
-2025-10-27 13:47:54 info: Program[0]
+2025-11-06 06:59:09 info: Program[0]
+      Startup Time: 11/06/2025 06:59:09
+2025-11-06 06:59:09 info: Program[0]
       Creating database...
-2025-10-27 13:47:55 info: Program[0]
+2025-11-06 06:59:16 info: Program[0]
       Database creation completed successfully
-2025-10-27 13:47:55 info: Program[0]
+2025-11-06 06:59:16 info: Program[0]
       Skipping role mapping system initialization for now...
-2025-10-27 13:47:55 info: Program[0]
+2025-11-06 06:59:16 info: Program[0]
       Starting optimized database seeding...
-2025-10-27 13:47:55 info: Program[0]
+2025-11-06 06:59:16 info: Program[0]
       Starting optimized database seeding...
-2025-10-27 13:47:55 info: Program[0]
+2025-11-06 06:59:17 info: Program[0]
+      Seeding users...
+2025-11-06 06:59:19 info: Program[0]
+      Seeded 3 users
+2025-11-06 06:59:19 info: Program[0]
+      Seeding containments...
+2025-11-06 06:59:19 info: Program[0]
+      Seeded 1 containments
+2025-11-06 06:59:19 info: Program[0]
+      Seeding racks...
+2025-11-06 06:59:19 info: Program[0]
+      Seeded 4 racks across 1 containments
+2025-11-06 06:59:19 info: Program[0]
+      Seeding devices...
+2025-11-06 06:59:20 info: Program[0]
+      Seeded 16 devices
+2025-11-06 06:59:20 info: Program[0]
+      Seeding containment statuses...
+2025-11-06 06:59:20 info: Program[0]
+      Seeded 1 containment statuses
+2025-11-06 06:59:20 info: Program[0]
+      Seeding maintenance records...
+2025-11-06 06:59:20 info: Program[0]
+      Seeded 2 maintenance records
+2025-11-06 06:59:20 info: Program[0]
+      Seeding MQTT configurations...
+2025-11-06 06:59:21 info: Program[0]
+      Seeded 1 MQTT configurations
+2025-11-06 06:59:21 info: Program[0]
+      Seeding network configurations...
+2025-11-06 06:59:21 info: Program[0]
+      Seeded 1 network configurations
+2025-11-06 06:59:21 info: Program[0]
       Seeding optimized menu management data...
-2025-10-27 13:47:55 info: Program[0]
-      Menu management data already exists, skipping...
-2025-10-27 13:47:55 info: Program[0]
-      Clearing 2888 existing DeviceSensorData records for regeneration
-2025-10-27 13:47:56 info: Program[0]
+2025-11-06 06:59:22 info: Program[0]
+      Seeded 3 roles, 6 menu groups, and 22 menu items
+2025-11-06 06:59:22 info: Program[0]
+      Seeding palm recognition devices...
+2025-11-06 06:59:22 info: Program[0]
+      Seeded 2 palm recognition devices
+2025-11-06 06:59:22 info: Program[0]
       Seeding enhanced device sensor data with multiple sensor types...
-2025-10-27 13:47:56 info: Program[0]
-      Found 16 sensor devices for data seeding
-2025-10-27 13:47:56 info: Program[0]
-      Generating sensor data from 10/27/2025 00:47:56 to 10/27/2025 06:47:56
-2025-10-27 13:47:58 info: Program[0]
-      Seeded 2888 sensor data records
-2025-10-27 13:47:58 info: Program[0]
-      Optimized database seeding completed successfully in 2.64 seconds
-2025-10-27 13:47:58 info: Program[0]
-      Initializing sensor interval configuration...
-2025-10-27 13:47:58 info: Program[0]
-      Validating seed data integrity...
-2025-10-27 13:47:58 info: Program[0]
-      Validating seed data integrity...
-2025-10-27 13:47:58 info: Program[0]
-      Seed data validation completed. Found 1 issues
-2025-10-27 13:47:58 warn: Program[0]
-      Found 1 data integrity issues: Found 3 users without role assignments
-2025-10-27 13:47:58 info: Program[0]
-      Database seeding completed
-2025-10-27 13:47:58 info: Program[0]
-      Server starting on: http://+:5000;https://+:5001
-2025-10-27 13:47:58 info: Program[0]
-      === Server Ready ===
-2025-10-27 13:47:58 info: Backend.Services.MaintenanceReminderHostedService[0]
-      Maintenance Reminder Service scheduled to run daily at 08:00. Next execution: 10/28/2025 08:00:00
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      MQTT service initialized with dynamic configuration via scope factory
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Sensor data save interval: 60s, min interval: 60s
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to MQTT configuration change notifications
-2025-10-27 13:47:58 info: Backend.Services.BackupHostedService[0]
-      Backup service started
-2025-10-27 13:47:58 dbug: Backend.Services.BackupHostedService[0]
-      Backup not due yet
-2025-10-27 13:47:58 info: Backend.Services.DeviceActivityHostedService[0]
-      DeviceActivityHostedService is starting
-2025-10-27 13:47:58 info: Backend.Services.DeviceActivityHostedService[0]
-      DeviceActivityHostedService started with 2-minute intervals
-2025-10-27 13:47:58 info: Backend.Services.DeviceActivityService[0]
-      Starting device activity status update...
-2025-10-27 13:47:58 info: Backend.Services.DeviceActivityService[0]
-      Device activity status update completed. Updated 0 devices.
-2025-10-27 13:47:58 info: Backend.Services.MaintenanceReminderHostedService[0]
-      Maintenance Reminder Hosted Service started
-2025-10-27 13:47:58 info: Backend.Services.DeviceStatusMonitoringHostedService[0]
-      Device Status Monitoring Service started with check interval: 00:02:00
-2025-10-27 13:47:58 info: Backend.Services.DeviceStatusMonitoringHostedService[0]
-      Device monitoring initialized successfully
-2025-10-27 13:47:58 dbug: Backend.Services.DeviceStatusMonitoringService[0]
-      Checked status for 8 devices with MQTT topics
-2025-10-27 13:47:58 dbug: Backend.Services.DeviceStatusMonitoringHostedService[0]
-      Device status check completed in 26ms
-2025-10-27 13:47:58 info: Backend.Services.ContainmentDataRetrievalHostedService[0]
-      ContainmentDataRetrievalHostedService starting...
-2025-10-27 13:47:58 info: Backend.Services.ContainmentDataRetrievalHostedService[0]
-      Waiting for MQTT connection... Attempt 1/30
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      === MQTT Configuration Analysis ===
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Environment: Development (Production: False, Development: True)
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Server Hostname: ubuntu-Alfi-Maulana
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Active Database Config Exists: True
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Database Config - ID: 1, Enabled: True, UseEnv: False, Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Environment Variables - Host: localhost, Port: 1883, Enabled: true
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Using DATABASE configuration (not using environment fallback)
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      === FINAL MQTT CONFIGURATION ===
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Source: Database
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Port: 1883
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Enabled: True
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      ClientId: DataCenter_Monitoring_System
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      UseSSL: False
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      =================================
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      === MQTT CONNECTION ATTEMPT ===
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Configuration Source: Database
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Broker Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Broker Port: 1883
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Client ID: DataCenter_Monitoring_System_5f439de8
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Use TLS: False
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Use WebSocket: False
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      WebSocket URI: 
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Has Credentials: False
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      ===============================
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Configuring MQTT over TCP: localhost:1883 (TLS: False)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Attempting to connect to MQTT broker...
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      ContainmentMqttHostedService starting...
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Waiting for MQTT connection... Attempt 1/30
-2025-10-27 13:47:58 warn: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[35]
-      No XML encryptor configured. Key {c961c11b-4c28-42a5-8502-df63fd6a944d} may be persisted to storage in unencrypted form.
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      MQTT client connected successfully
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      ✅ SUCCESSFULLY CONNECTED to MQTT broker via TCP: localhost:1883
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      === MQTT CONNECTION STATUS ===
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Connected: True
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Broker: localhost:1883
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Client ID: DataCenter_Monitoring_System_5f439de8
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Configuration Source: Database
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      ============================
-2025-10-27 13:47:58 info: Backend.Services.ContainmentDataRetrievalHostedService[0]
-      MQTT connection established for ContainmentDataRetrievalHostedService
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      === MQTT Configuration Analysis ===
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Environment: Development (Production: False, Development: True)
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Server Hostname: ubuntu-Alfi-Maulana
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Active Database Config Exists: True
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Database Config - ID: 1, Enabled: True, UseEnv: False, Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Environment Variables - Host: localhost, Port: 1883, Enabled: true
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Using DATABASE configuration (not using environment fallback)
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      === FINAL MQTT CONFIGURATION ===
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Source: Database
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Port: 1883
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Enabled: True
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      ClientId: DataCenter_Monitoring_System
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      UseSSL: False
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      =================================
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      MQTT client is already connected
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      MQTT connection established successfully
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      === MQTT Configuration Analysis ===
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Environment: Development (Production: False, Development: True)
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Server Hostname: ubuntu-Alfi-Maulana
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Active Database Config Exists: True
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Database Config - ID: 1, Enabled: True, UseEnv: False, Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Environment Variables - Host: localhost, Port: 1883, Enabled: true
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Using DATABASE configuration (not using environment fallback)
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      === FINAL MQTT CONFIGURATION ===
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Source: Database
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Host: localhost
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Port: 1883
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      Enabled: True
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      ClientId: DataCenter_Monitoring_System
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      UseSSL: False
-2025-10-27 13:47:58 info: Backend.Services.MqttConfigurationService[0]
-      =================================
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      MQTT Status - Connected: True, Source: Database, Host: localhost:1883, Enabled: True
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: IOT/Containment/Status
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Successfully subscribed to containment status topic: IOT/Containment/Status
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Found 16 sensor devices to subscribe
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Received containment status message on topic IOT/Containment/Status
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Payload: {"Lighting status": false, "Emergency status": false, "Smoke Detector status": false, "FSS status": false, "Emergency Button State": false, "selenoid status": false, "limit switch front door status": false, "limit switch back door status": false, "open front door status": false, "open back door status": false, "Emergency temp": false, "Timestamp": "2025-10-27 01:19:18"}
-2025-10-27 13:47:58 warn: Backend.Services.ContainmentMqttHostedService[0]
-      Could not extract containment ID from topic IOT/Containment/Status or payload. Using default containment ID 1
-2025-10-27 13:47:58 info: Backend.Services.ContainmentStatusService[0]
-      Processing MQTT payload for ContainmentId: 1
-2025-10-27 13:47:58 fail: Microsoft.Extensions.Hosting.Internal.Host[11]
-      Hosting failed to start
-      System.IO.IOException: Failed to bind to address http://[::]:5000: address already in use.
-       ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
-       ---> System.Net.Sockets.SocketException (98): Address already in use
-         at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
-         at System.Net.Sockets.Socket.Bind(EndPoint localEP)
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
-         --- End of inner exception stack trace ---
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
-      --- End of stack trace from previous location ---
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
-         --- End of inner exception stack trace ---
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.AnyIPListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.AddressesStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
-         at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
-         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Temperature_1
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Temperature_1 for device Temperature Sensor Rack SDC-R01 (ID: 1)
-2025-10-27 13:47:58 info: Backend.Services.ContainmentDataRetrievalHostedService[0]
-      ContainmentDataRetrievalHostedService stopping due to cancellation
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Dust Sensor_1
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Dust Sensor_1 for device Dust Sensor Sensor Rack SDC-R01 (ID: 2)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Air Flow_1
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Air Flow_1 for device Air Flow Sensor Rack SDC-R01 (ID: 3)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Vibration_1
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Vibration_1 for device Vibration Sensor Rack SDC-R01 (ID: 4)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Temperature_2
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Temperature_2 for device Temperature Sensor Rack SDC-R02 (ID: 5)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Dust Sensor_2
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Dust Sensor_2 for device Dust Sensor Sensor Rack SDC-R02 (ID: 6)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Air Flow_2
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Air Flow_2 for device Air Flow Sensor Rack SDC-R02 (ID: 7)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Vibration_2
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Vibration_2 for device Vibration Sensor Rack SDC-R02 (ID: 8)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Temperature_3
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Temperature_3 for device Temperature Sensor Rack SDC-R03 (ID: 9)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Dust Sensor_3
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Dust Sensor_3 for device Dust Sensor Sensor Rack SDC-R03 (ID: 10)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Air Flow_3
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Air Flow_3 for device Air Flow Sensor Rack SDC-R03 (ID: 11)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Vibration_3
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Vibration_3 for device Vibration Sensor Rack SDC-R03 (ID: 12)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Temperature_4
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Temperature_4 for device Temperature Sensor Rack SDC-R04 (ID: 13)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Dust Sensor_4
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Dust Sensor_4 for device Dust Sensor Sensor Rack SDC-R04 (ID: 14)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Air Flow_4
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Air Flow_4 for device Air Flow Sensor Rack SDC-R04 (ID: 15)
-2025-10-27 13:47:58 info: Backend.Services.MqttService[0]
-      Subscribed to topic: Containment/Sensor/Vibration_4
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Subscribed to sensor device topic: Containment/Sensor/Vibration_4 for device Vibration Sensor Rack SDC-R04 (ID: 16)
-2025-10-27 13:47:58 info: Backend.Services.ContainmentMqttHostedService[0]
-      Successfully subscribed to sensor device topics
-2025-10-27 13:47:58 fail: Backend.Services.EmergencyReportService[0]
-      Error processing emergency status for SmokeDetector
-      System.ObjectDisposedException: Cannot access a disposed object.
-      Object name: 'IServiceProvider'.
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.Diagnostics.Internal.ScopedLoggerFactory.Create(IServiceProvider internalServiceProvider, IDbContextOptions contextOptions)
-         at Microsoft.EntityFrameworkCore.Infrastructure.EntityFrameworkServicesBuilder.<>c.<TryAddCoreServices>b__8_0(IServiceProvider p)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.DbContext.get_DbContextDependencies()
-         at Microsoft.EntityFrameworkCore.DbContext.get_ContextServices()
-         at Microsoft.EntityFrameworkCore.DbContext.get_Model()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityType()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.CheckState()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityQueryable()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.System.Linq.IQueryable.get_Provider()
-         at System.Linq.Queryable.Where[TSource](IQueryable`1 source, Expression`1 predicate)
-         at Backend.Services.EmergencyReportService.GetActiveEmergencyAsync(String emergencyType) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/EmergencyReportService.cs:line 114
-         at Backend.Services.EmergencyReportService.EndEmergencyAsync(String emergencyType, String rawPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/EmergencyReportService.cs:line 89
-         at Backend.Services.EmergencyReportService.ProcessEmergencyStatusAsync(String emergencyType, Boolean status, String rawPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/EmergencyReportService.cs:line 45
-2025-10-27 13:47:58 fail: Backend.Services.ContainmentStatusService[0]
-      Error processing emergency statuses from MQTT payload
-      System.ObjectDisposedException: Cannot access a disposed object.
-      Object name: 'IServiceProvider'.
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.Diagnostics.Internal.ScopedLoggerFactory.Create(IServiceProvider internalServiceProvider, IDbContextOptions contextOptions)
-         at Microsoft.EntityFrameworkCore.Infrastructure.EntityFrameworkServicesBuilder.<>c.<TryAddCoreServices>b__8_0(IServiceProvider p)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.DbContext.get_DbContextDependencies()
-         at Microsoft.EntityFrameworkCore.DbContext.get_ContextServices()
-         at Microsoft.EntityFrameworkCore.DbContext.get_Model()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityType()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.CheckState()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityQueryable()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.System.Linq.IQueryable.get_Provider()
-         at System.Linq.Queryable.Where[TSource](IQueryable`1 source, Expression`1 predicate)
-         at Backend.Services.EmergencyReportService.GetActiveEmergencyAsync(String emergencyType) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/EmergencyReportService.cs:line 114
-         at Backend.Services.EmergencyReportService.EndEmergencyAsync(String emergencyType, String rawPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/EmergencyReportService.cs:line 89
-         at Backend.Services.EmergencyReportService.ProcessEmergencyStatusAsync(String emergencyType, Boolean status, String rawPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/EmergencyReportService.cs:line 45
-         at Backend.Services.ContainmentStatusService.ProcessEmergencyStatuses(JsonElement payloadData, String rawPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentStatusService.cs:line 233
-2025-10-27 13:47:58 fail: Backend.Services.ContainmentStatusService[0]
-      Error processing MQTT payload for ContainmentId: 1
-      System.ObjectDisposedException: Cannot access a disposed object.
-      Object name: 'IServiceProvider'.
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.Diagnostics.Internal.ScopedLoggerFactory.Create(IServiceProvider internalServiceProvider, IDbContextOptions contextOptions)
-         at Microsoft.EntityFrameworkCore.Infrastructure.EntityFrameworkServicesBuilder.<>c.<TryAddCoreServices>b__8_0(IServiceProvider p)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.Internal.DbContextServices.CreateModel(Boolean designTime)
-         at Microsoft.EntityFrameworkCore.Internal.DbContextServices.get_Model()
-         at Microsoft.EntityFrameworkCore.DbContext.get_Model()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityType()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.CheckState()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityQueryable()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.System.Linq.IQueryable.get_Provider()
-         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, Expression expression, CancellationToken cancellationToken)
-         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, LambdaExpression expression, CancellationToken cancellationToken)
-         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync[TSource](IQueryable`1 source, Expression`1 predicate, CancellationToken cancellationToken)
-         at Backend.Services.ContainmentStatusService.CreateOrUpdateStatusAsync(ContainmentStatus status) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentStatusService.cs:line 34
-         at Backend.Services.ContainmentStatusService.ProcessMqttPayloadAsync(Int32 containmentId, String jsonPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentStatusService.cs:line 158
-2025-10-27 13:47:58 fail: Backend.Services.ContainmentMqttHostedService[0]
-      Error processing containment status message from topic IOT/Containment/Status: {"Lighting status": false, "Emergency status": false, "Smoke Detector status": false, "FSS status": false, "Emergency Button State": false, "selenoid status": false, "limit switch front door status": false, "limit switch back door status": false, "open front door status": false, "open back door status": false, "Emergency temp": false, "Timestamp": "2025-10-27 01:19:18"}
-      System.ObjectDisposedException: Cannot access a disposed object.
-      Object name: 'IServiceProvider'.
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.Diagnostics.Internal.ScopedLoggerFactory.Create(IServiceProvider internalServiceProvider, IDbContextOptions contextOptions)
-         at Microsoft.EntityFrameworkCore.Infrastructure.EntityFrameworkServicesBuilder.<>c.<TryAddCoreServices>b__8_0(IServiceProvider p)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at ResolveService(ILEmitResolverBuilderRuntimeContext, ServiceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
-         at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
-         at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)
-         at Microsoft.EntityFrameworkCore.Internal.DbContextServices.CreateModel(Boolean designTime)
-         at Microsoft.EntityFrameworkCore.Internal.DbContextServices.get_Model()
-         at Microsoft.EntityFrameworkCore.DbContext.get_Model()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityType()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.CheckState()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityQueryable()
-         at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.System.Linq.IQueryable.get_Provider()
-         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, Expression expression, CancellationToken cancellationToken)
-         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, LambdaExpression expression, CancellationToken cancellationToken)
-         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync[TSource](IQueryable`1 source, Expression`1 predicate, CancellationToken cancellationToken)
-         at Backend.Services.ContainmentStatusService.CreateOrUpdateStatusAsync(ContainmentStatus status) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentStatusService.cs:line 34
-         at Backend.Services.ContainmentStatusService.ProcessMqttPayloadAsync(Int32 containmentId, String jsonPayload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentStatusService.cs:line 158
-         at Backend.Services.ContainmentMqttHostedService.HandleContainmentStatusMessage(String topic, String payload) in /home/ubuntu/Alfi/RnD/Development/NewContainment/Backend/Services/ContainmentMqttHostedService.cs:line 178
-2025-10-27 13:47:58 info: Backend.Services.MaintenanceReminderHostedService[0]
-      Maintenance Reminder Hosted Service stopped
-2025-10-27 13:47:58 info: Backend.Services.DeviceActivityHostedService[0]
-      DeviceActivityHostedService stopped
-2025-10-27 13:47:58 warn: Backend.Services.MqttService[0]
-      MQTT client disconnected: NormalDisconnection
-2025-10-27 13:47:58 info: Backend.Services.BackupHostedService[0]
-      Backup service stopped
-script/deploy.sh: line 740: 834952 Aborted                 timeout 10s dotnet publish/Backend.dll --migrate 2> /dev/null
-[WARNING] Database migrations may need manual intervention
-[2025-10-27 13:48:03] Database tables count: 0 (in app.db)
-[WARNING] Database has few tables, seeding will be handled by application startup
+[SUCCESS] Application startup completed in 15s
+[SUCCESS] Database appears to have been created/modified
+[2025-11-06 06:59:22] Database tables count: 24 (in app.db)
 [SUCCESS] Database setup completed
-[2025-10-27 13:48:03] === Installing Systemd Service ===
-[2025-10-27 13:48:03] Creating NewContainmentWeb.service file...
-[2025-10-27 13:48:03] Found system dotnet at: /usr/bin/dotnet
-[2025-10-27 13:48:03] Using dotnet path: /usr/bin/dotnet
-[2025-10-27 13:48:03] Using existing service template from root directory...
-cp: '/home/ubuntu/Alfi/RnD/Development/NewContainment/NewContainmentWeb.service' and '/home/ubuntu/Alfi/RnD/Development/NewContainment/NewContainmentWeb.service' are the same file
-[2025-10-27 13:48:03] Using system dotnet, ensuring proper service configuration...
-[2025-10-27 13:48:03] Updated dotnet path in service file to: /usr/bin/dotnet
-[SUCCESS] Service file created: /home/ubuntu/Alfi/RnD/Development/NewContainment/NewContainmentWeb.service
-[2025-10-27 13:48:03] Service configuration:
+[2025-11-06 06:59:22] === Installing Systemd Service ===
+[2025-11-06 06:59:22] Creating NewContainmentWeb.service file...
+[2025-11-06 06:59:22] Found system dotnet at: /usr/local/bin/dotnet
+[2025-11-06 06:59:23] Using dotnet path: /usr/local/bin/dotnet
+[2025-11-06 06:59:23] Using existing service template from root directory...
+cp: '/home/containment/NewContainment/NewContainmentWeb.service' and '/home/containment/NewContainment/NewContainmentWeb.service' are the same file
+[2025-11-06 06:59:23] Using system dotnet, ensuring proper service configuration...
+[2025-11-06 06:59:23] Updated dotnet path in service file to: /usr/local/bin/dotnet
+[SUCCESS] Service file created: /home/containment/NewContainment/NewContainmentWeb.service
+[2025-11-06 06:59:23] Service configuration:
     Description=Containment service
     ExecStart=/usr/bin/dotnet /home/containment/NewContainment/Backend/publish/Backend.dll
     WorkingDirectory=/home/containment/NewContainment/Backend/publish
-[2025-10-27 13:48:03] Copying service file to systemd...
-[2025-10-27 13:48:03] Setting correct permissions on backend files...
-[2025-10-27 13:48:03] Reloading systemd daemon...
-[2025-10-27 13:48:04] Enabling NewContainmentWeb service...
+[2025-11-06 06:59:23] Copying service file to systemd...
+[2025-11-06 06:59:23] Setting correct permissions on backend files...
+[2025-11-06 06:59:23] Reloading systemd daemon...
+[2025-11-06 06:59:24] Enabling NewContainmentWeb service...
 Created symlink /etc/systemd/system/multi-user.target.wants/NewContainmentWeb.service → /etc/systemd/system/NewContainmentWeb.service.
 [SUCCESS] Systemd service installed successfully
-[2025-10-27 13:48:04] === Starting Services ===
-[2025-10-27 13:48:04] Setting up proper permissions and ownership...
-[2025-10-27 13:48:04] Reloading systemd daemon...
-[2025-10-27 13:48:05] Enabling NewContainmentWeb service...
-[2025-10-27 13:48:05] Starting NewContainmentWeb backend service...
-[2025-10-27 13:48:10] Checking service status...
+[2025-11-06 06:59:25] === Starting Services ===
+[2025-11-06 06:59:25] Setting up proper permissions and ownership...
+[2025-11-06 06:59:25] Reloading systemd daemon...
+[2025-11-06 06:59:26] Enabling NewContainmentWeb service...
+[2025-11-06 06:59:26] Starting NewContainmentWeb backend service...
+[2025-11-06 06:59:31] Checking service status...
 [ERROR] Backend service failed to start
-Oct 27 13:48:07 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 1.
-Oct 27 13:48:07 ubuntu-Alfi-Maulana systemd[1]: Started NewContainmentWeb.service - Containment service.
-Oct 27 13:48:07 ubuntu-Alfi-Maulana (dotnet)[836390]: NewContainmentWeb.service: Failed to determine group credentials: No such process
-Oct 27 13:48:07 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=216/GROUP
-Oct 27 13:48:07 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-Oct 27 13:48:08 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 2.
-Oct 27 13:48:08 ubuntu-Alfi-Maulana systemd[1]: Started NewContainmentWeb.service - Containment service.
-Oct 27 13:48:08 ubuntu-Alfi-Maulana (dotnet)[836470]: NewContainmentWeb.service: Failed to determine group credentials: No such process
-Oct 27 13:48:08 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=216/GROUP
-Oct 27 13:48:08 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-Oct 27 13:48:09 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 3.
-Oct 27 13:48:09 ubuntu-Alfi-Maulana systemd[1]: Started NewContainmentWeb.service - Containment service.
-Oct 27 13:48:09 ubuntu-Alfi-Maulana (dotnet)[836552]: NewContainmentWeb.service: Failed to determine group credentials: No such process
-Oct 27 13:48:09 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=216/GROUP
-Oct 27 13:48:09 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-Oct 27 13:48:10 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 4.
-Oct 27 13:48:10 ubuntu-Alfi-Maulana systemd[1]: Started NewContainmentWeb.service - Containment service.
-Oct 27 13:48:10 ubuntu-Alfi-Maulana (dotnet)[836630]: NewContainmentWeb.service: Failed to determine group credentials: No such process
-Oct 27 13:48:10 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=216/GROUP
-Oct 27 13:48:10 ubuntu-Alfi-Maulana systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
-ubuntu@ubuntu-Alfi-Maulana:~/Alfi/RnD/Development/NewContainment$ cd Backend && dotnet restore
-Restore complete (3.2s)
+-- Journal begins at Thu 2025-10-16 18:42:05 BST, ends at Thu 2025-11-06 06:59:32 GMT. --
+Nov 06 06:59:29 containment systemd[1]: Stopped Containment service.
+Nov 06 06:59:29 containment systemd[1999008]: NewContainmentWeb.service: Failed to locate executable /usr/bin/dotnet: No such file or directory
+Nov 06 06:59:29 containment systemd[1999008]: NewContainmentWeb.service: Failed at step EXEC spawning /usr/bin/dotnet: No such file or directory
+Nov 06 06:59:29 containment systemd[1]: Started Containment service.
+Nov 06 06:59:29 containment systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=203/EXEC
+Nov 06 06:59:29 containment systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
+Nov 06 06:59:30 containment systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 3.
+Nov 06 06:59:30 containment systemd[1]: Stopped Containment service.
+Nov 06 06:59:30 containment systemd[1999032]: NewContainmentWeb.service: Failed to locate executable /usr/bin/dotnet: No such file or directory
+Nov 06 06:59:30 containment systemd[1999032]: NewContainmentWeb.service: Failed at step EXEC spawning /usr/bin/dotnet: No such file or directory
+Nov 06 06:59:30 containment systemd[1]: Started Containment service.
+Nov 06 06:59:30 containment systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=203/EXEC
+Nov 06 06:59:30 containment systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
+Nov 06 06:59:31 containment systemd[1]: NewContainmentWeb.service: Scheduled restart job, restart counter is at 4.
+Nov 06 06:59:31 containment systemd[1]: Stopped Containment service.
+Nov 06 06:59:31 containment systemd[1999039]: NewContainmentWeb.service: Failed to locate executable /usr/bin/dotnet: No such file or directory
+Nov 06 06:59:31 containment systemd[1999039]: NewContainmentWeb.service: Failed at step EXEC spawning /usr/bin/dotnet: No such file or directory
+Nov 06 06:59:31 containment systemd[1]: Started Containment service.
+Nov 06 06:59:31 containment systemd[1]: NewContainmentWeb.service: Main process exited, code=exited, status=203/EXEC
+Nov 06 06:59:31 containment systemd[1]: NewContainmentWeb.service: Failed with result 'exit-code'.
+containment@containment:~/NewContainment/script $ sudo which dotnet
+/usr/local/bin/dotnet

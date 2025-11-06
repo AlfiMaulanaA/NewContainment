@@ -55,7 +55,11 @@ export default function JwtTokenInfo({
       const remaining = getTokenTimeRemaining(token);
       const expiringSoon = isTokenExpiringSoon(token, 30); // 30 minutes warning
 
-      console.log('JWT Token Info (Global):', { remaining, expiringSoon, user: currentUser });
+      // Reduced logging frequency to prevent Fast Refresh rebuilds
+      // Only log when token status changes significantly
+      if (expiringSoon !== isExpiring || Math.abs(remaining - timeRemaining) > 5) {
+        console.log('JWT Token Info (Global):', { remaining, expiringSoon, user: currentUser });
+      }
 
       setTimeRemaining(remaining);
       setIsExpiring(expiringSoon);

@@ -433,12 +433,12 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
           return (
             <Card
               key={index}
-              className="bg-white shadow-lg border border-gray-200 overflow-hidden"
+              className="bg-card shadow-lg border overflow-hidden dark:bg-gray-800 dark:border-gray-700"
             >
-              <div className="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3">
+              <div className="bg-muted/50 px-3 sm:px-4 py-2 sm:py-3 dark:bg-gray-700/50">
                 <div className="flex justify-between items-center">
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                    <h3 className="font-bold text-card-foreground text-xs sm:text-sm truncate dark:text-gray-100">
                       <span className="hidden sm:inline">Live Stream - {streamItem.name}</span>
                       <span className="sm:hidden">{streamItem.name}</span>
                     </h3>
@@ -462,7 +462,7 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
               <CardContent className="p-3 sm:p-4">
                 <LiveStreamPlayer src={streamUrl} title={streamItem.name} />
 
-                <div className="mt-2 flex flex-col sm:flex-row items-center justify-between bg-gray-50 rounded-lg p-2 gap-2">
+                <div className="mt-2 flex flex-col sm:flex-row items-center justify-between bg-muted/50 rounded-lg p-2 gap-2 dark:bg-gray-700/50">
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
@@ -473,12 +473,12 @@ const LiveStreamsTab = ({ monitorData }: { monitorData: MonitorData[] }) => {
                     >
                       <Expand className="h-3 w-3" />
                     </Button>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {streamItem.width} × {streamItem.height}
                     </span>
                   </div>
 
-                  <div className="text-xs text-gray-500 text-center">
+                  <div className="text-xs text-muted-foreground text-center">
                     <span className="hidden sm:inline">Monitor ID: {streamItem.mid}</span>
                     <span className="sm:hidden">ID: {streamItem.mid}</span>
                   </div>
@@ -928,7 +928,7 @@ export default function CctvManagementPage() {
   const [formData, setFormData] = useState<CreateCameraConfigRequest>({
     name: "",
     ipAddress: "",
-    port: 554,
+    port: 8080,
     apiKey: "",
     group: "",
     isActive: true,
@@ -1099,7 +1099,7 @@ export default function CctvManagementPage() {
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Camera className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">CCTV Camera Management</h1>
+            <h1 className="text-lg font-semibold">NVR CCTV Management</h1>
           </div>
         </header>
         <div className="flex flex-1 items-center justify-center">
@@ -1118,8 +1118,8 @@ export default function CctvManagementPage() {
           <Separator orientation="vertical" className="mr-1 sm:mr-2 h-4 hidden sm:block" />
           <Camera className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
           <h1 className="text-sm sm:text-lg font-semibold truncate">
-            <span className="hidden sm:inline">CCTV Camera Management</span>
-            <span className="sm:hidden">CCTV</span>
+            <span className="hidden sm:inline">NVR CCTV Management</span>
+            <span className="sm:hidden">NVR CCTV</span>
           </h1>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -1138,7 +1138,7 @@ export default function CctvManagementPage() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Add New CCTV Camera</DialogTitle>
+              <DialogTitle>Add New NVR CCTV Monitor</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -1258,7 +1258,7 @@ export default function CctvManagementPage() {
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <CardTitle className="text-base sm:text-lg">
                   <span className="hidden sm:inline">
-                    CCTV Camera Configuration ({filteredCameras.length})
+                    NVR CCTV Configuration ({filteredCameras.length})
                   </span>
                   <span className="sm:hidden">
                     Cameras ({filteredCameras.length})
@@ -1341,7 +1341,7 @@ export default function CctvManagementPage() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete CCTV Camera</AlertDialogTitle>
+                              <AlertDialogTitle>Delete NVR CCTV Monitor</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Are you sure you want to delete camera "{camera.name}"? This action cannot be undone.
                               </AlertDialogDescription>
@@ -1441,9 +1441,9 @@ export default function CctvManagementPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete CCTV Camera
-                                  </AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Delete NVR CCTV Monitor
+                                </AlertDialogTitle>
                                   <AlertDialogDescription>
                                     Are you sure you want to delete camera "
                                     {camera.name}"? This action cannot be undone.
@@ -1532,7 +1532,7 @@ export default function CctvManagementPage() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Edit CCTV Camera</DialogTitle>
+            <DialogTitle>Edit NVR CCTV Monitor</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">

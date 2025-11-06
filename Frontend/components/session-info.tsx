@@ -47,8 +47,8 @@ export function SessionInfo() {
     // Update immediately
     updateTokenInfo();
 
-    // Update every 30 seconds
-    const interval = setInterval(updateTokenInfo, 30000);
+    // Update every 5 minutes to reduce rebuild frequency
+    const interval = setInterval(updateTokenInfo, 300000);
 
     return () => clearInterval(interval);
   }, [mounted]);

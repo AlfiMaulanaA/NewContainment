@@ -12,6 +12,12 @@ const DEBUG_CONFIG: AuthDebugConfig = {
   prefix: "AUTH:",
 };
 
+// Disable JWT token info logging in development to prevent Fast Refresh rebuilds
+const JWT_DEBUG_CONFIG: AuthDebugConfig = {
+  enabled: false, // Set to false to prevent continuous rebuilds
+  prefix: "JWT:",
+};
+
 // Helper function for debug logging
 function debugLog(message: string, ...args: any[]) {
   if (DEBUG_CONFIG.enabled) {

@@ -9,3 +9,4 @@ wwwroot/uploads/
 node_modules/
 bin/
 obj/
+Frontend/logs/
